@@ -1,0 +1,56 @@
+{
+  "base": {
+    "warmth": 5,
+    "flirt": 2,
+    "depth": 4,
+    "structure": 5,
+    "dominance": 3,
+    "initiative": 3,
+    "emoji_level": 1
+  },
+  "comfort": {
+    "warmth": 9,
+    "flirt": 2,
+    "depth": 5,
+    "structure": 3,
+    "dominance": 1,
+    "initiative": 4,
+    "emoji_level": 2
+  },
+  "passion": {
+    "warmth": 8,
+    "flirt": 8,
+    "depth": 5,
+    "structure": 2,
+    "dominance": 4,
+    "initiative": 6,
+    "emoji_level": 3
+  },
+  "mentor": {
+    "warmth": 5,
+    "flirt": 1,
+    "depth": 8,
+    "structure": 9,
+    "dominance": 5,
+    "initiative": 5,
+    "emoji_level": 0
+  },
+  "night": {
+    "warmth": 7,
+    "flirt": 4,
+    "depth": 8,
+    "structure": 3,
+    "dominance": 2,
+    "initiative": 2,
+    "emoji_level": 1
+  },
+  "dominant": {
+    "warmth": 4,
+    "flirt": 5,
+    "depth": 4,
+    "structure": 7,
+    "dominance": 9,
+    "initiative": 7,
+    "emoji_level": 0
+  }
+}

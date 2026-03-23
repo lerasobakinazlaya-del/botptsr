@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  bot:
+    build: .
+    command: python main.py
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./bot.db:/app/bot.db
+      - ./logs:/app/logs
+
+  admin-dashboard:
+    build: .
+    command: uvicorn admin_dashboard:app --host 0.0.0.0 --port 8080
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./bot.db:/app/bot.db
+      - ./logs:/app/logs
+
+volumes:
+  redis_data:
