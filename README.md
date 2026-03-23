@@ -211,3 +211,34 @@ sudo systemctl restart bot.service admin-dashboard.service
 sudo systemctl status bot.service
 sudo systemctl status admin-dashboard.service
 ```
+
+## Beget VPS
+
+Для этого проекта на Beget лучше использовать именно VPS, а не обычный виртуальный хостинг.
+Причина простая: боту нужны постоянный polling-процесс, Redis и отдельный web-admin.
+
+Подготовлены файлы:
+
+- `deploy/beget/bootstrap.sh`
+- `deploy/beget/nginx-admin.conf`
+
+Базовый сценарий на сервере:
+
+```bash
+git clone https://github.com/lerasobakinazlaya-del/botptsr.git /opt/bot
+cd /opt/bot
+chmod +x deploy/beget/bootstrap.sh
+./deploy/beget/bootstrap.sh
+```
+
+После этого:
+
+1. заполнить `/opt/bot/.env`
+2. при необходимости настроить `nginx` через `deploy/beget/nginx-admin.conf`
+3. запустить сервисы:
+
+```bash
+sudo systemctl restart bot.service admin-dashboard.service
+sudo systemctl status bot.service
+sudo systemctl status admin-dashboard.service
+```
