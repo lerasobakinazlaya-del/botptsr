@@ -170,3 +170,44 @@ docker compose up --build -d
 - `deploy/systemd/admin-dashboard.service`
 
 Они рассчитаны на установку проекта в `/opt/bot`.
+
+## GitHub publish
+
+Локальный репозиторий уже инициализирован. Для публикации:
+
+```powershell
+git remote add origin https://github.com/<your-name>/<repo>.git
+git push -u origin master
+```
+
+Если репозиторий на GitHub уже создан с README или `.gitignore`, сначала лучше сделать пустой репозиторий без дополнительных файлов.
+
+## Oracle Cloud Free
+
+Для always-on запуска бота и Redis бесплатная VM обычно практичнее, чем free web platforms.
+
+Подготовлены файлы:
+
+- `deploy/oracle/bootstrap.sh`
+- `deploy/oracle/nginx-admin.conf`
+
+Базовый сценарий на сервере:
+
+```bash
+git clone <your-repo-url> /opt/bot
+cd /opt/bot
+chmod +x deploy/oracle/bootstrap.sh
+./deploy/oracle/bootstrap.sh
+```
+
+После этого:
+
+1. заполнить `/opt/bot/.env`
+2. при необходимости настроить `nginx` через `deploy/oracle/nginx-admin.conf`
+3. перезапустить сервисы:
+
+```bash
+sudo systemctl restart bot.service admin-dashboard.service
+sudo systemctl status bot.service
+sudo systemctl status admin-dashboard.service
+```
