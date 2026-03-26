@@ -26,6 +26,11 @@ jobs:
           fi
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.vars.outputs.branch }}
+
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -36,7 +41,27 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Run remote deploy
+      - name: Build deploy archive
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='venv' \
+            --exclude='logs' \
+            --exclude='.env' \
+            --exclude='bot.db' \
+            --exclude='bot.db-shm' \
+            --exclude='bot.db-wal' \
+            -czf /tmp/bot-deploy.tgz .
+
+      - name: Upload archive to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          scp -P "${DEPLOY_PORT:-22}" /tmp/bot-deploy.tgz "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/bot-deploy.tgz"
+
+      - name: Deploy on server
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
@@ -44,5 +69,12 @@ jobs:
           APP_DIR: ${{ github.event.inputs.app_dir }}
           DEPLOY_BRANCH: ${{ steps.vars.outputs.branch }}
         run: |
-          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd '${APP_DIR}' && chmod +x deploy/systemd/update_bot.sh && APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'"
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" "
+            set -e
+            mkdir -p '${APP_DIR}'
+            tar -xzf /tmp/bot-deploy.tgz -C '${APP_DIR}'
+            rm -f /tmp/bot-deploy.tgz
+            chmod +x '${APP_DIR}/deploy/systemd/update_bot.sh'
+            cd '${APP_DIR}'
+            SKIP_GIT=1 APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'
+          "

@@ -6,19 +6,24 @@ BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 BOT_SERVICE="${BOT_SERVICE:-bot.service}"
 ADMIN_SERVICE="${ADMIN_SERVICE:-admin-dashboard.service}"
+SKIP_GIT="${SKIP_GIT:-0}"
 
 echo "==> Updating project in ${APP_DIR}"
 cd "${APP_DIR}"
 
-if [ ! -d .git ]; then
-  echo "Git repository not found in ${APP_DIR}"
-  exit 1
-fi
+if [ "${SKIP_GIT}" != "1" ]; then
+  if [ ! -d .git ]; then
+    echo "Git repository not found in ${APP_DIR}"
+    exit 1
+  fi
 
-echo "==> Fetching branch ${BRANCH}"
-git fetch --all --prune
-git checkout "${BRANCH}"
-git pull --ff-only origin "${BRANCH}"
+  echo "==> Fetching branch ${BRANCH}"
+  git fetch --all --prune
+  git checkout "${BRANCH}"
+  git pull --ff-only origin "${BRANCH}"
+else
+  echo "==> SKIP_GIT=1, using already synced sources"
+fi
 
 echo "==> Preparing virtual environment"
 if [ ! -x "./venv/bin/python" ]; then
