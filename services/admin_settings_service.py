@@ -7,13 +7,13 @@ from typing import Any
 
 class AdminSettingsService:
     DEFAULT_MODE_SCALES = {
-        "base": {"warmth": 5, "flirt": 2, "depth": 4, "structure": 5, "dominance": 3, "initiative": 3, "emoji_level": 1},
-        "comfort": {"warmth": 9, "flirt": 2, "depth": 5, "structure": 3, "dominance": 1, "initiative": 4, "emoji_level": 2},
-        "passion": {"warmth": 8, "flirt": 8, "depth": 5, "structure": 2, "dominance": 4, "initiative": 6, "emoji_level": 3},
-        "mentor": {"warmth": 5, "flirt": 1, "depth": 8, "structure": 9, "dominance": 5, "initiative": 5, "emoji_level": 0},
-        "night": {"warmth": 8, "flirt": 8, "depth": 6, "structure": 2, "dominance": 5, "initiative": 6, "emoji_level": 1},
-        "free_talk": {"warmth": 6, "flirt": 1, "depth": 7, "structure": 4, "dominance": 3, "initiative": 5, "emoji_level": 0},
-        "dominant": {"warmth": 4, "flirt": 5, "depth": 4, "structure": 7, "dominance": 9, "initiative": 7, "emoji_level": 0},
+        "base": {"warmth": 5, "flirt": 2, "depth": 4, "structure": 5, "dominance": 3, "initiative": 3, "emoji_level": 1, "allow_bold": False, "allow_italic": False},
+        "comfort": {"warmth": 9, "flirt": 2, "depth": 5, "structure": 3, "dominance": 1, "initiative": 4, "emoji_level": 2, "allow_bold": False, "allow_italic": False},
+        "passion": {"warmth": 8, "flirt": 8, "depth": 5, "structure": 2, "dominance": 4, "initiative": 6, "emoji_level": 3, "allow_bold": False, "allow_italic": False},
+        "mentor": {"warmth": 5, "flirt": 1, "depth": 8, "structure": 9, "dominance": 5, "initiative": 5, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "night": {"warmth": 8, "flirt": 8, "depth": 6, "structure": 2, "dominance": 5, "initiative": 6, "emoji_level": 1, "allow_bold": False, "allow_italic": False},
+        "free_talk": {"warmth": 6, "flirt": 1, "depth": 7, "structure": 4, "dominance": 3, "initiative": 5, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "dominant": {"warmth": 4, "flirt": 5, "depth": 4, "structure": 7, "dominance": 9, "initiative": 7, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
     }
 
     DEFAULT_RUNTIME_SETTINGS = {
@@ -496,8 +496,11 @@ class AdminSettingsService:
         merged = deepcopy(self.DEFAULT_MODE_SCALES)
         self._deep_merge(merged, payload)
         for mode_name, values in merged.items():
-            for metric in self.DEFAULT_MODE_SCALES["base"]:
-                values[metric] = min(10, max(0, int(values.get(metric, 0))))
+            for metric, default_value in self.DEFAULT_MODE_SCALES["base"].items():
+                if isinstance(default_value, bool):
+                    values[metric] = bool(values.get(metric, default_value))
+                else:
+                    values[metric] = min(10, max(0, int(values.get(metric, 0))))
         return merged
 
     def _normalize_mode_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:

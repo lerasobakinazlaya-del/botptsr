@@ -1,11 +1,17 @@
 import logging
 
 from aiogram import Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
 from handlers.modes import show_modes_menu
 from handlers.payments import send_premium_offer
 from services.ai_service import AIBackpressureError
+from services.telegram_formatting import (
+    TelegramFormattingOptions,
+    escape_plain_text_for_telegram,
+    format_model_response_for_telegram,
+)
 
 
 router = Router()
@@ -126,6 +132,14 @@ async def chat_handler(
         )
         new_state = state
 
+    active_mode = str(new_state.get("active_mode") or "base")
+    mode_config = admin_settings_service.get_modes().get(active_mode, {})
+    formatting_options = TelegramFormattingOptions(
+        allow_bold=bool(mode_config.get("allow_bold", False)),
+        allow_italic=bool(mode_config.get("allow_italic", False)),
+    )
+    formatted_response = format_model_response_for_telegram(response, formatting_options)
+
     try:
         async with db.transaction():
             await message_repository.save(user_id, "user", user_text, commit=False)
@@ -141,4 +155,8 @@ async def chat_handler(
     except Exception:
         logger.exception("SUMMARY SCHEDULER ERROR")
 
-    await message.answer(response)
+    try:
+        await message.answer(formatted_response or escape_plain_text_for_telegram(response))
+    except TelegramBadRequest:
+        logger.exception("TELEGRAM FORMAT ERROR")
+        await message.answer(escape_plain_text_for_telegram(response))

@@ -119,6 +119,8 @@ class PromptBuilder:
         initiative = int(mode_config.get("initiative", 5) or 5)
         flirt = int(mode_config.get("flirt", 0) or 0)
         emoji_level = int(mode_config.get("emoji_level", 0) or 0)
+        allow_bold = bool(mode_config.get("allow_bold", False))
+        allow_italic = bool(mode_config.get("allow_italic", False))
 
         lines = [
             "Reply priorities:",
@@ -163,6 +165,7 @@ class PromptBuilder:
             lines.append("- Sound composed and leading, but never harsh, humiliating, or coercive.")
 
         lines.append(self._build_emoji_rule(emoji_level))
+        lines.append(self._build_text_formatting_rule(allow_bold, allow_italic))
         lines.append(f"- Active mode is '{active_mode}'. Honor its tone without sounding like a preset.")
 
         return "\n".join(line for line in lines if line.strip())
@@ -179,10 +182,19 @@ class PromptBuilder:
         if emoji_level <= 0:
             return "- Do not use emoji."
         if emoji_level == 1:
-            return "- Avoid emoji unless one tiny signal feels truly natural."
+            return "- Emoji may appear, but keep them rare: at most one light emoji and only in warm, non-heavy moments."
         if emoji_level == 2:
-            return "- Use at most one light emoji when it adds warmth without noise."
-        return "- Use emoji sparingly, never more than two, and only if they genuinely fit the mood."
+            return "- In friendly or supportive replies, one light emoji is welcome when it adds warmth; skip it for heavy or serious topics."
+        return "- In playful, intimate, or clearly warm moments, use one or two fitting emoji without turning the reply into decoration."
+
+    def _build_text_formatting_rule(self, allow_bold: bool, allow_italic: bool) -> str:
+        if allow_bold and allow_italic:
+            return "- You may occasionally use Markdown emphasis with **bold** or *italic* when it genuinely sharpens the line."
+        if allow_bold:
+            return "- You may occasionally use Markdown emphasis with **bold**, but do not use italic."
+        if allow_italic:
+            return "- You may occasionally use Markdown emphasis with *italic*, but do not use bold."
+        return "- Do not use Markdown emphasis, HTML tags, or decorative formatting in the reply."
 
     def _looks_like_direct_question(self, text: str) -> bool:
         question_starts = (
