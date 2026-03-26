@@ -1,38 +1,49 @@
 # Bot
 
-Telegram-бот на `aiogram` с SQLite, Redis, OpenAI и отдельной веб-админкой на FastAPI.
+Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной админкой на FastAPI.
 
 ## Что умеет проект
 
 - несколько режимов общения с настраиваемыми шкалами поведения
 - Premium-режимы и Telegram Payments
-- русская веб-админка с несколькими разделами
-- редактирование runtime-настроек, промптов, режимов и UI без правки кода
-- настройка access engine и дневных лимитов для бесплатных пользователей
-- управление реферальной программой и ее правилами конверсии
-- тестирование системного промпта, state engine и live-ответа модели из админки
-- просмотр логов, health-статуса и базовой аналитики
+- веб-админка для runtime-настроек, промптов, режимов и UI
+- реферальная программа
+- базовые health-метрики, просмотр логов и тестирование промптов из админки
+
+## Что изменено в этой версии
+
+- админка в `docker-compose` по умолчанию публикуется только на `127.0.0.1`
+- Redis больше не публикуется наружу через `docker-compose`
+- успешный чат теперь сохраняется в БД одним `COMMIT`, а не несколькими подряд
+- runtime-конфиги кешируются в памяти и не читаются с диска на каждый запрос
+- полные промпты логируются только в `DEBUG=true`
+- входящие сообщения больше не пишутся в лог с текстовым preview
+- рассылка из Telegram-админки отправляется батчами, а не одним длинным последовательным циклом
+- платеж подтверждается только при корректном `invoice_payload`
+- при старте бот больше не сбрасывает pending updates
+
+## Стек
+
+- Python 3.12+
+- aiogram 3
+- OpenAI Python SDK
+- Redis
+- SQLite
+- FastAPI + Uvicorn
 
 ## Структура
 
-- `main.py` - запуск Telegram-бота
-- `admin_dashboard.py` - веб-админка
-- `handlers/` - Telegram-хендлеры
-- `services/` - AI, платежи, память, метрики и настройки
-- `database/` - SQLite и репозитории
-- `config/` - редактируемые JSON-конфиги
-- `core/` - контейнер, middleware, логирование
-- `deploy/systemd/` - systemd-юниты и update-скрипт
-- `.github/workflows/deploy.yml` - one-click deploy через GitHub Actions
+- `main.py` — запуск Telegram-бота
+- `admin_dashboard.py` — веб-админка
+- `handlers/` — Telegram-хендлеры
+- `services/` — AI, платежи, память, метрики, настройки
+- `database/` — SQLite и репозитории
+- `config/` — редактируемые JSON-конфиги
+- `core/` — контейнер, middleware, логирование
+- `deploy/systemd/` — systemd-юниты и update-скрипт
+- `.github/workflows/deploy.yml` — деплой через GitHub Actions
 
-## Требования
-
-- Python 3.12+
-- Redis
-- Telegram Bot Token
-- OpenAI API key
-
-## Установка
+## Быстрый старт
 
 ```powershell
 python -m venv venv
@@ -41,6 +52,18 @@ python -m venv venv
 ```
 
 ## Настройка `.env`
+
+Минимальный набор:
+
+```env
+BOT_TOKEN=your_telegram_bot_token
+OPENAI_API_KEY=your_openai_api_key
+OWNER_ID=123456789
+ADMIN_ID=123456789,987654321
+REDIS_URL=redis://localhost:6379/0
+```
+
+Рекомендуемый production-вариант:
 
 ```env
 BOT_TOKEN=your_telegram_bot_token
@@ -52,13 +75,14 @@ REDIS_URL=redis://localhost:6379/0
 DEBUG=false
 AI_LOG_FULL_PROMPT=false
 AI_DEBUG_PROMPT_USER_ID=
-OPENAI_MAX_PARALLEL_REQUESTS=4
-OPENAI_QUEUE_SIZE=100
+OPENAI_MAX_PARALLEL_REQUESTS=8
+OPENAI_QUEUE_SIZE=500
 
 ADMIN_DASHBOARD_HOST=127.0.0.1
 ADMIN_DASHBOARD_PORT=8080
+ADMIN_DASHBOARD_BIND=127.0.0.1
 ADMIN_DASHBOARD_USERNAME=admin
-ADMIN_DASHBOARD_PASSWORD=change-me
+ADMIN_DASHBOARD_PASSWORD=change-this-strong-password
 ADMIN_DASHBOARD_CACHE_TTL=15
 
 PAYMENT_PROVIDER_TOKEN=your_telegram_payment_provider_token
@@ -82,180 +106,30 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 .\venv\Scripts\uvicorn.exe admin_dashboard:app --host 127.0.0.1 --port 8080
 ```
 
-После запуска открой:
+После запуска откройте:
 
 - `http://127.0.0.1:8080`
 
-Логин и пароль берутся из:
-
-- `ADMIN_DASHBOARD_USERNAME`
-- `ADMIN_DASHBOARD_PASSWORD`
-
-## Что настраивается через админку
-
-### 1. Обзор
-
-- пользователи, Premium, сообщения, выручка
-- недавние пользователи и платежи
-- состояние DB, Redis и AI-воркеров
-
-### 2. AI и интерфейс
-
-- модель OpenAI
-- `temperature`
-- таймаут и ретраи
-- размер памяти и длина истории
-- логирование полного промпта
-- тексты ошибок чата
-- кнопки и приветствия Telegram-интерфейса
-
-### 3. Безопасность и state engine
-
-- rate limit и предупреждения
-- максимальная длина сообщения
-- фильтр подозрительных ссылок
-- списки ключевых слов
-- стартовые значения состояния
-- коэффициенты изменения `interest`, `attraction`, `control` и других метрик
-- пороги access engine: `observation`, `analysis`, `tension`, `personal_focus`, `rare_layer`
-- дневной лимит сообщений для бесплатных пользователей
-- кастомный текст при достижении free-лимита
-
-### 4. Промпты
-
-- ядро личности
-- safety-блок
-- префиксы памяти, состояния, режима и доступа
-- финальная инструкция
-- правила доступа: `observation`, `analysis`, `tension`, `personal_focus`, `rare_layer`
-
-### 5. Режимы
-
-- название, иконка и описание режима
-- Premium / Free
-- порядок отображения
-- тон, эмоциональное состояние, правила поведения
-- фраза активации
-- числовые шкалы режима в `config/modes.json`
-
-### 6. Оплата
-
-- provider token
-- валюта
-- цена
-- название и описание Premium
-- benefits-текст и CTA оплаты
-- пользовательские сообщения оплаты
-
-### 7. Реферальная программа
-
-- включение и отключение программы
-- prefix deep link для `/start`
-- запрет или разрешение self-referral
-- условие конверсии только после первой оплаты
-- награда Premium для реферера и/или приглашенного
-- шаблон реферальной ссылки
-- приветствие приглашенного пользователя
-- сообщение о начислении награды
-
-### 8. Тестирование
-
-- превью системного промпта
-- dry-run обновления state
-- live-тест ответа модели из текущих настроек
-
-### 9. Логи
-
-- просмотр `logs/bot.log`
-- health-данные
-- проверка конфигурационных файлов
-
-## Редактируемые конфиги
-
-- `config/runtime_settings.json` - runtime-настройки, UI, безопасность, state engine, платежи
-- `config/runtime_settings.json` также хранит access engine, daily limits и referral program
-- `config/prompt_templates.json` - шаблоны системных промптов
-- `config/modes.json` - числовые шкалы режимов
-- `config/mode_catalog.json` - тексты, названия, иконки и Premium-статусы режимов
-
-Если каких-то файлов нет, сервис настроек создаст их автоматически.
-
-## Режимы общения
-
-Доступны:
-
-- `base`
-- `comfort`
-- `passion`
-- `mentor`
-- `night`
-- `dominant`
-
-По умолчанию Premium:
-
-- `passion`
-- `mentor`
-- `night`
-- `dominant`
-
-## Telegram-админка
-
-Команда `/admin` доступна администраторам и владельцу.
-
-Она позволяет:
-
-- смотреть статистику
-- смотреть runtime/debug
-- проверять состояние зависимостей
-- выдавать и снимать Premium
-- запускать рассылку с подтверждением
-
-## Redis
-
-Redis используется для:
-
-- FSM storage
-- rate limit middleware
-- кеша метрик админки
-
-Если Redis временно недоступен, проект не падает:
-
-- FSM переходит на `MemoryStorage`
-- middleware используют локальный fallback
-- админка строит overview без Redis-кеша
-
-## Рефералка и лимиты
-
-Реферальная программа работает через deep link вида:
-
-- `https://t.me/<bot_username>?start=ref_<user_id>`
-
-После первой успешной оплаты приглашенного пользователя система может:
-
-- пометить реферальную конверсию
-- выдать Premium рефереру
-- выдать Premium приглашенному
-
-Лимиты бесплатных пользователей считаются по количеству пользовательских сообщений за текущий день.
-
-## Логи
-
-Основной лог:
-
-- `logs/bot.log`
-
 ## Docker
-
-Для серверного запуска можно использовать:
-
-- `Dockerfile`
-- `docker-compose.yml`
 
 Запуск:
 
 ```powershell
 docker compose up --build -d
 ```
+
+Новые безопасные дефолты:
+
+- Redis не публикуется наружу
+- админка пробрасывается только на `127.0.0.1`
+
+Если нужен доступ к админке с другого интерфейса, задайте переменную:
+
+```env
+ADMIN_DASHBOARD_BIND=0.0.0.0
+```
+
+Делайте это только за reverse proxy и с HTTPS.
 
 ## systemd
 
@@ -265,28 +139,41 @@ docker compose up --build -d
 - `deploy/systemd/admin-dashboard.service`
 - `deploy/systemd/update_bot.sh`
 
-Скрипт `update_bot.sh` выполняет:
+Скрипт `deploy/systemd/update_bot.sh`:
 
-- обновление кода
-- установку зависимостей
-- проверку Python-компиляции
-- перезапуск `bot.service`
-- перезапуск `admin-dashboard.service`
+- обновляет зависимости
+- проверяет Python-файлы через `py_compile`
+- обновляет systemd-юниты
+- перезапускает `bot.service` и `admin-dashboard.service`
 
 ## GitHub Actions деплой
 
 В репозитории есть workflow `Deploy Bot`.
 
-Нужно добавить secrets:
+Нужны secrets:
 
 - `DEPLOY_HOST`
 - `DEPLOY_PORT`
 - `DEPLOY_USER`
 - `DEPLOY_SSH_KEY`
 
-После этого можно запускать деплой кнопкой `Run workflow` в GitHub Actions.
+После этого можно запустить workflow вручную через GitHub Actions.
 
-## Быстрая проверка после деплоя
+## Безопасность
+
+- не публикуйте Redis в интернет
+- не оставляйте `ADMIN_DASHBOARD_PASSWORD=change-me`
+- держите админку за reverse proxy и HTTPS
+- не включайте `DEBUG=true` на проде
+- не включайте `AI_LOG_FULL_PROMPT` на проде
+
+## Ограничения текущей архитектуры
+
+- основная БД по-прежнему SQLite; для высокой конкурентной нагрузки лучше перейти на PostgreSQL
+- throughput по AI ограничен вашим OpenAI rate limit и значениями `OPENAI_MAX_PARALLEL_REQUESTS` / `OPENAI_QUEUE_SIZE`
+- fallback без Redis удобен для отказоустойчивости, но не подходит для горизонтального масштабирования
+
+## Проверка после деплоя
 
 ```bash
 redis-cli ping
@@ -298,5 +185,5 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 
 Ожидаемо:
 
-- `redis-cli ping` -> `PONG`
+- `redis-cli ping` отвечает `PONG`
 - оба сервиса в состоянии `active (running)`

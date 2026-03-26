@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import aiosqlite
 
 
@@ -104,3 +106,20 @@ class Database:
     async def close(self):
         if self.connection is not None:
             await self.connection.close()
+
+    async def commit(self) -> None:
+        if self.connection is not None:
+            await self.connection.commit()
+
+    async def rollback(self) -> None:
+        if self.connection is not None:
+            await self.connection.rollback()
+
+    @asynccontextmanager
+    async def transaction(self):
+        try:
+            yield self.connection
+            await self.commit()
+        except Exception:
+            await self.rollback()
+            raise

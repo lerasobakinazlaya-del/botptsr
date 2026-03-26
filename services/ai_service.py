@@ -214,13 +214,16 @@ class AIService:
         user_id: int,
         ai_settings: dict[str, Any],
     ) -> bool:
+        if not self.debug:
+            return False
+
         log_full_prompt = bool(ai_settings.get("log_full_prompt", self.log_full_prompt))
         debug_prompt_user_id = ai_settings.get(
             "debug_prompt_user_id",
             self.debug_prompt_user_id,
         )
 
-        if not log_full_prompt and not self.debug:
+        if not log_full_prompt:
             return False
 
         if debug_prompt_user_id is None:

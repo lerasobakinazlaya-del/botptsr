@@ -99,7 +99,7 @@ async def main():
         dp = create_dispatcher(container, settings)
 
         try:
-            await bot.delete_webhook(drop_pending_updates=True)
+            await bot.delete_webhook(drop_pending_updates=False)
         except TelegramNetworkError as exc:
             logging.warning("Failed to delete webhook before startup: %s", exc)
 

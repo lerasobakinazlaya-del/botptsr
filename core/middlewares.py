@@ -11,32 +11,20 @@ URL_PATTERN = re.compile(r"https?://", re.IGNORECASE)
 
 
 class LoggingMiddleware(BaseMiddleware):
-    def __init__(self, preview_length: int = 120):
-        self.preview_length = preview_length
-
     async def __call__(self, handler, event, data):
         try:
             if isinstance(event, Message) and event.from_user:
                 LOGGER.info(
-                    "[MSG] user_id=%s username=%s length=%s preview=%r",
+                    "[MSG] user_id=%s username=%s has_text=%s length=%s",
                     event.from_user.id,
                     event.from_user.username,
+                    bool(event.text),
                     len(event.text or ""),
-                    self._build_preview(event.text),
                 )
             return await handler(event, data)
         except Exception as exc:
             LOGGER.exception("[ERROR] Unhandled exception: %s", exc)
             raise
-
-    def _build_preview(self, text: str | None) -> str:
-        if not text:
-            return ""
-
-        normalized = " ".join(text.split())
-        if len(normalized) <= self.preview_length:
-            return normalized
-        return normalized[: self.preview_length - 3] + "..."
 
 
 class ThrottlingMiddleware(BaseMiddleware):
@@ -147,9 +135,9 @@ class SuspiciousContentMiddleware(BaseMiddleware):
 
             if has_link and has_suspicious_keyword:
                 LOGGER.warning(
-                    "[SUSPICIOUS] user_id=%s preview=%r",
+                    "[SUSPICIOUS] user_id=%s has_link=%s",
                     event.from_user.id if event.from_user else None,
-                    text[:120],
+                    has_link,
                 )
                 await event.answer(safety["suspicious_rejection_text"])
                 return

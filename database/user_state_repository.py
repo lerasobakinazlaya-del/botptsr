@@ -66,7 +66,13 @@ class UserStateRepository:
 
         return self._merge_with_default(state)
 
-    async def save(self, user_id: int, state: Dict[str, Any]) -> None:
+    async def save(
+        self,
+        user_id: int,
+        state: Dict[str, Any],
+        *,
+        commit: bool = True,
+    ) -> None:
         await self._db.connection.execute(
             """
             INSERT INTO user_state (user_id, state_json, version, updated_at)
@@ -79,7 +85,8 @@ class UserStateRepository:
             """,
             (user_id, json.dumps(state, ensure_ascii=False)),
         )
-        await self._db.connection.commit()
+        if commit:
+            await self._db.connection.commit()
 
     async def set_active_mode(self, user_id: int, mode: str) -> Dict[str, Any]:
         state = await self.get(user_id)

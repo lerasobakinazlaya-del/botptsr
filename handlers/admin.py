@@ -1,4 +1,8 @@
+import asyncio
+from urllib.parse import urlparse
+
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -9,12 +13,39 @@ from states.admin_states import BroadcastStates, PremiumStates
 
 router = Router()
 
+BROADCAST_BATCH_SIZE = 20
+BROADCAST_PAUSE_SECONDS = 1.0
+
 router.message.filter(AdminFilter())
 router.callback_query.filter(AdminFilter())
 
 
 def is_owner(user_id: int, settings) -> bool:
     return user_id == settings.owner_id
+
+
+def _mask_connection_target(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.hostname or "unknown"
+    port = parsed.port
+    return f"{host}:{port}" if port is not None else host
+
+
+async def _send_broadcast_message(bot, user_id: int, text: str) -> bool:
+    try:
+        await bot.send_message(user_id, text)
+        return True
+    except TelegramRetryAfter as exc:
+        await asyncio.sleep(exc.retry_after)
+        try:
+            await bot.send_message(user_id, text)
+            return True
+        except Exception:
+            return False
+    except (TelegramForbiddenError, TelegramBadRequest):
+        return False
+    except Exception:
+        return False
 
 
 def get_admin_keyboard(is_owner_value: bool) -> InlineKeyboardMarkup:
@@ -94,7 +125,7 @@ async def admin_debug(callback: CallbackQuery, ai_service, settings):
         f"Количество workers: {stats['workers']}\n"
         f"Лимит параллельных AI-запросов: {stats['max_parallel_requests']}\n"
         f"Очередь AI: {stats['queue_size']}/{stats['queue_capacity']}\n"
-        f"Redis: {settings.redis_url}"
+        f"Redis: {_mask_connection_target(settings.redis_url)}"
     )
 
     await callback.message.answer(text)
@@ -203,12 +234,19 @@ async def broadcast_send(callback: CallbackQuery, state: FSMContext, user_servic
 
     await callback.answer("Рассылка запущена")
 
-    for user_id in user_ids:
-        try:
-            await callback.message.bot.send_message(user_id, broadcast_text)
-            sent += 1
-        except Exception:
-            failed += 1
+    for offset in range(0, len(user_ids), BROADCAST_BATCH_SIZE):
+        batch = user_ids[offset : offset + BROADCAST_BATCH_SIZE]
+        batch_results = await asyncio.gather(
+            *[
+                _send_broadcast_message(callback.message.bot, user_id, broadcast_text)
+                for user_id in batch
+            ]
+        )
+        sent += sum(1 for result in batch_results if result)
+        failed += sum(1 for result in batch_results if not result)
+
+        if offset + BROADCAST_BATCH_SIZE < len(user_ids):
+            await asyncio.sleep(BROADCAST_PAUSE_SECONDS)
 
     await state.clear()
     await callback.message.answer(

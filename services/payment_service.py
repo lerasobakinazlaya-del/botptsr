@@ -38,6 +38,9 @@ class PaymentService:
     def build_invoice_payload(self, user_id: int) -> str:
         return f"premium:{user_id}"
 
+    def validate_invoice_payload(self, payload: str, user_id: int) -> bool:
+        return payload == self.build_invoice_payload(user_id)
+
     def build_prices(self) -> list[LabeledPrice]:
         payment = self.get_payment_settings()
         return [LabeledPrice(label=payment["product_title"], amount=payment["price_minor_units"])]
@@ -63,6 +66,9 @@ class PaymentService:
             return None
 
         user_id = message.from_user.id
+        if not self.validate_invoice_payload(payment.invoice_payload, user_id):
+            raise ValueError("Invalid invoice payload")
+
         amount = self._to_major_units(payment.total_amount, payment.currency)
         payment_info = await self.payment_repository.save_payment(
             user_id=user_id,

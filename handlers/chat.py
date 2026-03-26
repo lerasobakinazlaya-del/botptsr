@@ -22,6 +22,7 @@ async def chat_handler(
     user_service,
     referral_service,
     admin_settings_service,
+    db,
 ):
     runtime_settings = admin_settings_service.get_runtime_settings()
     ai_settings = runtime_settings["ai"]
@@ -74,8 +75,6 @@ async def chat_handler(
             await message.answer(limits_settings["free_daily_limit_message"])
             return
 
-    await message_repository.save(user_id, "user", user_text)
-
     history = await message_repository.get_last_messages(
         user_id=user_id,
         limit=ai_settings["history_message_limit"],
@@ -95,10 +94,12 @@ async def chat_handler(
             state=state,
         )
     except AIBackpressureError:
+        await message_repository.save(user_id, "user", user_text)
         await message.answer(chat_settings["busy_message"])
         return
     except Exception:
         logger.exception("AI ERROR")
+        await message_repository.save(user_id, "user", user_text)
         await message.answer(chat_settings["ai_error_message"])
         return
 
@@ -112,6 +113,14 @@ async def chat_handler(
         )
         new_state = state
 
-    await state_repository.save(user_id, new_state)
-    await message_repository.save(user_id, "assistant", response)
+    try:
+        async with db.transaction():
+            await message_repository.save(user_id, "user", user_text, commit=False)
+            await state_repository.save(user_id, new_state, commit=False)
+            await message_repository.save(user_id, "assistant", response, commit=False)
+    except Exception:
+        logger.exception("DB ERROR while saving chat exchange")
+        await message.answer(chat_settings["ai_error_message"])
+        return
+
     await message.answer(response)

@@ -1,9 +1,12 @@
+import logging
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message, PreCheckoutQuery
 
 
 router = Router(name="payments-router")
+logger = logging.getLogger(__name__)
 
 
 async def send_premium_offer(message: Message, payment_service) -> bool:
@@ -37,14 +40,27 @@ async def buy_premium(message: Message, payment_service, user_service):
 
 
 @router.pre_checkout_query()
-async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery, bot):
-    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery, bot, payment_service):
+    is_valid = payment_service.validate_invoice_payload(
+        pre_checkout_query.invoice_payload,
+        pre_checkout_query.from_user.id,
+    )
+    await bot.answer_pre_checkout_query(
+        pre_checkout_query.id,
+        ok=is_valid,
+        error_message=None if is_valid else "Некорректный платежный запрос.",
+    )
 
 
 @router.message(F.successful_payment)
 async def successful_payment_handler(message: Message, payment_service, user_service):
     await user_service.ensure_user(message.from_user)
-    result = await payment_service.handle_successful_payment(message)
+    try:
+        result = await payment_service.handle_successful_payment(message)
+    except ValueError:
+        logger.warning("Rejected successful_payment with invalid payload for user %s", message.from_user.id)
+        return
+
     payment_settings = payment_service.get_payment_settings()
     await message.answer(payment_settings["success_message"])
     if result and result.get("referral"):

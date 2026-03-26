@@ -26,7 +26,14 @@ class MessageRepository:
     async def _commit(self):
         await self.db.connection.commit()
 
-    async def save(self, user_id: int, role: str, text: str) -> None:
+    async def save(
+        self,
+        user_id: int,
+        role: str,
+        text: str,
+        *,
+        commit: bool = True,
+    ) -> None:
         await self.db.connection.execute(
             """
             INSERT INTO messages (user_id, role, text)
@@ -34,7 +41,8 @@ class MessageRepository:
             """,
             (user_id, role, text),
         )
-        await self._commit()
+        if commit:
+            await self._commit()
 
         logger.debug("[DB] Saved message | user_id=%s | role=%s", user_id, role)
 
@@ -78,12 +86,13 @@ class MessageRepository:
         row = await cursor.fetchone()
         return row[0] if row else 0
 
-    async def clear_user_history(self, user_id: int) -> None:
+    async def clear_user_history(self, user_id: int, *, commit: bool = True) -> None:
         await self.db.connection.execute(
             "DELETE FROM messages WHERE user_id = ?",
             (user_id,),
         )
-        await self._commit()
+        if commit:
+            await self._commit()
         logger.info("[DB] Cleared history for user %s", user_id)
 
     async def get_user_messages_count_today(self, user_id: int) -> int:

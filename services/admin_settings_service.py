@@ -208,6 +208,7 @@ class AdminSettingsService:
         self.modes_path = self.config_dir / "modes.json"
         self.mode_catalog_path = self.config_dir / "mode_catalog.json"
         self.log_path = self.logs_dir / "bot.log"
+        self._json_cache: dict[Path, tuple[int | None, dict[str, Any]]] = {}
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.ensure_defaults()
@@ -447,13 +448,23 @@ class AdminSettingsService:
             self._write_json(path, default)
 
     def _read_json(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
+        current_mtime = self._get_mtime(path)
+        cached = self._json_cache.get(path)
+        if cached is not None and cached[0] == current_mtime:
+            return deepcopy(cached[1])
+
         if not path.exists():
-            return deepcopy(default)
+            payload = deepcopy(default)
+            self._json_cache[path] = (current_mtime, deepcopy(payload))
+            return payload
         try:
             with path.open("r", encoding="utf-8") as file:
-                return json.load(file)
+                payload = json.load(file)
         except Exception:
-            return deepcopy(default)
+            payload = deepcopy(default)
+
+        self._json_cache[path] = (current_mtime, deepcopy(payload))
+        return deepcopy(payload)
 
     def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -462,3 +473,10 @@ class AdminSettingsService:
             tmp.flush()
             temp_path = Path(tmp.name)
         temp_path.replace(path)
+        self._json_cache[path] = (self._get_mtime(path), deepcopy(payload))
+
+    def _get_mtime(self, path: Path) -> int | None:
+        try:
+            return path.stat().st_mtime_ns
+        except OSError:
+            return None

@@ -66,13 +66,16 @@ def get_settings() -> Settings:
     if not admin_id:
         raise ValueError("ADMIN_ID not set in .env")
 
+    admin_dashboard_password = os.getenv("ADMIN_DASHBOARD_PASSWORD", "change-me")
+    debug = parse_bool(os.getenv("DEBUG"), default=False)
+
     return Settings(
         bot_token=bot_token,
         openai_api_key=openai_api_key,
         owner_id=int(owner_id),
         admin_id=parse_admin_ids(admin_id),
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-        debug=parse_bool(os.getenv("DEBUG"), default=False),
+        debug=debug,
         ai_log_full_prompt=parse_bool(
             os.getenv("AI_LOG_FULL_PROMPT"),
             default=False,
@@ -83,11 +86,11 @@ def get_settings() -> Settings:
         ) or None,
         openai_max_parallel_requests=parse_int(
             os.getenv("OPENAI_MAX_PARALLEL_REQUESTS"),
-            default=4,
+            default=8,
         ),
         openai_queue_size=parse_int(
             os.getenv("OPENAI_QUEUE_SIZE"),
-            default=100,
+            default=500,
         ),
         admin_dashboard_host=os.getenv("ADMIN_DASHBOARD_HOST", "127.0.0.1"),
         admin_dashboard_port=parse_int(
@@ -95,7 +98,7 @@ def get_settings() -> Settings:
             default=8080,
         ),
         admin_dashboard_username=os.getenv("ADMIN_DASHBOARD_USERNAME", "admin"),
-        admin_dashboard_password=os.getenv("ADMIN_DASHBOARD_PASSWORD", "change-me"),
+        admin_dashboard_password=admin_dashboard_password,
         admin_dashboard_cache_ttl=parse_int(
             os.getenv("ADMIN_DASHBOARD_CACHE_TTL"),
             default=15,
