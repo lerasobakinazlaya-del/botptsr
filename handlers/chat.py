@@ -3,8 +3,10 @@ import logging
 from aiogram import Router
 from aiogram.types import Message
 
+from config.modes import get_mode
 from handlers.modes import show_modes_menu
 from handlers.payments import send_premium_offer
+from services.ai_profile_service import resolve_ai_profile
 from services.ai_service import AIBackpressureError
 
 
@@ -22,6 +24,7 @@ async def chat_handler(
     user_service,
     referral_service,
     admin_settings_service,
+    mode_access_service,
     db,
 ):
     runtime_settings = admin_settings_service.get_runtime_settings()
@@ -30,6 +33,7 @@ async def chat_handler(
     ui_settings = runtime_settings["ui"]
     limits_settings = runtime_settings["limits"]
     referral_settings = runtime_settings["referral"]
+    mode_catalog = admin_settings_service.get_mode_catalog()
 
     if not message.text:
         await message.answer(chat_settings["non_text_message"])
@@ -75,16 +79,35 @@ async def chat_handler(
             await message.answer(limits_settings["free_daily_limit_message"])
             return
 
-    history = await message_repository.get_last_messages(
-        user_id=user_id,
-        limit=ai_settings["history_message_limit"],
-    )
-
     if chat_settings["typing_action_enabled"]:
         await message.bot.send_chat_action(user_id, "typing")
 
     state = await state_repository.get(user_id)
     logger.debug("[STATE] Loaded for user %s", user_id)
+    active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
+    ai_profile = resolve_ai_profile(ai_settings, active_mode)
+    selection_status = mode_access_service.get_selection_status(
+        user=user or {},
+        mode_key=active_mode,
+        state=state,
+        runtime_settings=runtime_settings,
+        mode_catalog=mode_catalog,
+    )
+
+    if not selection_status["allowed"]:
+        mode = get_mode(active_mode)
+        await message.answer(
+            limits_settings["mode_preview_exhausted_message"].format(
+                mode_name=mode.name,
+                daily_limit=selection_status["daily_limit"],
+            )
+        )
+        return
+
+    history = await message_repository.get_last_messages(
+        user_id=user_id,
+        limit=ai_profile["history_message_limit"],
+    )
 
     try:
         result = await ai_service.generate_response(
@@ -114,6 +137,13 @@ async def chat_handler(
         new_state = state
 
     try:
+        new_state = mode_access_service.register_successful_message(
+            new_state,
+            mode_key=active_mode,
+            user=user or {},
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
         async with db.transaction():
             await message_repository.save(user_id, "user", user_text, commit=False)
             await state_repository.save(user_id, new_state, commit=False)

@@ -12,7 +12,8 @@ CALLBACK_OPEN_MODES = "open_modes"
 CALLBACK_MODE_PREFIX = "mode:"
 
 async def show_modes_menu(message: Message, user_service, admin_settings_service):
-    ui_settings = admin_settings_service.get_runtime_settings()["ui"]
+    runtime_settings = admin_settings_service.get_runtime_settings()
+    ui_settings = runtime_settings["ui"]
     user = await user_service.get_user(message.from_user.id)
     if not user:
         await message.answer(ui_settings["user_not_found_text"])
@@ -20,14 +21,15 @@ async def show_modes_menu(message: Message, user_service, admin_settings_service
 
     await message.answer(
         text=ui_settings["modes_title"],
-        reply_markup=get_modes_keyboard(user),
+        reply_markup=get_modes_keyboard(user, runtime_settings),
     )
     return True
 
 
 @router.callback_query(F.data == CALLBACK_OPEN_MODES)
 async def open_modes_handler(callback: CallbackQuery, user_service, admin_settings_service):
-    ui_settings = admin_settings_service.get_runtime_settings()["ui"]
+    runtime_settings = admin_settings_service.get_runtime_settings()
+    ui_settings = runtime_settings["ui"]
     user = await user_service.get_user(callback.from_user.id)
     if not user:
         await callback.answer(ui_settings["user_not_found_text"], show_alert=True)
@@ -36,7 +38,7 @@ async def open_modes_handler(callback: CallbackQuery, user_service, admin_settin
     try:
         await callback.message.edit_text(
             text=ui_settings["modes_title"],
-            reply_markup=get_modes_keyboard(user),
+            reply_markup=get_modes_keyboard(user, runtime_settings),
         )
     except TelegramBadRequest:
         pass
@@ -50,8 +52,10 @@ async def change_mode_handler(
     user_service,
     state_repository,
     admin_settings_service,
+    mode_access_service,
 ):
     ui_settings = admin_settings_service.get_runtime_settings()["ui"]
+    runtime_settings = admin_settings_service.get_runtime_settings()
     mode_key = callback.data.replace(CALLBACK_MODE_PREFIX, "")
     modes = get_modes()
 
@@ -64,7 +68,16 @@ async def change_mode_handler(
         await callback.answer(ui_settings["user_not_found_text"], show_alert=True)
         return
 
-    if mode_key in get_premium_modes() and not user.get("is_premium"):
+    state = await state_repository.get(callback.from_user.id)
+    can_select_mode = mode_access_service.can_select_mode(
+        user=user,
+        mode_key=mode_key,
+        state=state,
+        runtime_settings=runtime_settings,
+        mode_catalog=admin_settings_service.get_mode_catalog(),
+    )
+
+    if mode_key in get_premium_modes() and not user.get("is_premium") and not can_select_mode:
         await callback.answer(ui_settings["mode_locked_text"], show_alert=True)
         return
 
@@ -80,7 +93,7 @@ async def change_mode_handler(
     try:
         await callback.message.edit_text(
             text=text,
-            reply_markup=get_modes_keyboard(user),
+            reply_markup=get_modes_keyboard(user, runtime_settings),
         )
     except TelegramBadRequest:
         pass

@@ -34,6 +34,9 @@ async def lifespan(container: Container):
     try:
         yield
     finally:
+        logging.info("Stopping reengagement worker...")
+        await container.reengagement_service.stop()
+
         logging.info("Stopping AI workers...")
         await container.ai_service.close()
 
@@ -65,6 +68,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["db"] = container.db
     dp["redis"] = container.redis
     dp["admin_settings_service"] = container.admin_settings_service
+    dp["mode_access_service"] = container.mode_access_service
 
     dp.message.middleware(LoggingMiddleware())
     dp.message.middleware(
@@ -104,6 +108,7 @@ async def main():
             logging.warning("Failed to delete webhook before startup: %s", exc)
 
         async with lifespan(container):
+            await container.reengagement_service.start(bot)
             logging.info("Bot started")
             try:
                 await dp.start_polling(bot)

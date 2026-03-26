@@ -12,6 +12,7 @@ class PromptBuilder:
         access_level: str,
         active_mode: str = "base",
         memory_context: str = "",
+        extra_instruction: str = "",
     ) -> str:
         templates = self.settings_service.get_prompt_templates()
         mode_config = get_mode_config(active_mode)
@@ -40,6 +41,8 @@ class PromptBuilder:
             parts.append(f"{templates['memory_intro']}\n{memory_context}")
 
         parts.append(f"{templates['state_intro']}\n{state_summary}")
+        if extra_instruction.strip():
+            parts.append(extra_instruction.strip())
         parts.append(templates["final_instruction"])
 
         return "\n\n".join(part.strip() for part in parts if part and part.strip())
@@ -51,6 +54,7 @@ class PromptBuilder:
         access_level: str,
     ) -> str:
         keys = [
+            "adaptive_mode",
             "interest",
             "control",
             "attraction",

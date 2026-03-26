@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 
 from services.memory_engine import ChatMessage
 
@@ -108,3 +108,38 @@ class MessageRepository:
         )
         row = await cursor.fetchone()
         return row[0] if row else 0
+
+    async def get_reengagement_candidates(
+        self,
+        *,
+        idle_hours: int,
+        recent_window_days: int,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT
+                user_id,
+                MAX(CASE WHEN role = 'user' THEN created_at END) AS last_user_message_at,
+                MAX(CASE WHEN role = 'assistant' THEN created_at END) AS last_assistant_message_at,
+                MAX(created_at) AS last_message_at
+            FROM messages
+            GROUP BY user_id
+            HAVING last_user_message_at IS NOT NULL
+               AND datetime(last_user_message_at) <= datetime('now', ?)
+               AND datetime(last_message_at) >= datetime('now', ?)
+            ORDER BY datetime(last_user_message_at) ASC
+            LIMIT ?
+            """,
+            (f"-{max(1, int(idle_hours))} hours", f"-{max(1, int(recent_window_days))} days", max(1, int(limit))),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "user_id": row[0],
+                "last_user_message_at": row[1],
+                "last_assistant_message_at": row[2],
+                "last_message_at": row[3],
+            }
+            for row in rows
+        ]

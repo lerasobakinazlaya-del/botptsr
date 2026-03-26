@@ -29,8 +29,28 @@ class UserStateRepository:
                 "goals": [],
                 "interests": [],
                 "personality_traits": [],
+                "recurring_topics": [],
             },
             "memory_flags": {},
+            "relationship_state": {
+                "trust": 0.18,
+                "familiarity": 0.12,
+                "warmth": 0.18,
+                "playfulness": 0.08,
+                "shared_threads": [],
+                "callback_candidates": [],
+                "communication_style": {},
+                "response_preferences": {},
+                "last_user_message_at": None,
+                "last_assistant_message_at": None,
+                "last_interaction_at": None,
+                "last_user_topic": None,
+                "last_user_mood": None,
+            },
+            "reengagement": {
+                "last_sent_at": None,
+                "last_triggered_from_user_at": None,
+            },
             "premium_features_used": 0,
         }
 
@@ -43,6 +63,15 @@ class UserStateRepository:
             user_profile = {}
 
         merged["user_profile"] = default["user_profile"] | user_profile
+        relationship_state = state.get("relationship_state", {})
+        if not isinstance(relationship_state, dict):
+            relationship_state = {}
+        merged["relationship_state"] = default["relationship_state"] | relationship_state
+
+        reengagement = state.get("reengagement", {})
+        if not isinstance(reengagement, dict):
+            reengagement = {}
+        merged["reengagement"] = default["reengagement"] | reengagement
         return merged
 
     async def get(self, user_id: int) -> Dict[str, Any]:

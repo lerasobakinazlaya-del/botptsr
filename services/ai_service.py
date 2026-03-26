@@ -3,6 +3,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
+from services.ai_profile_service import resolve_ai_profile
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class AIService:
         state_engine,
         memory_engine,
         keyword_memory_service,
+        human_memory_service,
         prompt_builder,
         access_engine,
         settings_service,
@@ -53,6 +56,7 @@ class AIService:
         self.state_engine = state_engine
         self.memory_engine = memory_engine
         self.keyword_memory_service = keyword_memory_service
+        self.human_memory_service = human_memory_service
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
         self.settings_service = settings_service
@@ -155,14 +159,18 @@ class AIService:
     ) -> AIResult:
         runtime_settings = self.settings_service.get_runtime_settings()
         ai_settings = runtime_settings["ai"]
-        self.memory_engine.set_max_tokens(ai_settings["memory_max_tokens"])
-
         memory_enriched_state = self.keyword_memory_service.apply(state.copy(), user_message)
+        memory_enriched_state = self.human_memory_service.apply_user_message(
+            memory_enriched_state,
+            user_message,
+        )
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
-        active_mode = new_state.get("active_mode", "base")
+        active_mode = self._resolve_effective_mode(new_state, runtime_settings)
+        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        self.memory_engine.set_max_tokens(ai_profile["memory_max_tokens"])
         access_level = self.access_engine.update_access_level(new_state)
         memory_messages = await self.memory_engine.build_context(history)
-        memory_context = self.keyword_memory_service.build_prompt_context(new_state)
+        memory_context = self._build_memory_context(new_state)
         grounding_kind = self.keyword_memory_service.detect_grounding_need(user_message)
 
         logger.debug(
@@ -179,6 +187,7 @@ class AIService:
             access_level=access_level,
             active_mode=active_mode,
             memory_context=memory_context,
+            extra_instruction=ai_profile["prompt_suffix"],
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -186,8 +195,14 @@ class AIService:
 
         if grounding_kind is not None:
             logger.info("[AI] user_id=%s grounding=%s", user_id, grounding_kind)
+            grounding_response = self.keyword_memory_service.build_grounding_response(grounding_kind)
+            new_state = self.human_memory_service.apply_assistant_message(
+                new_state,
+                grounding_response,
+                source="reply",
+            )
             return AIResult(
-                response=self.keyword_memory_service.build_grounding_response(grounding_kind),
+                response=grounding_response,
                 new_state=new_state,
                 tokens_used=None,
             )
@@ -198,16 +213,86 @@ class AIService:
             + [{"role": "user", "content": user_message.strip()}]
         )
 
-        response_text, tokens_used = await self._call_with_retry(messages, ai_settings)
+        response_text, tokens_used = await self._call_with_retry(messages, ai_profile)
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
+
+        new_state = self.human_memory_service.apply_assistant_message(
+            new_state,
+            response_text,
+            source="reply",
+        )
 
         return AIResult(
             response=response_text,
             new_state=new_state,
             tokens_used=tokens_used,
         )
+
+    async def generate_reengagement(
+        self,
+        *,
+        user_id: int,
+        history: List[Dict[str, str]],
+        state: Dict[str, Any],
+    ) -> AIResult:
+        runtime_settings = self.settings_service.get_runtime_settings()
+        ai_settings = runtime_settings["ai"]
+        engagement_settings = runtime_settings["engagement"]
+        active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
+        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        self.memory_engine.set_max_tokens(ai_profile["memory_max_tokens"])
+        access_level = self.access_engine.update_access_level(state)
+        memory_messages = await self.memory_engine.build_context(history)
+        memory_context = self._build_memory_context(state)
+        relationship = (state or {}).get("relationship_state", {})
+        last_user_message_at = relationship.get("last_user_message_at")
+        hours_silent = self.human_memory_service.hours_since_iso(last_user_message_at, fallback=24)
+
+        system_prompt = self.prompt_builder.build_system_prompt(
+            state=state,
+            access_level=access_level,
+            active_mode=active_mode,
+            memory_context=memory_context,
+            extra_instruction=(
+                (ai_profile["prompt_suffix"] + "\n\n") if ai_profile["prompt_suffix"] else ""
+            )
+            + self.human_memory_service.build_reengagement_prompt(
+                state,
+                hours_silent=hours_silent,
+                active_mode=active_mode,
+            ),
+        )
+
+        if self._should_log_full_prompt(user_id, ai_settings):
+            logger.debug("[AI REENGAGE PROMPT] user_id=%s\n%s", user_id, system_prompt)
+
+        messages = (
+            [{"role": "system", "content": system_prompt}]
+            + memory_messages
+            + [{"role": "user", "content": "Сформулируй одно живое сообщение первой инициативы."}]
+        )
+        response_text, tokens_used = await self._call_with_retry(messages, ai_profile)
+        if not response_text.strip():
+            response_text = self.EMPTY_RESPONSE_FALLBACK
+
+        new_state = self.human_memory_service.apply_assistant_message(
+            state.copy(),
+            response_text,
+            source="reengagement",
+        )
+        new_state["adaptive_mode"] = active_mode
+
+        logger.info(
+            "[AI REENGAGE] user_id=%s mode=%s silent_hours=%s batch_window_days=%s",
+            user_id,
+            active_mode,
+            hours_silent,
+            engagement_settings["reengagement_recent_window_days"],
+        )
+
+        return AIResult(response=response_text, new_state=new_state, tokens_used=tokens_used)
 
     def _should_log_full_prompt(
         self,
@@ -234,13 +319,13 @@ class AIService:
     async def _call_with_retry(
         self,
         messages: List[Dict[str, str]],
-        ai_settings: dict[str, Any],
+        ai_profile: dict[str, Any],
     ) -> tuple[str, int | None]:
         last_exception = None
-        max_retries = int(ai_settings.get("max_retries", self.max_retries))
-        timeout_seconds = int(ai_settings.get("timeout_seconds", self.timeout_seconds))
-        model = str(ai_settings.get("openai_model") or self.client.model)
-        temperature = float(ai_settings.get("temperature", self.client.temperature))
+        max_retries = int(ai_profile.get("max_retries", self.max_retries))
+        timeout_seconds = int(ai_profile.get("timeout_seconds", self.timeout_seconds))
+        model = str(ai_profile.get("model") or self.client.model)
+        temperature = float(ai_profile.get("temperature", self.client.temperature))
 
         for attempt in range(max_retries + 1):
             try:
@@ -260,3 +345,25 @@ class AIService:
             await asyncio.sleep(0.5 * (attempt + 1))
 
         raise RuntimeError("AI call failed after retries") from last_exception
+
+    def _build_memory_context(self, state: dict[str, Any]) -> str:
+        parts = [
+            self.keyword_memory_service.build_prompt_context(state),
+            self.human_memory_service.build_prompt_context(state),
+        ]
+        return "\n".join(part.strip() for part in parts if part and part.strip())
+
+    def _resolve_effective_mode(
+        self,
+        state: dict[str, Any],
+        runtime_settings: dict[str, Any],
+    ) -> str:
+        active_mode = str((state or {}).get("active_mode") or "base")
+        engagement_settings = runtime_settings.get("engagement", {})
+        if not engagement_settings.get("adaptive_mode_enabled", True):
+            state["adaptive_mode"] = active_mode
+            return active_mode
+
+        suggested_mode = self.human_memory_service.suggest_mode(state, active_mode)
+        state["adaptive_mode"] = suggested_mode
+        return suggested_mode
