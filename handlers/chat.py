@@ -22,6 +22,7 @@ async def chat_handler(
     user_service,
     referral_service,
     admin_settings_service,
+    conversation_summary_service,
     db,
 ):
     runtime_settings = admin_settings_service.get_runtime_settings()
@@ -134,5 +135,10 @@ async def chat_handler(
         logger.exception("DB ERROR while saving chat exchange")
         await message.answer(chat_settings["ai_error_message"])
         return
+
+    try:
+        conversation_summary_service.schedule_refresh(user_id, new_state)
+    except Exception:
+        logger.exception("SUMMARY SCHEDULER ERROR")
 
     await message.answer(response)

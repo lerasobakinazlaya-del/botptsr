@@ -13,6 +13,7 @@ from database.user_state_repository import UserStateRepository
 from services.access_engine import AccessEngine
 from services.ai_service import AIService
 from services.admin_settings_service import AdminSettingsService
+from services.conversation_summary_service import ConversationSummaryService
 from services.keyword_memory_service import KeywordMemoryService
 from services.memory_engine import MemoryEngine
 from services.openai_client import OpenAIClient
@@ -63,6 +64,12 @@ class Container:
             debug_prompt_user_id=self.settings.ai_debug_prompt_user_id,
             max_parallel_requests=self.settings.openai_max_parallel_requests,
             queue_size=self.settings.openai_queue_size,
+        )
+        self.conversation_summary_service = ConversationSummaryService(
+            client=self.openai_client,
+            message_repository=self.message_repository,
+            state_repository=self.state_repository,
+            settings_service=self.admin_settings_service,
         )
 
         self.user_service = UserService(self.db, settings=self.settings)

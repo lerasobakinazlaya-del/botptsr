@@ -30,6 +30,14 @@ class AdminSettingsService:
             "max_retries": 2,
             "memory_max_tokens": 1500,
             "history_message_limit": 20,
+            "episodic_summary_enabled": True,
+            "episodic_summary_interval": 6,
+            "episodic_summary_min_interactions": 4,
+            "episodic_summary_history_limit": 18,
+            "episodic_summary_model": "",
+            "episodic_summary_temperature": 0.2,
+            "episodic_summary_max_tokens": 220,
+            "episodic_summary_reasoning_effort": "",
             "log_full_prompt": False,
             "debug_prompt_user_id": None,
             "response_language": "ru",
@@ -364,6 +372,14 @@ class AdminSettingsService:
             "max_retries",
             "memory_max_tokens",
             "history_message_limit",
+            "episodic_summary_enabled",
+            "episodic_summary_interval",
+            "episodic_summary_min_interactions",
+            "episodic_summary_history_limit",
+            "episodic_summary_model",
+            "episodic_summary_temperature",
+            "episodic_summary_max_tokens",
+            "episodic_summary_reasoning_effort",
             "log_full_prompt",
             "debug_prompt_user_id",
             "response_language",
@@ -386,6 +402,19 @@ class AdminSettingsService:
         ai["max_retries"] = max(0, int(ai["max_retries"]))
         ai["memory_max_tokens"] = max(100, int(ai["memory_max_tokens"]))
         ai["history_message_limit"] = max(1, int(ai["history_message_limit"]))
+        ai["episodic_summary_enabled"] = bool(ai.get("episodic_summary_enabled", True))
+        ai["episodic_summary_interval"] = max(1, int(ai.get("episodic_summary_interval", 6)))
+        ai["episodic_summary_min_interactions"] = max(1, int(ai.get("episodic_summary_min_interactions", 4)))
+        ai["episodic_summary_history_limit"] = max(4, int(ai.get("episodic_summary_history_limit", 18)))
+        ai["episodic_summary_model"] = str(ai.get("episodic_summary_model") or "").strip()
+        ai["episodic_summary_temperature"] = max(
+            0.0,
+            min(2.0, float(ai.get("episodic_summary_temperature", 0.2))),
+        )
+        ai["episodic_summary_max_tokens"] = max(64, int(ai.get("episodic_summary_max_tokens", 220)))
+        ai["episodic_summary_reasoning_effort"] = self._normalize_reasoning_effort(
+            ai.get("episodic_summary_reasoning_effort")
+        )
         ai["log_full_prompt"] = bool(ai["log_full_prompt"])
         ai["debug_prompt_user_id"] = self._normalize_optional_int(ai.get("debug_prompt_user_id"))
         ai["response_language"] = str(ai.get("response_language") or "ru").strip() or "ru"

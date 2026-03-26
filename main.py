@@ -65,6 +65,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["db"] = container.db
     dp["redis"] = container.redis
     dp["admin_settings_service"] = container.admin_settings_service
+    dp["conversation_summary_service"] = container.conversation_summary_service
 
     dp.message.middleware(LoggingMiddleware())
     dp.message.middleware(

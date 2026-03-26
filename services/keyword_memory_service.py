@@ -84,6 +84,21 @@ class KeywordMemoryService:
             for value in self._collect_memory_values(memory_flags, "recent_topics")
             if value not in current_focus
         ]
+        episodic_summary = memory_flags.get("episodic_summary") or {}
+
+        if isinstance(episodic_summary, dict):
+            recent_arc = self._clean_summary_value(episodic_summary.get("recent_arc"))
+            emotional_direction = self._clean_summary_value(episodic_summary.get("emotional_direction"))
+            open_loop_summary = self._clean_summary_value(episodic_summary.get("open_loops"))
+            response_hint = self._clean_summary_value(episodic_summary.get("response_hint"))
+            if recent_arc:
+                lines.append("- Recent arc between user and Lira: " + recent_arc)
+            if emotional_direction:
+                lines.append("- Emotional direction lately: " + emotional_direction)
+            if open_loop_summary:
+                lines.append("- Unresolved thread from the dialogue: " + open_loop_summary)
+            if response_hint:
+                lines.append("- What kind of reply may fit next: " + response_hint)
 
         if traits:
             lines.append("- Stable traits or patterns: " + "; ".join(traits))
@@ -446,3 +461,6 @@ class KeywordMemoryService:
 
         snippets.reverse()
         return " | ".join(snippets)
+
+    def _clean_summary_value(self, value: Any) -> str:
+        return " ".join(str(value or "").split()).strip()[:180]
