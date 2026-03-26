@@ -309,6 +309,59 @@ async def api_user_update(user_id: int, request: Request, _: str = Depends(requi
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/api/users/{user_id}/conversation")
+async def api_user_conversation(
+    user_id: int,
+    limit: int = 100,
+    _: str = Depends(require_auth),
+):
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    safe_limit = max(1, min(limit, 200))
+    messages = await container.message_repository.get_user_messages(
+        user_id,
+        limit=safe_limit,
+    )
+    stats = await container.message_repository.get_user_message_stats(user_id)
+    state_payload = await container.state_repository.get(user_id)
+
+    ai_settings = container.admin_settings_service.get_runtime_settings()["ai"]
+    memory_history_limit = max(
+        safe_limit,
+        int(ai_settings.get("episodic_summary_history_limit", 18)),
+        int(ai_settings.get("history_message_limit", 20)),
+    )
+    history = await container.message_repository.get_last_messages(
+        user_id=user_id,
+        limit=memory_history_limit,
+    )
+
+    return {
+        "user": user,
+        "stats": stats,
+        "messages": messages,
+        "state": state_payload,
+        "memory_preview": container.keyword_memory_service.build_prompt_context(
+            state_payload,
+            history=history,
+        ),
+        "settings": {
+            "history_message_limit": int(ai_settings.get("history_message_limit", 20)),
+            "memory_max_tokens": int(ai_settings.get("memory_max_tokens", 1500)),
+            "episodic_summary_enabled": bool(ai_settings.get("episodic_summary_enabled", True)),
+            "episodic_summary_interval": int(ai_settings.get("episodic_summary_interval", 6)),
+            "episodic_summary_min_interactions": int(
+                ai_settings.get("episodic_summary_min_interactions", 4)
+            ),
+            "episodic_summary_history_limit": int(
+                ai_settings.get("episodic_summary_history_limit", 18)
+            ),
+        },
+    }
+
+
 @app.post("/api/actions/cache/invalidate")
 async def api_invalidate_cache(_: str = Depends(require_auth)):
     await _invalidate_metrics_cache()
@@ -424,7 +477,9 @@ def _dashboard_html() -> str:
     label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:130px;resize:vertical}
     .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
+    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box,.json-box{min-height:180px;max-height:320px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
   </style>
 </head>
@@ -436,6 +491,7 @@ def _dashboard_html() -> str:
       <div class="nav">
         <button class="active" data-view="overview">Обзор</button>
         <button data-view="users">Пользователи</button>
+        <button data-view="conversations">Диалоги</button>
         <button data-view="runtime">AI и UI</button>
         <button data-view="safety">Безопасность</button>
         <button data-view="prompts">Промпты</button>
@@ -489,6 +545,7 @@ def _dashboard_html() -> str:
             <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <div class="actions">
               <button id="load-user">Загрузить</button>
+              <button id="open-user-conversation">Открыть диалог</button>
               <button class="primary" id="save-user">Сохранить пользователя</button>
             </div>
           </div>
@@ -500,6 +557,38 @@ def _dashboard_html() -> str:
               <button id="reset-users">Сбросить</button>
             </div>
             <div id="users-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-view="conversations">
+        <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, текущего state и памяти, которую бот подмешивает в промпт для конкретного пользователя.</p></div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Пользователь</h3>
+            <div class="toolbar">
+              <input id="conversation_user_id" type="number" min="1" placeholder="ID пользователя">
+              <input id="conversation_limit" type="number" min="10" max="200" value="80" placeholder="Лимит сообщений">
+              <button class="primary" id="load-conversation">Загрузить диалог</button>
+            </div>
+            <p class="muted" id="conversation-meta">Выберите пользователя, чтобы увидеть историю и память.</p>
+            <div id="conversation-stats"></div>
+            <div style="margin-top:16px">
+              <h3>Память для промпта</h3>
+              <pre id="conversation-memory-preview" class="memory-box">Пока нет данных.</pre>
+            </div>
+            <div style="margin-top:16px">
+              <h3>State JSON</h3>
+              <pre id="conversation-state" class="json-box">Пока нет данных.</pre>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Выбор пользователя</h3>
+            <div id="conversation-users-table"></div>
+            <div style="margin-top:16px">
+              <h3>История сообщений</h3>
+              <div id="conversation-messages" class="conversation-feed"><div class="muted">Пока нет данных.</div></div>
+            </div>
           </div>
         </div>
       </section>
@@ -526,6 +615,16 @@ def _dashboard_html() -> str:
               <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
+            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить summary-memory между сессиями</label>
+            <div class="two">
+              <label>Summary: интервал обновления<input id="ai_episodic_summary_interval" type="number"></label>
+              <label>Summary: минимум диалогов<input id="ai_episodic_summary_min_interactions" type="number"></label>
+              <label>Summary: окно истории<input id="ai_episodic_summary_history_limit" type="number"></label>
+              <label>Summary: отдельная модель<input id="ai_episodic_summary_model"></label>
+              <label>Summary: температура<input id="ai_episodic_summary_temperature" type="number" step="0.1"></label>
+              <label>Summary: max tokens<input id="ai_episodic_summary_max_tokens" type="number"></label>
+              <label>Summary: reasoning<input id="ai_episodic_summary_reasoning_effort"></label>
+            </div>
           </div>
           <div class="panel">
             <h3>Чат</h3>
@@ -710,8 +809,8 @@ def _dashboard_html() -> str:
       <section class="page" data-view="logs">
         <div><h2>Логи и сервисы</h2><p class="muted">Проверка файлов конфигурации, здоровья и хвоста логов.</p></div>
         <div class="cols">
-          <div class="panel"><h3>Health</h3><pre id="full-health"></pre></div>
-          <div class="panel"><h3>Файлы</h3><pre id="config-files"></pre></div>
+          <div class="panel"><h3>Health</h3><div id="full-health"></div></div>
+          <div class="panel"><h3>Файлы</h3><div id="config-files"></div></div>
         </div>
         <div class="panel">
           <div class="toolbar">
@@ -724,17 +823,24 @@ def _dashboard_html() -> str:
     </main>
   </div>
   <script>
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+    const escText=v=>esc(v).replaceAll('\n','<br>');
     const setValue=(selector,value)=>{const el=$(selector);if(el)el.value=value??''};
     const setChecked=(selector,value)=>{const el=$(selector);if(el)el.checked=!!value};
+    const num=v=>Number(v??0).toLocaleString('ru-RU');
     async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`Ошибка запроса: ${path}`);return d}
     function notice(text,kind='ok'){const n=$('#notice');n.textContent=text;n.className='notice '+kind}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+    function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
+    function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
+    function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
+    function healthSummary(ai){const queue=ai?.queue_size??0,capacity=ai?.queue_capacity??0,workers=ai?.workers??0,busy=ai?.busy_workers??0;return metricCards([['Очередь',`${queue}/${capacity}`,'AI задачи в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['Режимов',String(state.health?.modes_count??0),'Загружено в панели']])}
+    function fileTable(files){const rows=Object.entries(files||{}).map(([name,info])=>({name,path:info?.path||'',exists:info?.exists?'Да':'Нет',size:info?.exists?`${num(info?.size_bytes)} B`:'-'}));return table(['name','path','exists','size'],rows)}
     function openView(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===name))}
-    function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[['Пользователи',users.total??0,`Всего в базе`],['Новые за 1 день',users.new_1d??0,`Регистрации за сутки`],['Новые за 7 дней',users.new_7d??0,`Регистрации за неделю`],['Premium',users.premium_total??0,`Активных: ${users.active_with_messages??0}`],['Админы',users.admins_total??0,`Через env и панель`],['Сообщения',content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],['Платежи',payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],['AI',`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Workers: ${runtime.workers??0}`],['Support',support.users_with_support_profile??0,`panic: ${episodes.panic??0}`],['Рефералы',referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<pre>${esc(JSON.stringify({support,referrals},null,2))}</pre>`}
-    function renderHealth(){if(!state.health)return;$('#sidebar-health').textContent=`DB: ${state.health.db.ok?'ok':'err'} | Redis: ${state.health.redis.detail}`;$('#health-summary').innerHTML=`<pre>${esc(JSON.stringify({db:state.health.db,redis:state.health.redis,ai:state.health.ai_runtime},null,2))}</pre>`;$('#full-health').textContent=JSON.stringify(state.health,null,2);$('#config-files').textContent=JSON.stringify(state.health.config_files,null,2)}
+    function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[['Пользователи',users.total??0,`Всего в базе`],['Новые за 1 день',users.new_1d??0,`Регистрации за сутки`],['Новые за 7 дней',users.new_7d??0,`Регистрации за неделю`],['Premium',users.premium_total??0,`Активных: ${users.active_with_messages??0}`],['Админы',users.admins_total??0,`Через env и панель`],['Сообщения',content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],['Платежи',payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],['AI',`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Workers: ${runtime.workers??0}`],['Support',support.users_with_support_profile??0,`panic: ${episodes.panic??0}`],['Рефералы',referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([['Профили поддержки',String(support.users_with_support_profile??0),'Пользователи с support profile'],['Рефералы',String(referrals.total??0),`Конверсий: ${referrals.converted??0}`]])}${kvList([['Panic эпизоды',esc(num(episodes.panic??0))],['Flashback эпизоды',esc(num(episodes.flashback??0))],['Insomnia эпизоды',esc(num(episodes.insomnia??0))],['Self-harm флаги',esc(num(support.self_harm_flags??0))],['Последнее обновление',esc(support.last_updated_at||'Нет данных')]])}</div>`}
+    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'DB OK','DB error')} ${statusPill(redis.ok,'Redis OK','Redis error')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([['База данных',`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],['Redis',`${statusPill(redis.ok,redis.detail||'OK',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],['AI модель',esc(ai.model||ai.openai_model||'Не указана')],['Занято воркеров',esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([['Кэш метрик',String(ai.cache_hits??0),'Попадания в runtime, если доступны'],['Очередь AI',`${ai.queue_size??0}/${ai.queue_capacity??0}`,'Текущее давление'],['Режимов',String(state.health.modes_count??0),'Доступно в каталоге']])}${kvList([['DB статус',`${statusPill(db.ok,'OK','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],['Redis статус',`${statusPill(redis.ok,'OK','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],['Воркеров всего',esc(String(ai.workers??0))],['Воркеров занято',esc(String(ai.busy_workers??0))],['Очередь',esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Premium)':' (Free)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>Режим</th><th>Premium</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`).join('')}</tbody></table>`}
