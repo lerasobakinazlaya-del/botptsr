@@ -20,8 +20,8 @@ class UserService:
         )
         await self.db.connection.commit()
 
-    async def register_user(self, telegram_user) -> None:
-        await self.db.connection.execute(
+    async def register_user(self, telegram_user) -> bool:
+        cursor = await self.db.connection.execute(
             """
             INSERT OR IGNORE INTO users
             (id, username, first_name, active_mode, is_premium)
@@ -34,6 +34,7 @@ class UserService:
             ),
         )
         await self.db.connection.commit()
+        return cursor.rowcount > 0
 
     async def get_user(self, user_id: int) -> dict[str, Any] | None:
         cursor = await self.db.connection.execute(
@@ -57,6 +58,18 @@ class UserService:
             "is_premium": bool(row[4]),
             "created_at": row[5],
         }
+
+    async def get_bot_username(self, user_id: int) -> str | None:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT username
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return row[0] if row and row[0] else None
 
     async def get_total_users(self) -> int:
         cursor = await self.db.connection.execute(

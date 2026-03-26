@@ -14,6 +14,7 @@ class AdminMetricsService:
         user_service,
         message_repository,
         payment_repository,
+        referral_service,
         state_repository,
         ai_service,
         redis=None,
@@ -22,6 +23,7 @@ class AdminMetricsService:
         self.user_service = user_service
         self.message_repository = message_repository
         self.payment_repository = payment_repository
+        self.referral_service = referral_service
         self.state_repository = state_repository
         self.ai_service = ai_service
         self.redis = redis
@@ -79,6 +81,7 @@ class AdminMetricsService:
 
     async def _build_cached_payload(self) -> dict[str, Any]:
         payment_overview = await self.payment_repository.get_overview()
+        referral_overview = await self.referral_service.get_overview()
         total_users = await self.user_service.get_total_users()
         premium_users = await self.user_service.get_premium_users_count()
         total_messages = await self.message_repository.get_total_messages()
@@ -107,6 +110,7 @@ class AdminMetricsService:
                 "messages_total": total_messages,
             },
             "support": support_stats,
+            "referrals": referral_overview,
             "series": {
                 "users": await self.user_service.get_daily_registrations(days=14),
                 "payments": await self.payment_repository.get_daily_payments(days=14),
@@ -114,5 +118,6 @@ class AdminMetricsService:
             "recent": {
                 "users": await self.user_service.get_recent_users(limit=20),
                 "payments": await self.payment_repository.get_recent_payments(limit=20),
+                "referrals": referral_overview["recent"],
             },
         }

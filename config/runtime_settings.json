@@ -14,7 +14,8 @@
     "typing_action_enabled": true,
     "non_text_message": "Я могу отвечать только на текстовые сообщения.",
     "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
-    "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже."
+    "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
+    "write_prompt_message": "Я рядом. Напиши, что у тебя на уме."
   },
   "safety": {
     "throttle_rate_limit_seconds": 1.5,
@@ -83,12 +84,45 @@
       "high_attraction_control_penalty": 0.02
     }
   },
+  "access": {
+    "forced_level": "",
+    "default_level": "analysis",
+    "interest_observation_threshold": 0.3,
+    "rare_layer_instability_threshold": 0.5,
+    "rare_layer_attraction_threshold": 0.7,
+    "personal_focus_attraction_threshold": 0.6,
+    "personal_focus_interest_threshold": 0.6,
+    "tension_attraction_threshold": 0.5,
+    "tension_control_threshold": 0.8,
+    "analysis_interest_threshold": 0.3,
+    "analysis_control_threshold": 0.7
+  },
+  "limits": {
+    "free_daily_messages_enabled": false,
+    "free_daily_messages_limit": 25,
+    "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра."
+  },
+  "referral": {
+    "enabled": true,
+    "start_parameter_prefix": "ref_",
+    "allow_self_referral": false,
+    "require_first_paid_invoice": true,
+    "award_referrer_premium": true,
+    "award_referred_user_premium": false,
+    "program_title": "Реферальная программа",
+    "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
+    "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
+    "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и при желании оформи Premium.",
+    "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен."
+  },
   "payment": {
     "provider_token": "",
     "currency": "RUB",
     "price_minor_units": 49900,
     "product_title": "Premium access",
     "product_description": "Unlock premium chat modes and paid features.",
+    "premium_benefits_text": "Premium открывает дополнительные режимы, повышенные лимиты и приоритетное использование платных функций.",
+    "buy_cta_text": "Оформить Premium",
     "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
     "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
     "success_message": "Оплата прошла успешно. Premium уже активирован."

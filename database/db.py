@@ -50,6 +50,21 @@ class Database:
         )
         await self.connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_user_id INTEGER NOT NULL,
+                referred_user_id INTEGER NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'pending',
+                reward_amount_minor_units INTEGER NOT NULL DEFAULT 0,
+                external_payment_id TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                converted_at TIMESTAMP NULL,
+                rewarded_at TIMESTAMP NULL
+            )
+            """
+        )
+        await self.connection.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_messages_user_id_id
             ON messages (user_id, id DESC)
             """
@@ -70,6 +85,18 @@ class Database:
             """
             CREATE INDEX IF NOT EXISTS idx_payments_status_paid_at
             ON payments (status, paid_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_referrals_referrer_status
+            ON referrals (referrer_user_id, status, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_referrals_referred_status
+            ON referrals (referred_user_id, status, created_at DESC)
             """
         )
         await self.connection.commit()

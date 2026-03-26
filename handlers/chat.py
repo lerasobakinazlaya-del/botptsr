@@ -20,12 +20,15 @@ async def chat_handler(
     state_repository,
     payment_service,
     user_service,
+    referral_service,
     admin_settings_service,
 ):
     runtime_settings = admin_settings_service.get_runtime_settings()
     ai_settings = runtime_settings["ai"]
     chat_settings = runtime_settings["chat"]
     ui_settings = runtime_settings["ui"]
+    limits_settings = runtime_settings["limits"]
+    referral_settings = runtime_settings["referral"]
 
     if not message.text:
         await message.answer(chat_settings["non_text_message"])
@@ -33,9 +36,10 @@ async def chat_handler(
 
     user_id = message.from_user.id
     user_text = message.text.strip()
+    user = await user_service.get_user(user_id)
 
     if user_text == ui_settings["write_button_text"]:
-        await message.answer("Я рядом. Напиши, что у тебя на уме.")
+        await message.answer(chat_settings["write_prompt_message"])
         return
 
     if user_text == ui_settings["modes_button_text"]:
@@ -45,6 +49,27 @@ async def chat_handler(
     if user_text == ui_settings["premium_button_text"]:
         await send_premium_offer(message, payment_service)
         return
+
+    if user_text.lower() in {"/ref", "рефералка", "реферальная ссылка"} and referral_settings["enabled"]:
+        me = await message.bot.get_me()
+        ref_link = f"https://t.me/{me.username}?start={referral_settings['start_parameter_prefix']}{user_id}"
+        share_text = referral_settings["share_text_template"].replace("{ref_link}", ref_link)
+        await message.answer(
+            f"{referral_settings['program_title']}\n\n"
+            f"{referral_settings['program_description']}\n\n"
+            f"{share_text}"
+        )
+        return
+
+    if (
+        user
+        and not user.get("is_premium")
+        and limits_settings["free_daily_messages_enabled"]
+    ):
+        today_count = await message_repository.get_user_messages_count_today(user_id)
+        if today_count >= limits_settings["free_daily_messages_limit"]:
+            await message.answer(limits_settings["free_daily_limit_message"])
+            return
 
     await message_repository.save(user_id, "user", user_text)
 

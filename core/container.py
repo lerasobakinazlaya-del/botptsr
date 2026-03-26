@@ -18,6 +18,7 @@ from services.memory_engine import MemoryEngine
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
 from services.prompt_builder import PromptBuilder
+from services.referral_service import ReferralService
 from services.state_engine import StateEngine
 from services.user_service import UserService
 
@@ -46,7 +47,7 @@ class Container:
         self.memory_engine = MemoryEngine()
         self.keyword_memory_service = KeywordMemoryService()
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
-        self.access_engine = AccessEngine()
+        self.access_engine = AccessEngine(self.admin_settings_service)
 
         self.openai_client = OpenAIClient(api_key=self.settings.openai_api_key)
         self.ai_service = AIService(
@@ -65,11 +66,17 @@ class Container:
         )
 
         self.user_service = UserService(self.db)
+        self.referral_service = ReferralService(
+            db=self.db,
+            user_service=self.user_service,
+            settings_service=self.admin_settings_service,
+        )
         self.payment_service = PaymentService(
             settings=self.settings,
             payment_repository=self.payment_repository,
             user_service=self.user_service,
             settings_service=self.admin_settings_service,
+            referral_service=self.referral_service,
         )
 
     def _create_redis_client(self) -> Redis | None:

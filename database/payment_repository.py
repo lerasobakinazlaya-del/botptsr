@@ -16,7 +16,7 @@ class PaymentRepository:
         status: str,
         paid_at: str | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> None:
+    ) -> dict[str, Any]:
         is_first_payment = 0
         effective_paid_at = paid_at
         if status == "paid":
@@ -78,6 +78,10 @@ class PaymentRepository:
             ),
         )
         await self.db.connection.commit()
+        return {
+            "is_first_payment": bool(is_first_payment),
+            "paid_at": effective_paid_at,
+        }
 
     async def get_overview(self) -> dict[str, Any]:
         total_paid_cursor = await self.db.connection.execute(

@@ -8,6 +8,8 @@ Telegram-бот на `aiogram` с SQLite, Redis, OpenAI и отдельной в
 - Premium-режимы и Telegram Payments
 - русская веб-админка с несколькими разделами
 - редактирование runtime-настроек, промптов, режимов и UI без правки кода
+- настройка access engine и дневных лимитов для бесплатных пользователей
+- управление реферальной программой и ее правилами конверсии
 - тестирование системного промпта, state engine и live-ответа модели из админки
 - просмотр логов, health-статуса и базовой аналитики
 
@@ -115,6 +117,9 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 - списки ключевых слов
 - стартовые значения состояния
 - коэффициенты изменения `interest`, `attraction`, `control` и других метрик
+- пороги access engine: `observation`, `analysis`, `tension`, `personal_focus`, `rare_layer`
+- дневной лимит сообщений для бесплатных пользователей
+- кастомный текст при достижении free-лимита
 
 ### 4. Промпты
 
@@ -139,15 +144,27 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 - валюта
 - цена
 - название и описание Premium
+- benefits-текст и CTA оплаты
 - пользовательские сообщения оплаты
 
-### 7. Тестирование
+### 7. Реферальная программа
+
+- включение и отключение программы
+- prefix deep link для `/start`
+- запрет или разрешение self-referral
+- условие конверсии только после первой оплаты
+- награда Premium для реферера и/или приглашенного
+- шаблон реферальной ссылки
+- приветствие приглашенного пользователя
+- сообщение о начислении награды
+
+### 8. Тестирование
 
 - превью системного промпта
 - dry-run обновления state
 - live-тест ответа модели из текущих настроек
 
-### 8. Логи
+### 9. Логи
 
 - просмотр `logs/bot.log`
 - health-данные
@@ -156,6 +173,7 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 ## Редактируемые конфиги
 
 - `config/runtime_settings.json` - runtime-настройки, UI, безопасность, state engine, платежи
+- `config/runtime_settings.json` также хранит access engine, daily limits и referral program
 - `config/prompt_templates.json` - шаблоны системных промптов
 - `config/modes.json` - числовые шкалы режимов
 - `config/mode_catalog.json` - тексты, названия, иконки и Premium-статусы режимов
@@ -205,6 +223,20 @@ Redis используется для:
 - FSM переходит на `MemoryStorage`
 - middleware используют локальный fallback
 - админка строит overview без Redis-кеша
+
+## Рефералка и лимиты
+
+Реферальная программа работает через deep link вида:
+
+- `https://t.me/<bot_username>?start=ref_<user_id>`
+
+После первой успешной оплаты приглашенного пользователя система может:
+
+- пометить реферальную конверсию
+- выдать Premium рефереру
+- выдать Premium приглашенному
+
+Лимиты бесплатных пользователей считаются по количеству пользовательских сообщений за текущий день.
 
 ## Логи
 

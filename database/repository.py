@@ -85,3 +85,17 @@ class MessageRepository:
         )
         await self._commit()
         logger.info("[DB] Cleared history for user %s", user_id)
+
+    async def get_user_messages_count_today(self, user_id: int) -> int:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM messages
+            WHERE user_id = ?
+              AND role = 'user'
+              AND DATE(created_at) = DATE('now')
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else 0

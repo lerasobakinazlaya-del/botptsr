@@ -49,6 +49,7 @@ async def lifespan(app: FastAPI):
         user_service=container.user_service,
         message_repository=container.message_repository,
         payment_repository=container.payment_repository,
+        referral_service=container.referral_service,
         state_repository=container.state_repository,
         ai_service=container.ai_service,
         redis=container.redis,
@@ -65,6 +66,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Админка бота", lifespan=lifespan)
+
+
+def _ensure_admin_metrics() -> AdminMetricsService:
+    if not hasattr(container, "admin_metrics"):
+        container.admin_metrics = AdminMetricsService(
+            user_service=container.user_service,
+            message_repository=container.message_repository,
+            payment_repository=container.payment_repository,
+            referral_service=container.referral_service,
+            state_repository=container.state_repository,
+            ai_service=container.ai_service,
+            redis=container.redis,
+            cache_ttl=settings.admin_dashboard_cache_ttl,
+        )
+    return container.admin_metrics
 
 
 def _parse_json_field(value: Any, default: Any) -> Any:
@@ -107,9 +123,7 @@ def _parse_history(value: Any) -> list[dict[str, str]]:
 
 
 async def _invalidate_metrics_cache() -> None:
-    admin_metrics = getattr(container, "admin_metrics", None)
-    if admin_metrics is not None:
-        await admin_metrics.invalidate_cache()
+    await _ensure_admin_metrics().invalidate_cache()
 
 
 async def _build_health() -> dict[str, Any]:
@@ -189,7 +203,7 @@ def _prepare_test_context(payload: dict[str, Any]) -> dict[str, Any]:
 
 @app.get("/api/overview")
 async def api_overview(_: str = Depends(require_auth)):
-    return await container.admin_metrics.get_overview()
+    return await _ensure_admin_metrics().get_overview()
 
 
 @app.get("/api/health")
@@ -413,21 +427,22 @@ def _dashboard_html() -> str:
             <div class="two">
               <label>Модель<input id="ai_openai_model"></label>
               <label>Язык ответа<input id="ai_response_language"></label>
-              <label>Temperature<input id="ai_temperature" type="number" step="0.1"></label>
+              <label>Температура<input id="ai_temperature" type="number" step="0.1"></label>
               <label>Таймаут<input id="ai_timeout_seconds" type="number"></label>
               <label>Повторы<input id="ai_max_retries" type="number"></label>
               <label>Память, токены<input id="ai_memory_max_tokens" type="number"></label>
               <label>История сообщений<input id="ai_history_message_limit" type="number"></label>
-              <label>Debug user id<input id="ai_debug_prompt_user_id" type="number"></label>
+              <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
           </div>
           <div class="panel">
             <h3>Чат</h3>
-            <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать typing</label>
+            <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать индикатор набора</label>
             <label>Не-текстовое сообщение<textarea id="chat_non_text_message"></textarea></label>
             <label>Перегрузка<textarea id="chat_busy_message"></textarea></label>
             <label>Ошибка AI<textarea id="chat_ai_error_message"></textarea></label>
+            <label>Текст кнопки «Написать»<textarea id="chat_write_prompt_message"></textarea></label>
           </div>
         </div>
         <div class="panel">
@@ -435,15 +450,15 @@ def _dashboard_html() -> str:
           <div class="three">
             <label>Кнопка написать<input id="ui_write_button_text"></label>
             <label>Кнопка режимов<input id="ui_modes_button_text"></label>
-            <label>Кнопка premium<input id="ui_premium_button_text"></label>
+            <label>Кнопка Premium<input id="ui_premium_button_text"></label>
           </div>
           <div class="two">
-            <label>Placeholder<input id="ui_input_placeholder"></label>
+            <label>Плейсхолдер<input id="ui_input_placeholder"></label>
             <label>Заголовок режимов<input id="ui_modes_title"></label>
             <label>Пользователь не найден<textarea id="ui_user_not_found_text"></textarea></label>
             <label>Неизвестный режим<textarea id="ui_unknown_mode_text"></textarea></label>
-            <label>Premium lock<textarea id="ui_mode_locked_text"></textarea></label>
-            <label>Toast смены режима<input id="ui_mode_saved_toast"></label>
+            <label>Текст блокировки Premium<textarea id="ui_mode_locked_text"></textarea></label>
+            <label>Всплывающее уведомление<input id="ui_mode_saved_toast"></label>
           </div>
           <label>Шаблон смены режима<textarea id="ui_mode_saved_template"></textarea></label>
           <label>Приветствие пользователя<textarea id="ui_welcome_user_text"></textarea></label>
@@ -479,6 +494,27 @@ def _dashboard_html() -> str:
         <div class="panel">
           <h3>Коэффициенты</h3>
           <div id="state-effects-grid" class="three"></div>
+        </div>
+        <div class="panel">
+          <h3>Уровни доступа и free-лимиты</h3>
+          <div class="two">
+            <label>Принудительный уровень<input id="access_forced_level"></label>
+            <label>Уровень по умолчанию<input id="access_default_level"></label>
+            <label>Порог observation по interest<input id="access_interest_observation_threshold" type="number" step="0.01"></label>
+            <label>Порог rare_layer по instability<input id="access_rare_layer_instability_threshold" type="number" step="0.01"></label>
+            <label>Порог rare_layer по attraction<input id="access_rare_layer_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог personal_focus по attraction<input id="access_personal_focus_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог personal_focus по interest<input id="access_personal_focus_interest_threshold" type="number" step="0.01"></label>
+            <label>Порог tension по attraction<input id="access_tension_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог tension по control<input id="access_tension_control_threshold" type="number" step="0.01"></label>
+            <label>Порог analysis по interest<input id="access_analysis_interest_threshold" type="number" step="0.01"></label>
+            <label>Порог analysis по control<input id="access_analysis_control_threshold" type="number" step="0.01"></label>
+          </div>
+          <label class="checkbox"><input id="limits_free_daily_messages_enabled" type="checkbox">Включить дневной лимит для бесплатных пользователей</label>
+          <div class="two">
+            <label>Лимит сообщений в день<input id="limits_free_daily_messages_limit" type="number" min="1"></label>
+          </div>
+          <label>Текст при исчерпании лимита<textarea id="limits_free_daily_limit_message"></textarea></label>
           <div class="actions"><button class="primary" id="save-safety">Сохранить раздел</button></div>
         </div>
       </section>
@@ -498,11 +534,11 @@ def _dashboard_html() -> str:
         </div>
         <div class="panel">
           <div class="two">
-            <label>Observation<textarea id="access_observation"></textarea></label>
-            <label>Analysis<textarea id="access_analysis"></textarea></label>
-            <label>Tension<textarea id="access_tension"></textarea></label>
-            <label>Personal focus<textarea id="access_personal_focus"></textarea></label>
-            <label>Rare layer<textarea id="access_rare_layer"></textarea></label>
+            <label>Правило observation<textarea id="access_observation"></textarea></label>
+            <label>Правило analysis<textarea id="access_analysis"></textarea></label>
+            <label>Правило tension<textarea id="access_tension"></textarea></label>
+            <label>Правило personal_focus<textarea id="access_personal_focus"></textarea></label>
+            <label>Правило rare_layer<textarea id="access_rare_layer"></textarea></label>
           </div>
           <div class="actions"><button class="primary" id="save-prompts">Сохранить раздел</button></div>
         </div>
@@ -520,15 +556,35 @@ def _dashboard_html() -> str:
         <div><h2>Оплата</h2><p class="muted">Управление токеном провайдера, ценой, валютой и сообщениями по Premium.</p></div>
         <div class="panel">
           <div class="two">
-            <label>Provider token<textarea id="payment_provider_token"></textarea></label>
+            <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
             <label>Валюта<input id="payment_currency"></label>
             <label>Цена<input id="payment_price_minor_units" type="number"></label>
             <label>Название<input id="payment_product_title"></label>
           </div>
           <label>Описание<textarea id="payment_product_description"></textarea></label>
+          <label>Преимущества Premium<textarea id="payment_premium_benefits_text"></textarea></label>
+          <label>CTA оплаты<input id="payment_buy_cta_text"></label>
           <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
           <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
           <label>Успешная оплата<textarea id="payment_success_message"></textarea></label>
+        </div>
+        <div class="panel">
+          <h3>Реферальная программа</h3>
+          <label class="checkbox"><input id="referral_enabled" type="checkbox">Включить реферальную программу</label>
+          <div class="two">
+            <label>Префикс для /start<input id="referral_start_parameter_prefix"></label>
+            <label>Заголовок<input id="referral_program_title"></label>
+          </div>
+          <label class="checkbox"><input id="referral_allow_self_referral" type="checkbox">Разрешить приглашать самого себя</label>
+          <label class="checkbox"><input id="referral_require_first_paid_invoice" type="checkbox">Засчитывать только после первой оплаты</label>
+          <label class="checkbox"><input id="referral_award_referrer_premium" type="checkbox">Выдавать Premium рефереру</label>
+          <label class="checkbox"><input id="referral_award_referred_user_premium" type="checkbox">Выдавать Premium приглашенному</label>
+          <label>Описание<textarea id="referral_program_description"></textarea></label>
+          <label>Шаблон ссылки (`{ref_link}`)<textarea id="referral_share_text_template"></textarea></label>
+          <label>Текст для приглашенного<textarea id="referral_referred_welcome_message"></textarea></label>
+          <label>Текст награды<textarea id="referral_referrer_reward_message"></textarea></label>
+          <h3>Последние рефералы</h3>
+          <pre id="recent-referrals"></pre>
           <div class="actions"><button class="primary" id="save-payments">Сохранить раздел</button></div>
         </div>
       </section>
@@ -578,19 +634,19 @@ def _dashboard_html() -> str:
     function notice(text,kind='ok'){const n=$('#notice');n.textContent=text;n.className='notice '+kind}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
     function openView(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===name))}
-    function renderOverview(){if(!state.overview)return;const o=state.overview;const cards=[['Пользователи',o.users.total,`+7д: ${o.users.new_7d}`],['Premium',o.users.premium_total,`Активных: ${o.users.active_with_messages}`],['Сообщения',o.content.messages_total,`+30д: ${o.users.new_30d}`],['Платежи',o.payments.successful_payments,`Выручка: ${o.payments.revenue}`],['AI',`${o.runtime.queue_size}/${o.runtime.queue_capacity}`,`Workers: ${o.runtime.workers}`],['Support',o.support.users_with_support_profile,`panic: ${o.support.episode_counts.panic}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','active_mode','is_premium','created_at'],o.recent.users);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],o.recent.payments);$('#support-summary').innerHTML=`<pre>${esc(JSON.stringify(o.support,null,2))}</pre>`}
+    function renderOverview(){if(!state.overview)return;const o=state.overview;const cards=[['Пользователи',o.users.total,`+7д: ${o.users.new_7d}`],['Premium',o.users.premium_total,`Активных: ${o.users.active_with_messages}`],['Сообщения',o.content.messages_total,`+30д: ${o.users.new_30d}`],['Платежи',o.payments.successful_payments,`Выручка: ${o.payments.revenue}`],['AI',`${o.runtime.queue_size}/${o.runtime.queue_capacity}`,`Workers: ${o.runtime.workers}`],['Support',o.support.users_with_support_profile,`panic: ${o.support.episode_counts.panic}`],['Рефералы',o.referrals.total,`Конверсий: ${o.referrals.converted}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','active_mode','is_premium','created_at'],o.recent.users);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],o.recent.payments);$('#support-summary').innerHTML=`<pre>${esc(JSON.stringify({support:o.support,referrals:o.referrals},null,2))}</pre>`}
     function renderHealth(){if(!state.health)return;$('#sidebar-health').textContent=`DB: ${state.health.db.ok?'ok':'err'} | Redis: ${state.health.redis.detail}`;$('#health-summary').innerHTML=`<pre>${esc(JSON.stringify({db:state.health.db,redis:state.health.redis,ai:state.health.ai_runtime},null,2))}</pre>`;$('#full-health').textContent=JSON.stringify(state.health,null,2);$('#config-files').textContent=JSON.stringify(state.health.config_files,null,2)}
-    function renderRuntime(){const r=state.settings.runtime,a=r.ai,c=r.chat,u=r.ui;$('#ai_openai_model').value=a.openai_model;$('#ai_response_language').value=a.response_language;$('#ai_temperature').value=a.temperature;$('#ai_timeout_seconds').value=a.timeout_seconds;$('#ai_max_retries').value=a.max_retries;$('#ai_memory_max_tokens').value=a.memory_max_tokens;$('#ai_history_message_limit').value=a.history_message_limit;$('#ai_debug_prompt_user_id').value=a.debug_prompt_user_id||'';$('#ai_log_full_prompt').checked=!!a.log_full_prompt;$('#chat_typing_action_enabled').checked=!!c.typing_action_enabled;$('#chat_non_text_message').value=c.non_text_message;$('#chat_busy_message').value=c.busy_message;$('#chat_ai_error_message').value=c.ai_error_message;$('#ui_write_button_text').value=u.write_button_text;$('#ui_modes_button_text').value=u.modes_button_text;$('#ui_premium_button_text').value=u.premium_button_text;$('#ui_input_placeholder').value=u.input_placeholder;$('#ui_modes_title').value=u.modes_title;$('#ui_user_not_found_text').value=u.user_not_found_text;$('#ui_unknown_mode_text').value=u.unknown_mode_text;$('#ui_mode_locked_text').value=u.mode_locked_text;$('#ui_mode_saved_toast').value=u.mode_saved_toast;$('#ui_mode_saved_template').value=u.mode_saved_template;$('#ui_welcome_user_text').value=u.welcome_user_text;$('#ui_welcome_admin_text').value=u.welcome_admin_text}
-    function renderSafety(){const r=state.settings.runtime,s=r.safety,se=r.state_engine;$('#safety_throttle_rate_limit_seconds').value=s.throttle_rate_limit_seconds;$('#safety_throttle_warning_interval_seconds').value=s.throttle_warning_interval_seconds;$('#safety_max_message_length').value=s.max_message_length;$('#safety_reject_suspicious_messages').checked=!!s.reject_suspicious_messages;$('#safety_throttle_warning_text').value=s.throttle_warning_text;$('#safety_message_too_long_text').value=s.message_too_long_text;$('#safety_suspicious_rejection_text').value=s.suspicious_rejection_text;$('#safety_suspicious_keywords').value=(s.suspicious_keywords||[]).join('\\n');$('#state-defaults-grid').innerHTML=Object.entries(se.defaults).map(([k,v])=>`<label>${k}<input data-state-default="${k}" type="number" step="0.01" value="${v}"></label>`).join('');$('#state_positive_keywords').value=(se.positive_keywords||[]).join('\\n');$('#state_negative_keywords').value=(se.negative_keywords||[]).join('\\n');$('#state_attraction_keywords').value=(se.attraction_keywords||[]).join('\\n');$('#state-effects-grid').innerHTML=Object.entries(se.message_effects).map(([k,v])=>`<label>${k}<input data-state-effect="${k}" type="number" step="0.01" value="${v}"></label>`).join('')}
+    function renderRuntime(){const r=state.settings.runtime,a=r.ai,c=r.chat,u=r.ui;$('#ai_openai_model').value=a.openai_model;$('#ai_response_language').value=a.response_language;$('#ai_temperature').value=a.temperature;$('#ai_timeout_seconds').value=a.timeout_seconds;$('#ai_max_retries').value=a.max_retries;$('#ai_memory_max_tokens').value=a.memory_max_tokens;$('#ai_history_message_limit').value=a.history_message_limit;$('#ai_debug_prompt_user_id').value=a.debug_prompt_user_id||'';$('#ai_log_full_prompt').checked=!!a.log_full_prompt;$('#chat_typing_action_enabled').checked=!!c.typing_action_enabled;$('#chat_non_text_message').value=c.non_text_message;$('#chat_busy_message').value=c.busy_message;$('#chat_ai_error_message').value=c.ai_error_message;$('#chat_write_prompt_message').value=c.write_prompt_message;$('#ui_write_button_text').value=u.write_button_text;$('#ui_modes_button_text').value=u.modes_button_text;$('#ui_premium_button_text').value=u.premium_button_text;$('#ui_input_placeholder').value=u.input_placeholder;$('#ui_modes_title').value=u.modes_title;$('#ui_user_not_found_text').value=u.user_not_found_text;$('#ui_unknown_mode_text').value=u.unknown_mode_text;$('#ui_mode_locked_text').value=u.mode_locked_text;$('#ui_mode_saved_toast').value=u.mode_saved_toast;$('#ui_mode_saved_template').value=u.mode_saved_template;$('#ui_welcome_user_text').value=u.welcome_user_text;$('#ui_welcome_admin_text').value=u.welcome_admin_text}
+    function renderSafety(){const r=state.settings.runtime,s=r.safety,se=r.state_engine,a=r.access,l=r.limits;$('#safety_throttle_rate_limit_seconds').value=s.throttle_rate_limit_seconds;$('#safety_throttle_warning_interval_seconds').value=s.throttle_warning_interval_seconds;$('#safety_max_message_length').value=s.max_message_length;$('#safety_reject_suspicious_messages').checked=!!s.reject_suspicious_messages;$('#safety_throttle_warning_text').value=s.throttle_warning_text;$('#safety_message_too_long_text').value=s.message_too_long_text;$('#safety_suspicious_rejection_text').value=s.suspicious_rejection_text;$('#safety_suspicious_keywords').value=(s.suspicious_keywords||[]).join('\\n');$('#state-defaults-grid').innerHTML=Object.entries(se.defaults).map(([k,v])=>`<label>${k}<input data-state-default="${k}" type="number" step="0.01" value="${v}"></label>`).join('');$('#state_positive_keywords').value=(se.positive_keywords||[]).join('\\n');$('#state_negative_keywords').value=(se.negative_keywords||[]).join('\\n');$('#state_attraction_keywords').value=(se.attraction_keywords||[]).join('\\n');$('#state-effects-grid').innerHTML=Object.entries(se.message_effects).map(([k,v])=>`<label>${k}<input data-state-effect="${k}" type="number" step="0.01" value="${v}"></label>`).join('');$('#access_forced_level').value=a.forced_level||'';$('#access_default_level').value=a.default_level;$('#access_interest_observation_threshold').value=a.interest_observation_threshold;$('#access_rare_layer_instability_threshold').value=a.rare_layer_instability_threshold;$('#access_rare_layer_attraction_threshold').value=a.rare_layer_attraction_threshold;$('#access_personal_focus_attraction_threshold').value=a.personal_focus_attraction_threshold;$('#access_personal_focus_interest_threshold').value=a.personal_focus_interest_threshold;$('#access_tension_attraction_threshold').value=a.tension_attraction_threshold;$('#access_tension_control_threshold').value=a.tension_control_threshold;$('#access_analysis_interest_threshold').value=a.analysis_interest_threshold;$('#access_analysis_control_threshold').value=a.analysis_control_threshold;$('#limits_free_daily_messages_enabled').checked=!!l.free_daily_messages_enabled;$('#limits_free_daily_messages_limit').value=l.free_daily_messages_limit;$('#limits_free_daily_limit_message').value=l.free_daily_limit_message}
     function renderPrompts(){const p=state.settings.prompts;$('#prompt_personality_core').value=p.personality_core;$('#prompt_safety_block').value=p.safety_block;$('#prompt_memory_intro').value=p.memory_intro;$('#prompt_state_intro').value=p.state_intro;$('#prompt_mode_intro').value=p.mode_intro;$('#prompt_access_intro').value=p.access_intro;$('#prompt_final_instruction').value=p.final_instruction;$('#access_observation').value=p.access_rules.observation;$('#access_analysis').value=p.access_rules.analysis;$('#access_tension').value=p.access_rules.tension;$('#access_personal_focus').value=p.access_rules.personal_focus;$('#access_rare_layer').value=p.access_rules.rare_layer}
     function renderModes(){const m=state.settings.modes,c=state.settings.mode_catalog;const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k],scale=m[k];return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)}</div></div><span class="badge">${meta.is_premium?'Premium':'Free'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order}"></label></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Premium</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${Object.entries(scale).map(([mk,mv])=>`<label>${mk}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div></div>`}).join('')}
-    function renderPayments(){const p=state.settings.runtime.payment;$('#payment_provider_token').value=p.provider_token;$('#payment_currency').value=p.currency;$('#payment_price_minor_units').value=p.price_minor_units;$('#payment_product_title').value=p.product_title;$('#payment_product_description').value=p.product_description;$('#payment_unavailable_message').value=p.unavailable_message;$('#payment_invoice_error_message').value=p.invoice_error_message;$('#payment_success_message').value=p.success_message}
+    function renderPayments(){const p=state.settings.runtime.payment,ref=state.settings.runtime.referral;$('#payment_provider_token').value=p.provider_token;$('#payment_currency').value=p.currency;$('#payment_price_minor_units').value=p.price_minor_units;$('#payment_product_title').value=p.product_title;$('#payment_product_description').value=p.product_description;$('#payment_premium_benefits_text').value=p.premium_benefits_text;$('#payment_buy_cta_text').value=p.buy_cta_text;$('#payment_unavailable_message').value=p.unavailable_message;$('#payment_invoice_error_message').value=p.invoice_error_message;$('#payment_success_message').value=p.success_message;$('#referral_enabled').checked=!!ref.enabled;$('#referral_start_parameter_prefix').value=ref.start_parameter_prefix;$('#referral_program_title').value=ref.program_title;$('#referral_allow_self_referral').checked=!!ref.allow_self_referral;$('#referral_require_first_paid_invoice').checked=!!ref.require_first_paid_invoice;$('#referral_award_referrer_premium').checked=!!ref.award_referrer_premium;$('#referral_award_referred_user_premium').checked=!!ref.award_referred_user_premium;$('#referral_program_description').value=ref.program_description;$('#referral_share_text_template').value=ref.share_text_template;$('#referral_referred_welcome_message').value=ref.referred_welcome_message;$('#referral_referrer_reward_message').value=ref.referrer_reward_message;$('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)}
     function renderLogs(){if(state.logs)$('#logs-output').textContent=(state.logs.lines||[]).join('\\n')||'Лог пуст.'}
-    function runtimePayload(){return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value}}}
-    function safetyPayload(){const defaults={},effects={};document.querySelectorAll('[data-state-default]').forEach(i=>defaults[i.dataset.stateDefault]=Number(i.value));document.querySelectorAll('[data-state-effect]').forEach(i=>effects[i.dataset.stateEffect]=Number(i.value));return {safety:{throttle_rate_limit_seconds:Number($('#safety_throttle_rate_limit_seconds').value),throttle_warning_interval_seconds:Number($('#safety_throttle_warning_interval_seconds').value),max_message_length:Number($('#safety_max_message_length').value),reject_suspicious_messages:$('#safety_reject_suspicious_messages').checked,throttle_warning_text:$('#safety_throttle_warning_text').value,message_too_long_text:$('#safety_message_too_long_text').value,suspicious_rejection_text:$('#safety_suspicious_rejection_text').value,suspicious_keywords:$('#safety_suspicious_keywords').value},state_engine:{defaults,positive_keywords:$('#state_positive_keywords').value,negative_keywords:$('#state_negative_keywords').value,attraction_keywords:$('#state_attraction_keywords').value,message_effects:effects}}}
+    function runtimePayload(){return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value}}}
+    function safetyPayload(){const defaults={},effects={};document.querySelectorAll('[data-state-default]').forEach(i=>defaults[i.dataset.stateDefault]=Number(i.value));document.querySelectorAll('[data-state-effect]').forEach(i=>effects[i.dataset.stateEffect]=Number(i.value));return {safety:{throttle_rate_limit_seconds:Number($('#safety_throttle_rate_limit_seconds').value),throttle_warning_interval_seconds:Number($('#safety_throttle_warning_interval_seconds').value),max_message_length:Number($('#safety_max_message_length').value),reject_suspicious_messages:$('#safety_reject_suspicious_messages').checked,throttle_warning_text:$('#safety_throttle_warning_text').value,message_too_long_text:$('#safety_message_too_long_text').value,suspicious_rejection_text:$('#safety_suspicious_rejection_text').value,suspicious_keywords:$('#safety_suspicious_keywords').value},state_engine:{defaults,positive_keywords:$('#state_positive_keywords').value,negative_keywords:$('#state_negative_keywords').value,attraction_keywords:$('#state_attraction_keywords').value,message_effects:effects},access:{forced_level:$('#access_forced_level').value.trim(),default_level:$('#access_default_level').value.trim(),interest_observation_threshold:Number($('#access_interest_observation_threshold').value),rare_layer_instability_threshold:Number($('#access_rare_layer_instability_threshold').value),rare_layer_attraction_threshold:Number($('#access_rare_layer_attraction_threshold').value),personal_focus_attraction_threshold:Number($('#access_personal_focus_attraction_threshold').value),personal_focus_interest_threshold:Number($('#access_personal_focus_interest_threshold').value),tension_attraction_threshold:Number($('#access_tension_attraction_threshold').value),tension_control_threshold:Number($('#access_tension_control_threshold').value),analysis_interest_threshold:Number($('#access_analysis_interest_threshold').value),analysis_control_threshold:Number($('#access_analysis_control_threshold').value)},limits:{free_daily_messages_enabled:$('#limits_free_daily_messages_enabled').checked,free_daily_messages_limit:Number($('#limits_free_daily_messages_limit').value),free_daily_limit_message:$('#limits_free_daily_limit_message').value}}}
     function promptsPayload(){return {personality_core:$('#prompt_personality_core').value,safety_block:$('#prompt_safety_block').value,memory_intro:$('#prompt_memory_intro').value,state_intro:$('#prompt_state_intro').value,mode_intro:$('#prompt_mode_intro').value,access_intro:$('#prompt_access_intro').value,final_instruction:$('#prompt_final_instruction').value,access_rules:{observation:$('#access_observation').value,analysis:$('#access_analysis').value,tension:$('#access_tension').value,personal_focus:$('#access_personal_focus').value,rare_layer:$('#access_rare_layer').value}}}
     function modesPayload(){const modes={},catalog={};document.querySelectorAll('[data-mode-scale]').forEach(i=>{const [m,k]=i.dataset.modeScale.split('.');modes[m]??={};modes[m][k]=Number(i.value)});document.querySelectorAll('[data-catalog]').forEach(i=>{const [m,k]=i.dataset.catalog.split('.');catalog[m]??={};catalog[m][k]=i.type==='checkbox'?i.checked:(k==='sort_order'?Number(i.value):i.value)});return {modes,catalog}}
-    function paymentsPayload(){return {payment:{provider_token:$('#payment_provider_token').value,currency:$('#payment_currency').value,price_minor_units:Number($('#payment_price_minor_units').value),product_title:$('#payment_product_title').value,product_description:$('#payment_product_description').value,unavailable_message:$('#payment_unavailable_message').value,invoice_error_message:$('#payment_invoice_error_message').value,success_message:$('#payment_success_message').value}}}
+    function paymentsPayload(){return {payment:{provider_token:$('#payment_provider_token').value,currency:$('#payment_currency').value,price_minor_units:Number($('#payment_price_minor_units').value),product_title:$('#payment_product_title').value,product_description:$('#payment_product_description').value,premium_benefits_text:$('#payment_premium_benefits_text').value,buy_cta_text:$('#payment_buy_cta_text').value,unavailable_message:$('#payment_unavailable_message').value,invoice_error_message:$('#payment_invoice_error_message').value,success_message:$('#payment_success_message').value},referral:{enabled:$('#referral_enabled').checked,start_parameter_prefix:$('#referral_start_parameter_prefix').value,program_title:$('#referral_program_title').value,allow_self_referral:$('#referral_allow_self_referral').checked,require_first_paid_invoice:$('#referral_require_first_paid_invoice').checked,award_referrer_premium:$('#referral_award_referrer_premium').checked,award_referred_user_premium:$('#referral_award_referred_user_premium').checked,program_description:$('#referral_program_description').value,share_text_template:$('#referral_share_text_template').value,referred_welcome_message:$('#referral_referred_welcome_message').value,referrer_reward_message:$('#referral_referrer_reward_message').value}}}
     function testPayload(){return {active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
     async function refreshAll(){const [overview,health,settingsData,logs]=await Promise.all([api('/api/overview'),api('/api/health'),api('/api/settings'),api(`/api/logs?lines=${$('#log-lines').value||200}`)]);state.overview=overview;state.health=health;state.settings=settingsData;state.logs=logs;renderOverview();renderHealth();renderRuntime();renderSafety();renderPrompts();renderModes();renderPayments();renderLogs()}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}

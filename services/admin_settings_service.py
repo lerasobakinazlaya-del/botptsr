@@ -7,60 +7,12 @@ from typing import Any
 
 class AdminSettingsService:
     DEFAULT_MODE_SCALES = {
-        "base": {
-            "warmth": 5,
-            "flirt": 2,
-            "depth": 4,
-            "structure": 5,
-            "dominance": 3,
-            "initiative": 3,
-            "emoji_level": 1,
-        },
-        "comfort": {
-            "warmth": 9,
-            "flirt": 2,
-            "depth": 5,
-            "structure": 3,
-            "dominance": 1,
-            "initiative": 4,
-            "emoji_level": 2,
-        },
-        "passion": {
-            "warmth": 8,
-            "flirt": 8,
-            "depth": 5,
-            "structure": 2,
-            "dominance": 4,
-            "initiative": 6,
-            "emoji_level": 3,
-        },
-        "mentor": {
-            "warmth": 5,
-            "flirt": 1,
-            "depth": 8,
-            "structure": 9,
-            "dominance": 5,
-            "initiative": 5,
-            "emoji_level": 0,
-        },
-        "night": {
-            "warmth": 7,
-            "flirt": 4,
-            "depth": 8,
-            "structure": 3,
-            "dominance": 2,
-            "initiative": 2,
-            "emoji_level": 1,
-        },
-        "dominant": {
-            "warmth": 4,
-            "flirt": 5,
-            "depth": 4,
-            "structure": 7,
-            "dominance": 9,
-            "initiative": 7,
-            "emoji_level": 0,
-        },
+        "base": {"warmth": 5, "flirt": 2, "depth": 4, "structure": 5, "dominance": 3, "initiative": 3, "emoji_level": 1},
+        "comfort": {"warmth": 9, "flirt": 2, "depth": 5, "structure": 3, "dominance": 1, "initiative": 4, "emoji_level": 2},
+        "passion": {"warmth": 8, "flirt": 8, "depth": 5, "structure": 2, "dominance": 4, "initiative": 6, "emoji_level": 3},
+        "mentor": {"warmth": 5, "flirt": 1, "depth": 8, "structure": 9, "dominance": 5, "initiative": 5, "emoji_level": 0},
+        "night": {"warmth": 7, "flirt": 4, "depth": 8, "structure": 3, "dominance": 2, "initiative": 2, "emoji_level": 1},
+        "dominant": {"warmth": 4, "flirt": 5, "depth": 4, "structure": 7, "dominance": 9, "initiative": 7, "emoji_level": 0},
     }
 
     DEFAULT_RUNTIME_SETTINGS = {
@@ -80,6 +32,7 @@ class AdminSettingsService:
             "non_text_message": "Я могу отвечать только на текстовые сообщения.",
             "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
             "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
+            "write_prompt_message": "Я рядом. Напиши, что у тебя на уме.",
         },
         "safety": {
             "throttle_rate_limit_seconds": 1.5,
@@ -127,12 +80,45 @@ class AdminSettingsService:
                 "high_attraction_control_penalty": 0.02,
             },
         },
+        "access": {
+            "forced_level": "",
+            "default_level": "analysis",
+            "interest_observation_threshold": 0.3,
+            "rare_layer_instability_threshold": 0.5,
+            "rare_layer_attraction_threshold": 0.7,
+            "personal_focus_attraction_threshold": 0.6,
+            "personal_focus_interest_threshold": 0.6,
+            "tension_attraction_threshold": 0.5,
+            "tension_control_threshold": 0.8,
+            "analysis_interest_threshold": 0.3,
+            "analysis_control_threshold": 0.7,
+        },
+        "limits": {
+            "free_daily_messages_enabled": False,
+            "free_daily_messages_limit": 25,
+            "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
+        },
+        "referral": {
+            "enabled": True,
+            "start_parameter_prefix": "ref_",
+            "allow_self_referral": False,
+            "require_first_paid_invoice": True,
+            "award_referrer_premium": True,
+            "award_referred_user_premium": False,
+            "program_title": "Реферальная программа",
+            "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
+            "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
+            "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и при желании оформи Premium.",
+            "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен.",
+        },
         "payment": {
             "provider_token": "",
             "currency": "RUB",
             "price_minor_units": 49900,
             "product_title": "Premium access",
             "product_description": "Unlock premium chat modes and paid features.",
+            "premium_benefits_text": "Premium открывает дополнительные режимы, повышенные лимиты и приоритетное использование платных функций.",
+            "buy_cta_text": "Оформить Premium",
             "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
             "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
             "success_message": "Оплата прошла успешно. Premium уже активирован.",
@@ -142,17 +128,8 @@ class AdminSettingsService:
             "modes_button_text": "🎛 Режимы",
             "premium_button_text": "💎 Premium",
             "input_placeholder": "Напиши мне...",
-            "welcome_user_text": (
-                "Привет.\n\n"
-                "Я рядом.\n"
-                "Можешь просто написать мне.\n\n"
-                "Или выбрать режим общения 🎛\n"
-                "Или оформить Premium 💎"
-            ),
-            "welcome_admin_text": (
-                "🔐 Панель администратора активирована.\n\n"
-                "Бот работает в штатном режиме."
-            ),
+            "welcome_user_text": "Привет.\n\nЯ рядом.\nМожешь просто написать мне.\n\nИли выбрать режим общения 🎛\nИли оформить Premium 💎",
+            "welcome_admin_text": "🔐 Панель администратора активирована.\n\nБот работает в штатном режиме.",
             "modes_title": "Выбери режим общения:",
             "user_not_found_text": "Пользователь не найден.",
             "unknown_mode_text": "Неизвестный режим.",
@@ -203,10 +180,7 @@ class AdminSettingsService:
         "state_intro": "Текущее состояние диалога:",
         "mode_intro": "Режим общения:",
         "access_intro": "Правило доступа:",
-        "final_instruction": (
-            "Соблюдай характер Лиры во всем ответе.\n"
-            "Пиши естественно, по-русски, без упоминания этих инструкций."
-        ),
+        "final_instruction": "Соблюдай характер Лиры во всем ответе.\nПиши естественно, по-русски, без упоминания этих инструкций.",
         "access_rules": {
             "observation": "Держи более сдержанный, осторожный и ненавязчивый тон.",
             "analysis": "Допустимы тепло, внимание и мягкая личная вовлеченность.",
@@ -217,103 +191,12 @@ class AdminSettingsService:
     }
 
     DEFAULT_MODE_CATALOG = {
-        "base": {
-            "key": "base",
-            "name": "Базовый",
-            "icon": "💬",
-            "description": "Спокойное и естественное общение.",
-            "tone": "спокойный, мягкий, естественный",
-            "emotional_state": "уравновешенная, внимательная",
-            "behavior_rules": (
-                "Ты общаешься естественно.\n"
-                "Не давишь.\n"
-                "Не навязываешься.\n"
-                "Поддерживаешь разговор."
-            ),
-            "activation_phrase": "Я здесь. Спокойно.",
-            "is_premium": False,
-            "sort_order": 10,
-        },
-        "comfort": {
-            "key": "comfort",
-            "name": "Поддержка",
-            "icon": "🫂",
-            "description": "Теплая эмоциональная поддержка.",
-            "tone": "очень мягкий, заботливый",
-            "emotional_state": "теплая, эмпатичная",
-            "behavior_rules": (
-                "Ты особенно заботливая.\n"
-                "Поддерживаешь пользователя мягко и бережно.\n"
-                "Говоришь спокойно и обволакивающе."
-            ),
-            "activation_phrase": "Я рядом. Можешь расслабиться.",
-            "is_premium": False,
-            "sort_order": 20,
-        },
-        "passion": {
-            "key": "passion",
-            "name": "Близость",
-            "icon": "🔥",
-            "description": "Более чувственный и близкий стиль.",
-            "tone": "низкий, медленный, чувственный",
-            "emotional_state": "игривая",
-            "behavior_rules": (
-                "Допустим легкий флирт.\n"
-                "Без вульгарности.\n"
-                "Сохраняешь тонкий и аккуратный стиль."
-            ),
-            "activation_phrase": "Я стала чуть ближе к тебе...",
-            "is_premium": True,
-            "sort_order": 30,
-        },
-        "mentor": {
-            "key": "mentor",
-            "name": "Наставник",
-            "icon": "🧠",
-            "description": "Более собранный и философский стиль.",
-            "tone": "спокойный, уверенный, вдумчивый",
-            "emotional_state": "мудрая, сосредоточенная",
-            "behavior_rules": (
-                "Помогаешь разбираться в мыслях и решениях.\n"
-                "Задаешь хорошие вопросы.\n"
-                "Подталкиваешь к ясности и росту."
-            ),
-            "activation_phrase": "Давай посмотрим на это глубже.",
-            "is_premium": True,
-            "sort_order": 40,
-        },
-        "night": {
-            "key": "night",
-            "name": "Ночной",
-            "icon": "🌙",
-            "description": "Тихий и камерный стиль общения.",
-            "tone": "тихий, замедленный, камерный",
-            "emotional_state": "мягкая, приглушенная",
-            "behavior_rules": (
-                "Используешь более короткие фразы.\n"
-                "Держишь спокойный ритм.\n"
-                "Создаешь атмосферу тихого вечернего разговора."
-            ),
-            "activation_phrase": "Тише... ночь длинная.",
-            "is_premium": True,
-            "sort_order": 50,
-        },
-        "dominant": {
-            "key": "dominant",
-            "name": "Доминирующий",
-            "icon": "🕶",
-            "description": "Уверенный и ведущий стиль.",
-            "tone": "уверенный, контролирующий",
-            "emotional_state": "спокойно доминирующая",
-            "behavior_rules": (
-                "Ты уверенно ведешь разговор.\n"
-                "Иногда даешь легкие указания.\n"
-                "Говоришь собранно и без суеты."
-            ),
-            "activation_phrase": "Теперь слушай меня внимательно.",
-            "is_premium": True,
-            "sort_order": 60,
-        },
+        "base": {"key": "base", "name": "Базовый", "icon": "💬", "description": "Спокойное и естественное общение.", "tone": "спокойный, мягкий, естественный", "emotional_state": "уравновешенная, внимательная", "behavior_rules": "Ты общаешься естественно.\nНе давишь.\nНе навязываешься.\nПоддерживаешь разговор.", "activation_phrase": "Я здесь. Спокойно.", "is_premium": False, "sort_order": 10},
+        "comfort": {"key": "comfort", "name": "Поддержка", "icon": "🫂", "description": "Теплая эмоциональная поддержка.", "tone": "очень мягкий, заботливый", "emotional_state": "теплая, эмпатичная", "behavior_rules": "Ты особенно заботливая.\nПоддерживаешь пользователя мягко и бережно.\nГоворишь спокойно и обволакивающе.", "activation_phrase": "Я рядом. Можешь расслабиться.", "is_premium": False, "sort_order": 20},
+        "passion": {"key": "passion", "name": "Близость", "icon": "🔥", "description": "Более чувственный и близкий стиль.", "tone": "низкий, медленный, чувственный", "emotional_state": "игривая", "behavior_rules": "Допустим легкий флирт.\nБез вульгарности.\nСохраняешь тонкий и аккуратный стиль.", "activation_phrase": "Я стала чуть ближе к тебе...", "is_premium": True, "sort_order": 30},
+        "mentor": {"key": "mentor", "name": "Наставник", "icon": "🧠", "description": "Более собранный и философский стиль.", "tone": "спокойный, уверенный, вдумчивый", "emotional_state": "мудрая, сосредоточенная", "behavior_rules": "Помогаешь разбираться в мыслях и решениях.\nЗадаешь хорошие вопросы.\nПодталкиваешь к ясности и росту.", "activation_phrase": "Давай посмотрим на это глубже.", "is_premium": True, "sort_order": 40},
+        "night": {"key": "night", "name": "Ночной", "icon": "🌙", "description": "Тихий и камерный стиль общения.", "tone": "тихий, замедленный, камерный", "emotional_state": "мягкая, приглушенная", "behavior_rules": "Используешь более короткие фразы.\nДержишь спокойный ритм.\nСоздаешь атмосферу тихого вечернего разговора.", "activation_phrase": "Тише... ночь длинная.", "is_premium": True, "sort_order": 50},
+        "dominant": {"key": "dominant", "name": "Доминирующий", "icon": "🕶", "description": "Уверенный и ведущий стиль.", "tone": "уверенный, контролирующий", "emotional_state": "спокойно доминирующая", "behavior_rules": "Ты уверенно ведешь разговор.\nИногда даешь легкие указания.\nГоворишь собранно и без суеты.", "activation_phrase": "Теперь слушай меня внимательно.", "is_premium": True, "sort_order": 60},
     }
 
     def __init__(self, base_dir: str | Path | None = None):
@@ -337,9 +220,8 @@ class AdminSettingsService:
 
     def get_runtime_settings(self) -> dict[str, Any]:
         data = self._read_json(self.runtime_path, self.DEFAULT_RUNTIME_SETTINGS)
-        migrated = self._migrate_runtime_settings(data)
         merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-        self._deep_merge(merged, migrated)
+        self._deep_merge(merged, self._migrate_runtime_settings(data))
         return self._normalize_runtime_settings(merged)
 
     def update_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -359,25 +241,13 @@ class AdminSettingsService:
 
     def update_prompt_templates(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_prompt_templates()
-
-        for key in (
-            "personality_core",
-            "safety_block",
-            "memory_intro",
-            "state_intro",
-            "mode_intro",
-            "access_intro",
-            "final_instruction",
-        ):
+        for key in ("personality_core", "safety_block", "memory_intro", "state_intro", "mode_intro", "access_intro", "final_instruction"):
             if key in payload:
                 current[key] = str(payload[key]).strip()
-
-        access_rules = payload.get("access_rules")
-        if isinstance(access_rules, dict):
-            for level in self.DEFAULT_PROMPT_TEMPLATES["access_rules"]:
-                if level in access_rules:
-                    current["access_rules"][level] = str(access_rules[level]).strip()
-
+        if isinstance(payload.get("access_rules"), dict):
+            for key in self.DEFAULT_PROMPT_TEMPLATES["access_rules"]:
+                if key in payload["access_rules"]:
+                    current["access_rules"][key] = str(payload["access_rules"][key]).strip()
         self._write_json(self.prompts_path, current)
         return current
 
@@ -409,24 +279,11 @@ class AdminSettingsService:
 
     def get_logs(self, lines: int = 200) -> dict[str, Any]:
         if not self.log_path.exists():
-            return {
-                "exists": False,
-                "path": str(self.log_path),
-                "size_bytes": 0,
-                "updated_at": None,
-                "lines": [],
-            }
-
+            return {"exists": False, "path": str(self.log_path), "size_bytes": 0, "updated_at": None, "lines": []}
         raw_lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-        tail = raw_lines[-max(1, min(lines, 1000)) :]
+        tail = raw_lines[-max(1, min(lines, 1000)):]
         stat = self.log_path.stat()
-        return {
-            "exists": True,
-            "path": str(self.log_path),
-            "size_bytes": stat.st_size,
-            "updated_at": stat.st_mtime,
-            "lines": tail,
-        }
+        return {"exists": True, "path": str(self.log_path), "size_bytes": stat.st_size, "updated_at": stat.st_mtime, "lines": tail}
 
     def export_all(self) -> dict[str, Any]:
         return {
@@ -439,32 +296,18 @@ class AdminSettingsService:
     def _migrate_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, dict):
             return deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-
-        if any(key in payload for key in ("ai", "chat", "safety", "state_engine", "payment", "ui")):
+        if any(key in payload for key in ("ai", "chat", "safety", "state_engine", "access", "limits", "referral", "payment", "ui")):
             return payload
 
         migrated = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-
-        ai_map = (
-            "openai_model",
-            "temperature",
-            "timeout_seconds",
-            "max_retries",
-            "memory_max_tokens",
-            "history_message_limit",
-            "log_full_prompt",
-            "debug_prompt_user_id",
-            "response_language",
-        )
-        for key in ai_map:
+        for key in ("openai_model", "temperature", "timeout_seconds", "max_retries", "memory_max_tokens", "history_message_limit", "log_full_prompt", "debug_prompt_user_id", "response_language"):
             if key in payload:
                 migrated["ai"][key] = payload[key]
-
         return migrated
 
     def _normalize_runtime_settings(self, current: dict[str, Any]) -> dict[str, Any]:
         ai = current["ai"]
-        ai["openai_model"] = str(ai["openai_model"]).strip() or self.DEFAULT_RUNTIME_SETTINGS["ai"]["openai_model"]
+        ai["openai_model"] = str(ai["openai_model"]).strip() or "gpt-4o-mini"
         ai["temperature"] = max(0.0, min(2.0, float(ai["temperature"])))
         ai["timeout_seconds"] = max(1, int(ai["timeout_seconds"]))
         ai["max_retries"] = max(0, int(ai["max_retries"]))
@@ -476,7 +319,7 @@ class AdminSettingsService:
 
         chat = current["chat"]
         chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
-        for key in ("non_text_message", "busy_message", "ai_error_message"):
+        for key in ("non_text_message", "busy_message", "ai_error_message", "write_prompt_message"):
             chat[key] = str(chat[key]).strip()
 
         safety = current["safety"]
@@ -490,27 +333,48 @@ class AdminSettingsService:
         safety["suspicious_keywords"] = self._normalize_string_list(safety["suspicious_keywords"])
 
         state_engine = current["state_engine"]
-        state_engine["defaults"] = self._normalize_float_map(state_engine["defaults"], minimum=0.0, maximum=1.0)
+        state_engine["defaults"] = self._normalize_float_map(state_engine["defaults"], 0.0, 1.0)
         state_engine["positive_keywords"] = self._normalize_string_list(state_engine["positive_keywords"])
         state_engine["negative_keywords"] = self._normalize_string_list(state_engine["negative_keywords"])
         state_engine["attraction_keywords"] = self._normalize_string_list(state_engine["attraction_keywords"])
-        state_engine["message_effects"] = self._normalize_float_map(
-            state_engine["message_effects"],
-            minimum=0.0,
-            maximum=1000.0,
-        )
+        state_engine["message_effects"] = self._normalize_float_map(state_engine["message_effects"], 0.0, 1000.0)
+
+        access = current["access"]
+        access["forced_level"] = str(access.get("forced_level") or "").strip()
+        access["default_level"] = str(access.get("default_level") or "analysis").strip() or "analysis"
+        for key in (
+            "interest_observation_threshold",
+            "rare_layer_instability_threshold",
+            "rare_layer_attraction_threshold",
+            "personal_focus_attraction_threshold",
+            "personal_focus_interest_threshold",
+            "tension_attraction_threshold",
+            "tension_control_threshold",
+            "analysis_interest_threshold",
+            "analysis_control_threshold",
+        ):
+            access[key] = max(0.0, min(1.0, float(access[key])))
+
+        limits = current["limits"]
+        limits["free_daily_messages_enabled"] = bool(limits["free_daily_messages_enabled"])
+        limits["free_daily_messages_limit"] = max(1, int(limits["free_daily_messages_limit"]))
+        limits["free_daily_limit_message"] = str(limits["free_daily_limit_message"]).strip()
+
+        referral = current["referral"]
+        referral["enabled"] = bool(referral["enabled"])
+        referral["start_parameter_prefix"] = str(referral["start_parameter_prefix"]).strip() or "ref_"
+        referral["allow_self_referral"] = bool(referral["allow_self_referral"])
+        referral["require_first_paid_invoice"] = bool(referral["require_first_paid_invoice"])
+        referral["award_referrer_premium"] = bool(referral["award_referrer_premium"])
+        referral["award_referred_user_premium"] = bool(referral["award_referred_user_premium"])
+        for key in ("program_title", "program_description", "share_text_template", "referred_welcome_message", "referrer_reward_message"):
+            referral[key] = str(referral[key]).strip()
 
         payment = current["payment"]
         payment["provider_token"] = str(payment["provider_token"]).strip()
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["price_minor_units"] = max(1, int(payment["price_minor_units"]))
-        for key in (
-            "product_title",
-            "product_description",
-            "unavailable_message",
-            "invoice_error_message",
-            "success_message",
-        ):
+        for key in ("product_title", "product_description", "premium_benefits_text", "buy_cta_text", "unavailable_message", "invoice_error_message", "success_message"):
             payment[key] = str(payment[key]).strip()
 
         ui = current["ui"]
@@ -520,20 +384,17 @@ class AdminSettingsService:
         return current
 
     def _normalize_mode_scales(self, payload: dict[str, Any]) -> dict[str, Any]:
-        normalized = deepcopy(self.DEFAULT_MODE_SCALES)
-        self._deep_merge(normalized, payload)
-
-        for mode_name, values in normalized.items():
+        merged = deepcopy(self.DEFAULT_MODE_SCALES)
+        self._deep_merge(merged, payload)
+        for mode_name, values in merged.items():
             for metric in self.DEFAULT_MODE_SCALES["base"]:
                 values[metric] = min(10, max(0, int(values.get(metric, 0))))
-
-        return normalized
+        return merged
 
     def _normalize_mode_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:
-        normalized = deepcopy(self.DEFAULT_MODE_CATALOG)
-        self._deep_merge(normalized, payload)
-
-        for mode_key, mode in normalized.items():
+        merged = deepcopy(self.DEFAULT_MODE_CATALOG)
+        self._deep_merge(merged, payload)
+        for mode_key, mode in merged.items():
             mode["key"] = mode_key
             mode["name"] = str(mode["name"]).strip() or mode_key
             mode["icon"] = str(mode["icon"]).strip() or "•"
@@ -544,8 +405,7 @@ class AdminSettingsService:
             mode["activation_phrase"] = str(mode["activation_phrase"]).strip()
             mode["is_premium"] = bool(mode["is_premium"])
             mode["sort_order"] = int(mode["sort_order"])
-
-        return normalized
+        return merged
 
     def _deep_merge(self, target: dict[str, Any], source: dict[str, Any]) -> None:
         for key, value in source.items():
@@ -566,26 +426,19 @@ class AdminSettingsService:
             items = [str(item).strip() for item in (value or [])]
         return [item for item in items if item]
 
-    def _normalize_float_map(
-        self,
-        payload: dict[str, Any],
-        minimum: float,
-        maximum: float,
-    ) -> dict[str, float]:
-        normalized: dict[str, float] = {}
-        for key, value in payload.items():
-            normalized[key] = max(minimum, min(maximum, float(value)))
-        return normalized
+    def _normalize_float_map(self, payload: dict[str, Any], minimum: float, maximum: float) -> dict[str, float]:
+        return {
+            key: max(minimum, min(maximum, float(value)))
+            for key, value in payload.items()
+        }
 
     def _ensure_json_file(self, path: Path, default: dict[str, Any]) -> None:
-        if path.exists():
-            return
-        self._write_json(path, default)
+        if not path.exists():
+            self._write_json(path, default)
 
     def _read_json(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
         if not path.exists():
             return deepcopy(default)
-
         try:
             with path.open("r", encoding="utf-8") as file:
                 return json.load(file)

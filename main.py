@@ -60,6 +60,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["message_repository"] = container.message_repository
     dp["payment_service"] = container.payment_service
     dp["payment_repository"] = container.payment_repository
+    dp["referral_service"] = container.referral_service
     dp["state_repository"] = container.state_repository
     dp["db"] = container.db
     dp["redis"] = container.redis
