@@ -4,11 +4,11 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 
 ## Что умеет проект
 
-- несколько режимов общения с настраиваемыми шкалами поведения
+- несколько режимов общения с настраиваемыми параметрами поведения
 - Premium-режимы и Telegram Payments
 - веб-админка для runtime-настроек, промптов, режимов и UI
 - реферальная программа
-- базовые health-метрики, просмотр логов и тестирование промптов из админки
+- health-метрики, просмотр логов и тестирование промптов из админки
 
 ## Что изменено в этой версии
 
@@ -16,15 +16,17 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - Redis больше не публикуется наружу через `docker-compose`
 - успешный чат теперь сохраняется в БД одним `COMMIT`, а не несколькими подряд
 - runtime-конфиги кешируются в памяти и не читаются с диска на каждый запрос
-- полные промпты логируются только в `DEBUG=true`
+- `/api/logs` использует in-memory кеш с автоматической инвалидацией при изменении файла
+- полные промпты логируются только при `DEBUG=true`
 - входящие сообщения больше не пишутся в лог с текстовым preview
-- рассылка из Telegram-админки отправляется батчами, а не одним длинным последовательным циклом
+- рассылка из Telegram-админки отправляется батчами
 - платеж подтверждается только при корректном `invoice_payload`
 - при старте бот больше не сбрасывает pending updates
 
 ## Стек
 
-- Python 3.12+
+- Python 3.10+ для локального запуска и systemd
+- Python 3.12 в Docker-образе
 - aiogram 3
 - OpenAI Python SDK
 - Redis
@@ -33,15 +35,15 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 
 ## Структура
 
-- `main.py` — запуск Telegram-бота
-- `admin_dashboard.py` — веб-админка
-- `handlers/` — Telegram-хендлеры
-- `services/` — AI, платежи, память, метрики, настройки
-- `database/` — SQLite и репозитории
-- `config/` — редактируемые JSON-конфиги
-- `core/` — контейнер, middleware, логирование
-- `deploy/systemd/` — systemd-юниты и update-скрипт
-- `.github/workflows/deploy.yml` — деплой через GitHub Actions
+- `main.py` - запуск Telegram-бота
+- `admin_dashboard.py` - веб-админка
+- `handlers/` - Telegram-хендлеры
+- `services/` - AI, платежи, память, метрики, настройки
+- `database/` - SQLite и репозитории
+- `config/` - редактируемые JSON-конфиги
+- `core/` - контейнер, middleware, логирование
+- `deploy/systemd/` - systemd-юниты и update-скрипт
+- `.github/workflows/deploy.yml` - деплой через GitHub Actions
 
 ## Быстрый старт
 
@@ -92,6 +94,12 @@ PREMIUM_PRODUCT_TITLE=Premium access
 PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 ```
 
+Замечания по переменным админки:
+
+- `ADMIN_DASHBOARD_BIND` используется только в Docker через `docker-compose`
+- `deploy/systemd/admin-dashboard.service` сейчас жестко запускает админку на `127.0.0.1:8080`
+- `ADMIN_DASHBOARD_HOST` и `ADMIN_DASHBOARD_PORT` уже есть в настройках приложения, но текущие systemd-юниты на них не завязаны
+
 ## Локальный запуск
 
 Бот:
@@ -118,12 +126,12 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 docker compose up --build -d
 ```
 
-Новые безопасные дефолты:
+Безопасные дефолты:
 
 - Redis не публикуется наружу
 - админка пробрасывается только на `127.0.0.1`
 
-Если нужен доступ к админке с другого интерфейса, задайте переменную:
+Если нужен доступ к админке с другого интерфейса, задайте:
 
 ```env
 ADMIN_DASHBOARD_BIND=0.0.0.0
@@ -146,18 +154,29 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 - обновляет systemd-юниты
 - перезапускает `bot.service` и `admin-dashboard.service`
 
+Важно:
+
+- `deploy/systemd/admin-dashboard.service` по умолчанию слушает только `127.0.0.1:8080`
+- скрипт использует `sudo cp`, `sudo systemctl daemon-reload` и `sudo systemctl restart`
+- для автоматического деплоя нужен либо `root`, либо пользователь с passwordless `sudo` на эти команды
+
 ## GitHub Actions деплой
 
 В репозитории есть workflow `Deploy Bot`.
 
-Нужны secrets:
+Нужные secrets:
 
 - `DEPLOY_HOST`
 - `DEPLOY_PORT`
 - `DEPLOY_USER`
 - `DEPLOY_SSH_KEY`
 
-После этого можно запустить workflow вручную через GitHub Actions.
+Дополнительно:
+
+- `DEPLOY_USER` должен иметь доступ к каталогу приложения
+- если `DEPLOY_USER` не `root`, ему нужен passwordless `sudo`, иначе шаг `update_bot.sh` завершится ошибкой
+
+После этого workflow можно запустить вручную через GitHub Actions.
 
 ## Безопасность
 
