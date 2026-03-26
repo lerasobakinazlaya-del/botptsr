@@ -15,11 +15,13 @@ class ConversationSummaryService:
         message_repository,
         state_repository,
         settings_service,
+        long_term_memory_service=None,
     ):
         self.client = client
         self.message_repository = message_repository
         self.state_repository = state_repository
         self.settings_service = settings_service
+        self.long_term_memory_service = long_term_memory_service
         self._tasks: set[asyncio.Task] = set()
 
     def schedule_refresh(self, user_id: int, state_snapshot: dict[str, Any]) -> None:
@@ -82,6 +84,9 @@ class ConversationSummaryService:
         }
         latest_state["memory_flags"] = latest_flags
         await self.state_repository.save(user_id, latest_state)
+
+        if self.long_term_memory_service is not None:
+            await self.long_term_memory_service.capture_summary(user_id, summary)
 
         logger.debug(
             "[SUMMARY] Refreshed episodic summary for user_id=%s at interaction=%s",

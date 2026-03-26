@@ -23,6 +23,7 @@ async def chat_handler(
     message: Message,
     message_repository,
     ai_service,
+    long_term_memory_service,
     state_repository,
     payment_service,
     user_service,
@@ -105,6 +106,12 @@ async def chat_handler(
     state = await state_repository.get(user_id)
     logger.debug("[STATE] Loaded for user %s", user_id)
 
+    async def remember_user_message() -> None:
+        try:
+            await long_term_memory_service.capture_from_message(user_id, user_text)
+        except Exception:
+            logger.exception("LONG TERM MEMORY ERROR")
+
     try:
         result = await ai_service.generate_response(
             user_id=user_id,
@@ -114,11 +121,13 @@ async def chat_handler(
         )
     except AIBackpressureError:
         await message_repository.save(user_id, "user", user_text)
+        await remember_user_message()
         await message.answer(chat_settings["busy_message"])
         return
     except Exception:
         logger.exception("AI ERROR")
         await message_repository.save(user_id, "user", user_text)
+        await remember_user_message()
         await message.answer(chat_settings["ai_error_message"])
         return
 
@@ -149,6 +158,8 @@ async def chat_handler(
         logger.exception("DB ERROR while saving chat exchange")
         await message.answer(chat_settings["ai_error_message"])
         return
+
+    await remember_user_message()
 
     try:
         conversation_summary_service.schedule_refresh(user_id, new_state)

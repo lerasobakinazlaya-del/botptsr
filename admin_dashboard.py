@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     await container.db.connect()
     await container.user_service.init_table()
     await container.state_repository.init_table()
+    await container.long_term_memory_service.init_table()
     await container.ai_service.start()
 
     container.admin_metrics = AdminMetricsService(
@@ -309,6 +310,146 @@ async def api_user_update(user_id: int, request: Request, _: str = Depends(requi
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/api/users/{user_id}/conversation")
+async def api_user_conversation(
+    user_id: int,
+    limit: int = 100,
+    _: str = Depends(require_auth),
+):
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    safe_limit = max(1, min(limit, 200))
+    messages = await container.message_repository.get_user_messages(
+        user_id,
+        limit=safe_limit,
+    )
+    stats = await container.message_repository.get_user_message_stats(user_id)
+    state_payload = await container.state_repository.get(user_id)
+    history = await container.message_repository.get_last_messages(
+        user_id=user_id,
+        limit=max(
+            safe_limit,
+            container.admin_settings_service.get_runtime_settings()["ai"]["history_message_limit"],
+        ),
+    )
+    durable_memory_preview = await container.long_term_memory_service.build_prompt_context(
+        user_id,
+    )
+    state_memory_preview = container.keyword_memory_service.build_prompt_context(
+        state_payload,
+        history=history,
+    )
+    ai_settings = container.admin_settings_service.get_runtime_settings()["ai"]
+
+    return {
+        "user": user,
+        "stats": stats,
+        "messages": messages,
+        "state": state_payload,
+        "memory_preview": "\n".join(
+            part.strip()
+            for part in (durable_memory_preview, state_memory_preview)
+            if part and part.strip()
+        ),
+        "long_term_memories": await container.long_term_memory_service.get_user_memories(
+            user_id,
+            limit=80,
+        ),
+        "settings": {
+            "history_message_limit": int(ai_settings.get("history_message_limit", 20)),
+            "memory_max_tokens": int(ai_settings.get("memory_max_tokens", 1500)),
+            "long_term_memory_enabled": bool(ai_settings.get("long_term_memory_enabled", True)),
+            "long_term_memory_max_items": int(ai_settings.get("long_term_memory_max_items", 12)),
+            "long_term_memory_auto_prune_enabled": bool(
+                ai_settings.get("long_term_memory_auto_prune_enabled", True)
+            ),
+            "long_term_memory_soft_limit": int(
+                ai_settings.get("long_term_memory_soft_limit", 60)
+            ),
+            "episodic_summary_enabled": bool(ai_settings.get("episodic_summary_enabled", True)),
+            "memory_categories": container.long_term_memory_service.get_category_options(),
+        },
+    }
+
+
+@app.post("/api/users/{user_id}/memories")
+async def api_memory_create(
+    user_id: int,
+    request: Request,
+    _: str = Depends(require_auth),
+):
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ")
+
+    payload = await request.json()
+    try:
+        memory = await container.long_term_memory_service.save_manual_memory(
+            user_id=user_id,
+            category=str(payload.get("category") or ""),
+            value=str(payload.get("value") or ""),
+            weight=payload.get("weight"),
+            pinned=bool(payload.get("pinned")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"ok": True, "memory": memory}
+
+
+@app.post("/api/memories/{memory_id}/pin")
+async def api_memory_pin(memory_id: int, request: Request, _: str = Depends(require_auth)):
+    payload = await request.json()
+    await container.long_term_memory_service.set_pinned(
+        memory_id,
+        bool(payload.get("pinned")),
+    )
+    return {"ok": True, "memory_id": memory_id, "pinned": bool(payload.get("pinned"))}
+
+
+@app.put("/api/memories/{memory_id}")
+async def api_memory_update(
+    memory_id: int,
+    request: Request,
+    _: str = Depends(require_auth),
+):
+    payload = await request.json()
+    try:
+        memory = await container.long_term_memory_service.save_manual_memory(
+            memory_id=memory_id,
+            user_id=int(payload.get("user_id") or 0),
+            category=str(payload.get("category") or ""),
+            value=str(payload.get("value") or ""),
+            weight=payload.get("weight"),
+            pinned=bool(payload.get("pinned")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"ok": True, "memory": memory}
+
+
+@app.delete("/api/memories/{memory_id}")
+async def api_memory_delete(memory_id: int, _: str = Depends(require_auth)):
+    deleted = await container.long_term_memory_service.delete_memory(memory_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    return {"ok": True, "memory_id": memory_id}
+
+
+@app.post("/api/users/{user_id}/memories/prune")
+async def api_user_memories_prune(
+    user_id: int,
+    _: str = Depends(require_auth),
+):
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ")
+    return await container.long_term_memory_service.auto_prune(user_id)
+
+
 @app.post("/api/actions/cache/invalidate")
 async def api_invalidate_cache(_: str = Depends(require_auth)):
     await _invalidate_metrics_cache()
@@ -426,6 +567,7 @@ def _dashboard_html() -> str:
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
     .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
+    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
   </style>
 </head>
@@ -437,6 +579,7 @@ def _dashboard_html() -> str:
       <div class="nav">
         <button class="active" data-view="overview">Обзор</button>
         <button data-view="users">Пользователи</button>
+        <button data-view="conversations">Диалоги</button>
         <button data-view="runtime">AI и UI</button>
         <button data-view="safety">Безопасность</button>
         <button data-view="prompts">Промпты</button>
@@ -490,6 +633,7 @@ def _dashboard_html() -> str:
             <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <div class="actions">
               <button id="load-user">Загрузить</button>
+              <button id="open-user-conversation">Открыть диалог</button>
               <button class="primary" id="save-user">Сохранить пользователя</button>
             </div>
           </div>
@@ -501,6 +645,56 @@ def _dashboard_html() -> str:
               <button id="reset-users">Сбросить</button>
             </div>
             <div id="users-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-view="conversations">
+        <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, долговременной памяти и текущего state пользователя.</p></div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Пользователь</h3>
+            <div class="toolbar">
+              <input id="conversation_user_id" type="number" min="1" placeholder="ID пользователя">
+              <input id="conversation_limit" type="number" min="10" max="200" value="80" placeholder="Лимит сообщений">
+              <button class="primary" id="load-conversation">Загрузить диалог</button>
+            </div>
+            <p class="muted" id="conversation-meta">Выберите пользователя, чтобы увидеть историю и память.</p>
+            <div id="conversation-stats"></div>
+            <div style="margin-top:16px">
+              <h3>Память в промпте</h3>
+              <pre id="conversation-memory-preview" class="memory-box">Пока нет данных.</pre>
+            </div>
+            <div style="margin-top:16px">
+              <h3>Долговременные memories</h3>
+              <div id="conversation-long-term-memories" class="memory-box"><div class="muted">Пока нет данных.</div></div>
+            </div>
+            <div style="margin-top:16px">
+              <h3>Редактор memory</h3>
+              <div class="memory-editor-form">
+                <input id="memory_editor_id" type="hidden">
+                <div class="two">
+                  <label>Категория<select id="memory_editor_category"></select></label>
+                  <label>Вес<input id="memory_editor_weight" type="number" min="0.1" max="25" step="0.1" value="1.0"></label>
+                </div>
+                <label>Текст memory<textarea id="memory_editor_value" style="min-height:100px"></textarea></label>
+                <label class="checkbox"><input id="memory_editor_pinned" type="checkbox">Закрепить memory</label>
+                <div class="memory-actions">
+                  <button id="memory-editor-new">Новая</button>
+                  <button class="primary" id="memory-editor-save">Сохранить</button>
+                  <button id="memory-editor-delete">Удалить</button>
+                  <button id="memory-editor-prune">Очистить слабые</button>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <h3>State JSON</h3>
+              <pre id="conversation-state" class="memory-box">Пока нет данных.</pre>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>История сообщений</h3>
+            <div id="conversation-messages" class="conversation-feed"><div class="muted">Пока нет данных.</div></div>
           </div>
         </div>
       </section>
@@ -524,8 +718,13 @@ def _dashboard_html() -> str:
               <label>Повторы<input id="ai_max_retries" type="number"></label>
               <label>Память, токены<input id="ai_memory_max_tokens" type="number"></label>
               <label>История сообщений<input id="ai_history_message_limit" type="number"></label>
+              <label>Long-term items<input id="ai_long_term_memory_max_items" type="number" min="4"></label>
+              <label>Long-term soft limit<input id="ai_long_term_memory_soft_limit" type="number" min="12"></label>
               <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
+            <label class="checkbox"><input id="ai_long_term_memory_enabled" type="checkbox">Включить long-term memory</label>
+            <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых memories</label>
+            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить episodic summary</label>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
           </div>
           <div class="panel">
@@ -725,12 +924,15 @@ def _dashboard_html() -> str:
     </main>
   </div>
   <script>
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+    const escText=v=>esc(v).replaceAll('\\n','<br>');
     const setValue=(selector,value)=>{const el=$(selector);if(el)el.value=value??''};
     const setChecked=(selector,value)=>{const el=$(selector);if(el)el.checked=!!value};
     const num=v=>Number(v??0).toLocaleString('ru-RU');
+    const on=(selector,event,handler)=>{const el=$(selector);if(!el){console.warn(`Missing element: ${selector}`);return null}el.addEventListener(event,handler);return el};
+    const onAll=(selector,event,handler)=>{$$(selector).forEach(el=>el.addEventListener(event,handler))};
     async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`Ошибка запроса: ${path}`);return d}
     function notice(text,kind='ok'){const n=$('#notice');n.textContent=text;n.className='notice '+kind}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
@@ -743,16 +945,22 @@ def _dashboard_html() -> str:
     function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[['Пользователи',users.total??0,`Всего в базе`],['Новые за 1 день',users.new_1d??0,`Регистрации за сутки`],['Новые за 7 дней',users.new_7d??0,`Регистрации за неделю`],['Premium',users.premium_total??0,`Активных: ${users.active_with_messages??0}`],['Админы',users.admins_total??0,`Через env и панель`],['Сообщения',content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],['Платежи',payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],['AI',`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Workers: ${runtime.workers??0}`],['Support',support.users_with_support_profile??0,`panic: ${episodes.panic??0}`],['Рефералы',referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([['Профили поддержки',String(support.users_with_support_profile??0),'Пользователи с support profile'],['Рефералы',String(referrals.total??0),`Конверсий: ${referrals.converted??0}`]])}${kvList([['Panic эпизоды',esc(num(episodes.panic??0))],['Flashback эпизоды',esc(num(episodes.flashback??0))],['Insomnia эпизоды',esc(num(episodes.insomnia??0))],['Self-harm флаги',esc(num(support.self_harm_flags??0))],['Последнее обновление',esc(support.last_updated_at||'Нет данных')]])}</div>`}
     function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'DB OK','DB error')} ${statusPill(redis.ok,'Redis OK','Redis error')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([['База данных',`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],['Redis',`${statusPill(redis.ok,redis.detail||'OK',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],['AI модель',esc(ai.model||ai.openai_model||'Не указана')],['Занято воркеров',esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([['Кэш метрик',String(ai.cache_hits??0),'Попадания в runtime, если доступны'],['Очередь AI',`${ai.queue_size??0}/${ai.queue_capacity??0}`,'Текущее давление'],['Режимов',String(state.health.modes_count??0),'Доступно в каталоге']])}${kvList([['DB статус',`${statusPill(db.ok,'OK','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],['Redis статус',`${statusPill(redis.ok,'OK','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],['Воркеров всего',esc(String(ai.workers??0))],['Воркеров занято',esc(String(ai.busy_workers??0))],['Очередь',esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Premium)':' (Free)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
-    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
+    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>Режим</th><th>Premium</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`).join('')}</tbody></table>`}
     function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}}
-    function renderRuntime(){if(!state.settings||!state.settings.runtime)return;const r=state.settings.runtime,a=r.ai||{},c=r.chat||{},u=r.ui||{};setValue('#ai_openai_model',a.openai_model);setValue('#ai_response_language',a.response_language);setValue('#ai_temperature',a.temperature);setValue('#ai_top_p',a.top_p);setValue('#ai_frequency_penalty',a.frequency_penalty);setValue('#ai_presence_penalty',a.presence_penalty);setValue('#ai_max_completion_tokens',a.max_completion_tokens);setValue('#ai_reasoning_effort',a.reasoning_effort||'');setValue('#ai_verbosity',a.verbosity||'');setValue('#ai_timeout_seconds',a.timeout_seconds);setValue('#ai_max_retries',a.max_retries);setValue('#ai_memory_max_tokens',a.memory_max_tokens);setValue('#ai_history_message_limit',a.history_message_limit);setValue('#ai_debug_prompt_user_id',a.debug_prompt_user_id||'');setChecked('#ai_log_full_prompt',a.log_full_prompt);setChecked('#chat_typing_action_enabled',c.typing_action_enabled);setValue('#chat_non_text_message',c.non_text_message);setValue('#chat_busy_message',c.busy_message);setValue('#chat_ai_error_message',c.ai_error_message);setValue('#chat_write_prompt_message',c.write_prompt_message);setValue('#ui_write_button_text',u.write_button_text);setValue('#ui_modes_button_text',u.modes_button_text);setValue('#ui_premium_button_text',u.premium_button_text);setValue('#ui_input_placeholder',u.input_placeholder);setValue('#ui_modes_title',u.modes_title);setValue('#ui_user_not_found_text',u.user_not_found_text);setValue('#ui_unknown_mode_text',u.unknown_mode_text);setValue('#ui_mode_locked_text',u.mode_locked_text);setValue('#ui_mode_saved_toast',u.mode_saved_toast);setValue('#ui_mode_saved_template',u.mode_saved_template);setValue('#ui_welcome_user_text',u.welcome_user_text);setValue('#ui_welcome_admin_text',u.welcome_admin_text)}
+    function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
+    function memoryCategoryOptions(items){return (items||[]).map(item=>`<option value="${esc(item.key)}">${esc(item.label)}</option>`).join('')}
+    function resetMemoryEditor(categories){const categorySelect=$('#memory_editor_category');const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];categorySelect.innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id','');setValue('#memory_editor_weight','1.0');setValue('#memory_editor_value','');setChecked('#memory_editor_pinned',false);if(categoryList.length){setValue('#memory_editor_category',categoryList[0].key)}state.currentMemoryId=null}
+    function fillMemoryEditor(memory,categories){if(!memory){resetMemoryEditor(categories);return}const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];$('#memory_editor_category').innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id',memory.id);setValue('#memory_editor_category',memory.category||'');setValue('#memory_editor_weight',memory.weight??1.0);setValue('#memory_editor_value',memory.value||'');setChecked('#memory_editor_pinned',memory.pinned);state.currentMemoryId=memory.id}
+    function formatLongTermMemories(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return items.map(item=>`<div class="kv-row"><div class="kv-key"><strong>${esc(item.category)}</strong><div class="muted">${esc(item.value)}</div><div class="muted">score=${esc(item.score)} | weight=${esc(item.weight)} | seen=${esc(item.times_seen)} | updated=${esc(item.updated_at||'-')}</div></div><div class="kv-value"><div class="memory-row-actions"><button data-memory-edit="${esc(item.id)}">Редактировать</button><button data-memory-pin="${esc(item.id)}" data-pinned="${item.pinned?0:1}">${item.pinned?'Открепить':'Закрепить'}</button></div></div></div>`).join('')}
+    function renderConversation(){const view=state.currentConversation,categories=view?.settings?.memory_categories||[];if(!view){$('#conversation-meta').textContent='Выберите пользователя, чтобы увидеть историю и память.';$('#conversation-stats').innerHTML='';$('#conversation-memory-preview').textContent='Пока нет данных.';$('#conversation-long-term-memories').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state').textContent='Пока нет данных.';$('#conversation-messages').innerHTML='<div class="muted">Пока нет данных.</div>';resetMemoryEditor([]);return}const user=view.user||{},stats=view.stats||{},cfg=view.settings||{};setValue('#conversation_user_id',user.id??'');$('#conversation-meta').textContent=`Пользователь: ${user.first_name||user.username||user.id||'неизвестно'} • ID ${user.id||'-'} • Сообщений: ${stats.total_messages??0}`;$('#conversation-stats').innerHTML=metricCards([['Всего сообщений',String(stats.total_messages??0),`user: ${stats.user_messages??0}, bot: ${stats.assistant_messages??0}`],['Первое сообщение',String(stats.first_message_at||'—'),'Начало истории'],['Последнее сообщение',String(stats.last_message_at||'—'),'Последняя активность'],['Long-term memory',cfg.long_term_memory_enabled?'on':'off',`Prompt items: ${cfg.long_term_memory_max_items??0}`],['Auto-prune',cfg.long_term_memory_auto_prune_enabled?'on':'off',`Soft limit: ${cfg.long_term_memory_soft_limit??0}`],['History limit',String(cfg.history_message_limit??0),`Memory tokens: ${cfg.memory_max_tokens??0}`],['Summary memory',cfg.episodic_summary_enabled?'on':'off','Summary layer']]);$('#conversation-memory-preview').textContent=view.memory_preview||'Память пока пустая.';$('#conversation-long-term-memories').innerHTML=formatLongTermMemories(view.long_term_memories||[]);$('#conversation-state').textContent=JSON.stringify(view.state||{},null,2);$('#conversation-messages').innerHTML=conversationMessages(view.messages||[]);const selected=(view.long_term_memories||[]).find(item=>String(item.id)===String(state.currentMemoryId));if(selected){fillMemoryEditor(selected,categories)}else{resetMemoryEditor(categories)}}
+    function renderRuntime(){if(!state.settings||!state.settings.runtime)return;const r=state.settings.runtime,a=r.ai||{},c=r.chat||{},u=r.ui||{};setValue('#ai_openai_model',a.openai_model);setValue('#ai_response_language',a.response_language);setValue('#ai_temperature',a.temperature);setValue('#ai_top_p',a.top_p);setValue('#ai_frequency_penalty',a.frequency_penalty);setValue('#ai_presence_penalty',a.presence_penalty);setValue('#ai_max_completion_tokens',a.max_completion_tokens);setValue('#ai_reasoning_effort',a.reasoning_effort||'');setValue('#ai_verbosity',a.verbosity||'');setValue('#ai_timeout_seconds',a.timeout_seconds);setValue('#ai_max_retries',a.max_retries);setValue('#ai_memory_max_tokens',a.memory_max_tokens);setValue('#ai_history_message_limit',a.history_message_limit);setValue('#ai_long_term_memory_max_items',a.long_term_memory_max_items);setValue('#ai_long_term_memory_soft_limit',a.long_term_memory_soft_limit);setValue('#ai_debug_prompt_user_id',a.debug_prompt_user_id||'');setChecked('#ai_long_term_memory_enabled',a.long_term_memory_enabled);setChecked('#ai_long_term_memory_auto_prune_enabled',a.long_term_memory_auto_prune_enabled);setChecked('#ai_episodic_summary_enabled',a.episodic_summary_enabled);setChecked('#ai_log_full_prompt',a.log_full_prompt);setChecked('#chat_typing_action_enabled',c.typing_action_enabled);setValue('#chat_non_text_message',c.non_text_message);setValue('#chat_busy_message',c.busy_message);setValue('#chat_ai_error_message',c.ai_error_message);setValue('#chat_write_prompt_message',c.write_prompt_message);setValue('#ui_write_button_text',u.write_button_text);setValue('#ui_modes_button_text',u.modes_button_text);setValue('#ui_premium_button_text',u.premium_button_text);setValue('#ui_input_placeholder',u.input_placeholder);setValue('#ui_modes_title',u.modes_title);setValue('#ui_user_not_found_text',u.user_not_found_text);setValue('#ui_unknown_mode_text',u.unknown_mode_text);setValue('#ui_mode_locked_text',u.mode_locked_text);setValue('#ui_mode_saved_toast',u.mode_saved_toast);setValue('#ui_mode_saved_template',u.mode_saved_template);setValue('#ui_welcome_user_text',u.welcome_user_text);setValue('#ui_welcome_admin_text',u.welcome_admin_text)}
 function renderSafety(){if(!state.settings||!state.settings.runtime)return;const r=state.settings.runtime,s=r.safety,se=r.state_engine,a=r.access,l=r.limits;$('#safety_throttle_rate_limit_seconds').value=s.throttle_rate_limit_seconds;$('#safety_throttle_warning_interval_seconds').value=s.throttle_warning_interval_seconds;$('#safety_max_message_length').value=s.max_message_length;$('#safety_reject_suspicious_messages').checked=!!s.reject_suspicious_messages;$('#safety_throttle_warning_text').value=s.throttle_warning_text;$('#safety_message_too_long_text').value=s.message_too_long_text;$('#safety_suspicious_rejection_text').value=s.suspicious_rejection_text;$('#safety_suspicious_keywords').value=(s.suspicious_keywords||[]).join('\\n');$('#state-defaults-grid').innerHTML=Object.entries(se.defaults).map(([k,v])=>`<label>${k}<input data-state-default="${k}" type="number" step="0.01" value="${v}"></label>`).join('');$('#state_positive_keywords').value=(se.positive_keywords||[]).join('\\n');$('#state_negative_keywords').value=(se.negative_keywords||[]).join('\\n');$('#state_attraction_keywords').value=(se.attraction_keywords||[]).join('\\n');$('#state-effects-grid').innerHTML=Object.entries(se.message_effects).map(([k,v])=>`<label>${k}<input data-state-effect="${k}" type="number" step="0.01" value="${v}"></label>`).join('');$('#access_forced_level').value=a.forced_level||'';$('#access_default_level').value=a.default_level;$('#access_interest_observation_threshold').value=a.interest_observation_threshold;$('#access_rare_layer_instability_threshold').value=a.rare_layer_instability_threshold;$('#access_rare_layer_attraction_threshold').value=a.rare_layer_attraction_threshold;$('#access_personal_focus_attraction_threshold').value=a.personal_focus_attraction_threshold;$('#access_personal_focus_interest_threshold').value=a.personal_focus_interest_threshold;$('#access_tension_attraction_threshold').value=a.tension_attraction_threshold;$('#access_tension_control_threshold').value=a.tension_control_threshold;$('#access_analysis_interest_threshold').value=a.analysis_interest_threshold;$('#access_analysis_control_threshold').value=a.analysis_control_threshold;$('#limits_free_daily_messages_enabled').checked=!!l.free_daily_messages_enabled;$('#limits_premium_daily_messages_enabled').checked=!!l.premium_daily_messages_enabled;$('#limits_admins_bypass_daily_limits').checked=!!l.admins_bypass_daily_limits;$('#limits_free_daily_messages_limit').value=l.free_daily_messages_limit;$('#limits_premium_daily_messages_limit').value=l.premium_daily_messages_limit;$('#limits_free_daily_limit_message').value=l.free_daily_limit_message;$('#limits_premium_daily_limit_message').value=l.premium_daily_limit_message}
     function renderPrompts(){if(!state.settings||!state.settings.prompts)return;const p=state.settings.prompts,accessRules=p.access_rules||{};setValue('#prompt_personality_core',p.personality_core);setValue('#prompt_safety_block',p.safety_block);setValue('#prompt_response_style',p.response_style||'');setValue('#prompt_engagement_rules',p.engagement_rules||'');setValue('#prompt_memory_intro',p.memory_intro);setValue('#prompt_state_intro',p.state_intro);setValue('#prompt_mode_intro',p.mode_intro);setValue('#prompt_access_intro',p.access_intro);setValue('#prompt_final_instruction',p.final_instruction);setValue('#access_observation',accessRules.observation);setValue('#access_analysis',accessRules.analysis);setValue('#access_tension',accessRules.tension);setValue('#access_personal_focus',accessRules.personal_focus);setValue('#access_rare_layer',accessRules.rare_layer)}
     function renderModes(){if(!state.settings||!state.settings.modes||!state.settings.mode_catalog)return;const m=state.settings.modes,c=state.settings.mode_catalog;const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));const modeScaleLabel=k=>({allow_bold:'Жирный текст',allow_italic:'Курсив'}[k]||k);$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k]||{},scale=m[k]||{},numericEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='number'),booleanEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='boolean');return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)}</div></div><span class="badge">${meta.is_premium?'Premium':'Free'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order??0}"></label></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Premium</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${numericEntries.map(([mk,mv])=>`<label>${mk}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div>${booleanEntries.length?`<div class="two">${booleanEntries.map(([mk,mv])=>`<label class="checkbox"><input data-mode-scale="${k}.${mk}" type="checkbox" ${mv?'checked':''}>${esc(modeScaleLabel(mk))}</label>`).join('')}</div>`:''}</div>`}).join('')}
     function renderPayments(){if(!state.settings||!state.settings.runtime)return;const p=state.settings.runtime.payment,ref=state.settings.runtime.referral;$('#payment_provider_token').value=p.provider_token;$('#payment_currency').value=p.currency;$('#payment_price_minor_units').value=p.price_minor_units;$('#payment_product_title').value=p.product_title;$('#payment_product_description').value=p.product_description;$('#payment_premium_benefits_text').value=p.premium_benefits_text;$('#payment_buy_cta_text').value=p.buy_cta_text;$('#payment_unavailable_message').value=p.unavailable_message;$('#payment_invoice_error_message').value=p.invoice_error_message;$('#payment_success_message').value=p.success_message;$('#referral_enabled').checked=!!ref.enabled;$('#referral_start_parameter_prefix').value=ref.start_parameter_prefix;$('#referral_program_title').value=ref.program_title;$('#referral_allow_self_referral').checked=!!ref.allow_self_referral;$('#referral_require_first_paid_invoice').checked=!!ref.require_first_paid_invoice;$('#referral_award_referrer_premium').checked=!!ref.award_referrer_premium;$('#referral_award_referred_user_premium').checked=!!ref.award_referred_user_premium;$('#referral_program_description').value=ref.program_description;$('#referral_share_text_template').value=ref.share_text_template;$('#referral_referred_welcome_message').value=ref.referred_welcome_message;$('#referral_referrer_reward_message').value=ref.referrer_reward_message;$('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)}
     function renderLogs(){if(state.logs)$('#logs-output').textContent=(state.logs.lines||[]).join('\\n')||'Лог пуст.'}
-    function runtimePayload(){return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value}}}
+    function runtimePayload(){return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),long_term_memory_enabled:$('#ai_long_term_memory_enabled').checked,long_term_memory_max_items:Number($('#ai_long_term_memory_max_items').value),long_term_memory_auto_prune_enabled:$('#ai_long_term_memory_auto_prune_enabled').checked,long_term_memory_soft_limit:Number($('#ai_long_term_memory_soft_limit').value),episodic_summary_enabled:$('#ai_episodic_summary_enabled').checked,debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value}}}
 function safetyPayload(){const defaults={},effects={};document.querySelectorAll('[data-state-default]').forEach(i=>defaults[i.dataset.stateDefault]=Number(i.value));document.querySelectorAll('[data-state-effect]').forEach(i=>effects[i.dataset.stateEffect]=Number(i.value));return {safety:{throttle_rate_limit_seconds:Number($('#safety_throttle_rate_limit_seconds').value),throttle_warning_interval_seconds:Number($('#safety_throttle_warning_interval_seconds').value),max_message_length:Number($('#safety_max_message_length').value),reject_suspicious_messages:$('#safety_reject_suspicious_messages').checked,throttle_warning_text:$('#safety_throttle_warning_text').value,message_too_long_text:$('#safety_message_too_long_text').value,suspicious_rejection_text:$('#safety_suspicious_rejection_text').value,suspicious_keywords:$('#safety_suspicious_keywords').value},state_engine:{defaults,positive_keywords:$('#state_positive_keywords').value,negative_keywords:$('#state_negative_keywords').value,attraction_keywords:$('#state_attraction_keywords').value,message_effects:effects},access:{forced_level:$('#access_forced_level').value.trim(),default_level:$('#access_default_level').value.trim(),interest_observation_threshold:Number($('#access_interest_observation_threshold').value),rare_layer_instability_threshold:Number($('#access_rare_layer_instability_threshold').value),rare_layer_attraction_threshold:Number($('#access_rare_layer_attraction_threshold').value),personal_focus_attraction_threshold:Number($('#access_personal_focus_attraction_threshold').value),personal_focus_interest_threshold:Number($('#access_personal_focus_interest_threshold').value),tension_attraction_threshold:Number($('#access_tension_attraction_threshold').value),tension_control_threshold:Number($('#access_tension_control_threshold').value),analysis_interest_threshold:Number($('#access_analysis_interest_threshold').value),analysis_control_threshold:Number($('#access_analysis_control_threshold').value)},limits:{free_daily_messages_enabled:$('#limits_free_daily_messages_enabled').checked,premium_daily_messages_enabled:$('#limits_premium_daily_messages_enabled').checked,admins_bypass_daily_limits:$('#limits_admins_bypass_daily_limits').checked,free_daily_messages_limit:Number($('#limits_free_daily_messages_limit').value),premium_daily_messages_limit:Number($('#limits_premium_daily_messages_limit').value),free_daily_limit_message:$('#limits_free_daily_limit_message').value,premium_daily_limit_message:$('#limits_premium_daily_limit_message').value}}}
     function promptsPayload(){return {personality_core:$('#prompt_personality_core').value,safety_block:$('#prompt_safety_block').value,response_style:$('#prompt_response_style').value,engagement_rules:$('#prompt_engagement_rules').value,memory_intro:$('#prompt_memory_intro').value,state_intro:$('#prompt_state_intro').value,mode_intro:$('#prompt_mode_intro').value,access_intro:$('#prompt_access_intro').value,final_instruction:$('#prompt_final_instruction').value,access_rules:{observation:$('#access_observation').value,analysis:$('#access_analysis').value,tension:$('#access_tension').value,personal_focus:$('#access_personal_focus').value,rare_layer:$('#access_rare_layer').value}}}
     function modesPayload(){const modes={},catalog={};document.querySelectorAll('[data-mode-scale]').forEach(i=>{const [m,k]=i.dataset.modeScale.split('.');modes[m]??={};modes[m][k]=i.type==='checkbox'?i.checked:Number(i.value)});document.querySelectorAll('[data-catalog]').forEach(i=>{const [m,k]=i.dataset.catalog.split('.');catalog[m]??={};catalog[m][k]=i.type==='checkbox'?i.checked:(k==='sort_order'?Number(i.value):i.value)});return {modes,catalog}}
@@ -761,29 +969,42 @@ function safetyPayload(){const defaults={},effects={};document.querySelectorAll(
     function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
     async function refreshUsers(query){const search=query??$('#user-search').value.trim();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100`);renderUsers()}
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
+    async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
+    async function toggleMemoryPin(memoryId,pinned){await api(`/api/memories/${encodeURIComponent(memoryId)}/pin`,{method:'POST',body:JSON.stringify({pinned:!!Number(pinned)})});await loadConversation();notice('Статус памяти обновлен.')}
+    function memoryEditorPayload(){return {user_id:Number($('#conversation_user_id').value||0),category:$('#memory_editor_category').value.trim(),value:$('#memory_editor_value').value.trim(),weight:Number($('#memory_editor_weight').value||0),pinned:$('#memory_editor_pinned').checked}}
+    async function saveMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const payload=memoryEditorPayload();if(!payload.category)throw new Error('Выбери категорию memory');if(!payload.value)throw new Error('Заполни текст memory');const memoryId=String($('#memory_editor_id').value||'').trim();const result=memoryId?await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'PUT',body:JSON.stringify(payload)}):await api(`/api/users/${encodeURIComponent(rawUserId)}/memories`,{method:'POST',body:JSON.stringify(payload)});state.currentMemoryId=result.memory?.id||null;await loadConversation(rawUserId);notice(memoryId?'Memory обновлена.':'Memory создана.')}
+    async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
+    async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const results=await Promise.allSettled(requests.map(([,path])=>api(path)));const failed=[];results.forEach((result,index)=>{const [label,,stateKey]=requests[index];if(result.status==='fulfilled'){state[stateKey]=result.value}else{console.error(`Load failed: ${label}`,result.reason);failed.push(label)}});renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});$('#test-result').textContent=JSON.stringify(data,null,2)}
-    $$('.nav button').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
-    $('#refresh-all').addEventListener('click',()=>refreshAll().then(()=>notice('Данные обновлены.')).catch(e=>notice(e.message,'error')));
-    $('#load-user').addEventListener('click',()=>loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error')));
-    $('#save-user').addEventListener('click',()=>saveCurrentUser().catch(e=>notice(e.message,'error')));
-    $('#search-users').addEventListener('click',()=>refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error')));
-    $('#reset-users').addEventListener('click',()=>{$('#user-search').value='';refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});
-    $('#users-table').addEventListener('click',event=>{const button=event.target.closest('[data-user-pick]');if(!button)return;$('#user_user_id').value=button.dataset.userPick;loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error'))});
-    $('#reload-logs').addEventListener('click',()=>api(`/api/logs?lines=${$('#log-lines').value}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
-    $('#invalidate-cache').addEventListener('click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
-    $('#export-json').addEventListener('click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));
-    $('#save-runtime').addEventListener('click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки AI и UI сохранены.').catch(e=>notice(e.message,'error')));
-    $('#save-safety').addEventListener('click',()=>save('/api/settings/runtime',safetyPayload(),'Настройки безопасности сохранены.').catch(e=>notice(e.message,'error')));
-    $('#save-prompts').addEventListener('click',()=>save('/api/settings/prompts',promptsPayload(),'Промпты сохранены.').catch(e=>notice(e.message,'error')));
-    $('#save-modes').addEventListener('click',async()=>{try{const p=modesPayload();await api('/api/settings/modes',{method:'PUT',body:JSON.stringify(p.modes)});await api('/api/settings/mode-catalog',{method:'PUT',body:JSON.stringify(p.catalog)});await refreshAll();notice('Режимы сохранены.')}catch(e){notice(e.message,'error')}})
-    $('#save-payments').addEventListener('click',()=>save('/api/settings/runtime',paymentsPayload(),'Платежные настройки сохранены.').catch(e=>notice(e.message,'error')));
-    $('#test-prompt').addEventListener('click',()=>runTest('/api/test/prompt').then(()=>notice('Промпт готов.')).catch(e=>notice(e.message,'error')));
-    $('#test-state-btn').addEventListener('click',()=>runTest('/api/test/state').then(()=>notice('State пересчитан.')).catch(e=>notice(e.message,'error')));
-    $('#test-live-reply').addEventListener('click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Live-тест завершен.')).catch(e=>notice(e.message,'error'))});
+    onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
+    on('#refresh-all','click',()=>refreshAll().then(()=>notice('Данные обновлены.')).catch(e=>notice(e.message,'error')));
+    on('#load-user','click',()=>loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error')));
+    on('#open-user-conversation','click',()=>{setValue('#conversation_user_id',$('#user_user_id')?.value?.trim()||'');openView('conversations');loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error'))});
+    on('#load-conversation','click',()=>loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error')));
+    on('#memory-editor-new','click',()=>resetMemoryEditor());
+    on('#memory-editor-save','click',()=>saveMemoryEditor().catch(e=>notice(e.message,'error')));
+    on('#memory-editor-delete','click',()=>deleteMemoryEditor().catch(e=>notice(e.message,'error')));
+    on('#memory-editor-prune','click',()=>pruneMemoryEditor().catch(e=>notice(e.message,'error')));
+    on('#save-user','click',()=>saveCurrentUser().catch(e=>notice(e.message,'error')));
+    on('#conversation-long-term-memories','click',event=>{const editButton=event.target.closest('[data-memory-edit]');if(editButton){const memory=(state.currentConversation?.long_term_memories||[]).find(item=>String(item.id)===String(editButton.dataset.memoryEdit));if(memory)fillMemoryEditor(memory);return}const pinButton=event.target.closest('[data-memory-pin]');if(!pinButton)return;toggleMemoryPin(pinButton.dataset.memoryPin,pinButton.dataset.pinned).catch(e=>notice(e.message,'error'))});
+    on('#search-users','click',()=>refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error')));
+    on('#reset-users','click',()=>{$('#user-search').value='';refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});
+    on('#users-table','click',event=>{const button=event.target.closest('[data-user-pick]');if(!button)return;$('#user_user_id').value=button.dataset.userPick;loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error'))});
+    on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines')?.value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
+    on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
+    on('#export-json','click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));
+    on('#save-runtime','click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки AI и UI сохранены.').catch(e=>notice(e.message,'error')));
+    on('#save-safety','click',()=>save('/api/settings/runtime',safetyPayload(),'Настройки безопасности сохранены.').catch(e=>notice(e.message,'error')));
+    on('#save-prompts','click',()=>save('/api/settings/prompts',promptsPayload(),'Промпты сохранены.').catch(e=>notice(e.message,'error')));
+    on('#save-modes','click',async()=>{try{const p=modesPayload();await api('/api/settings/modes',{method:'PUT',body:JSON.stringify(p.modes)});await api('/api/settings/mode-catalog',{method:'PUT',body:JSON.stringify(p.catalog)});await refreshAll();notice('Режимы сохранены.')}catch(e){notice(e.message,'error')}})
+    on('#save-payments','click',()=>save('/api/settings/runtime',paymentsPayload(),'Платежные настройки сохранены.').catch(e=>notice(e.message,'error')));
+    on('#test-prompt','click',()=>runTest('/api/test/prompt').then(()=>notice('Промпт готов.')).catch(e=>notice(e.message,'error')));
+    on('#test-state-btn','click',()=>runTest('/api/test/state').then(()=>notice('State пересчитан.')).catch(e=>notice(e.message,'error')));
+    on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Live-тест завершен.')).catch(e=>notice(e.message,'error'))});
     window.addEventListener('error',e=>{console.error('Admin dashboard error',e.error||e.message);notice(`Ошибка интерфейса: ${e.message||'см. консоль браузера'}`,'error')});
     window.addEventListener('unhandledrejection',e=>{console.error('Admin dashboard rejection',e.reason);notice(`Ошибка загрузки: ${e.reason?.message||e.reason||'неизвестно'}`,'error')});
     refreshAll().catch(e=>notice(e.message,'error'));

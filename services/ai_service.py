@@ -38,6 +38,7 @@ class AIService:
         state_engine,
         memory_engine,
         keyword_memory_service,
+        long_term_memory_service,
         prompt_builder,
         access_engine,
         settings_service,
@@ -53,6 +54,7 @@ class AIService:
         self.state_engine = state_engine
         self.memory_engine = memory_engine
         self.keyword_memory_service = keyword_memory_service
+        self.long_term_memory_service = long_term_memory_service
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
         self.settings_service = settings_service
@@ -162,9 +164,17 @@ class AIService:
         active_mode = new_state.get("active_mode", "base")
         access_level = self.access_engine.update_access_level(new_state)
         memory_messages = await self.memory_engine.build_context(history)
-        memory_context = self.keyword_memory_service.build_prompt_context(
+        state_memory_context = self.keyword_memory_service.build_prompt_context(
             new_state,
             history=history,
+        )
+        durable_memory_context = await self.long_term_memory_service.build_prompt_context(
+            user_id,
+        )
+        memory_context = "\n".join(
+            part.strip()
+            for part in (durable_memory_context, state_memory_context)
+            if part and part.strip()
         )
         grounding_kind = self.keyword_memory_service.detect_grounding_need(user_message)
 

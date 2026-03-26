@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 
 from services.memory_engine import ChatMessage
 
@@ -73,6 +73,67 @@ class MessageRepository:
             )
             for row in rows
         ]
+
+    async def get_user_messages(
+        self,
+        user_id: int,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 500))
+        cursor = await self.db.connection.execute(
+            """
+            SELECT id, role, text, created_at
+            FROM messages
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (user_id, safe_limit),
+        )
+        rows = await cursor.fetchall()
+        rows.reverse()
+
+        return [
+            {
+                "id": row[0],
+                "role": row[1],
+                "text": row[2],
+                "created_at": row[3],
+            }
+            for row in rows
+        ]
+
+    async def get_user_message_stats(self, user_id: int) -> dict[str, Any]:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total_messages,
+                SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) AS user_messages,
+                SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) AS assistant_messages,
+                MIN(created_at) AS first_message_at,
+                MAX(created_at) AS last_message_at
+            FROM messages
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return {
+                "total_messages": 0,
+                "user_messages": 0,
+                "assistant_messages": 0,
+                "first_message_at": None,
+                "last_message_at": None,
+            }
+
+        return {
+            "total_messages": int(row[0] or 0),
+            "user_messages": int(row[1] or 0),
+            "assistant_messages": int(row[2] or 0),
+            "first_message_at": row[3],
+            "last_message_at": row[4],
+        }
 
     async def get_total_messages(self) -> int:
         cursor = await self.db.connection.execute("SELECT COUNT(*) FROM messages")

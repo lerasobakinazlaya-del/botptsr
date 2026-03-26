@@ -30,6 +30,10 @@ class AdminSettingsService:
             "max_retries": 2,
             "memory_max_tokens": 1500,
             "history_message_limit": 20,
+            "long_term_memory_enabled": True,
+            "long_term_memory_max_items": 12,
+            "long_term_memory_auto_prune_enabled": True,
+            "long_term_memory_soft_limit": 60,
             "episodic_summary_enabled": True,
             "episodic_summary_interval": 6,
             "episodic_summary_min_interactions": 4,
@@ -372,6 +376,10 @@ class AdminSettingsService:
             "max_retries",
             "memory_max_tokens",
             "history_message_limit",
+            "long_term_memory_enabled",
+            "long_term_memory_max_items",
+            "long_term_memory_auto_prune_enabled",
+            "long_term_memory_soft_limit",
             "episodic_summary_enabled",
             "episodic_summary_interval",
             "episodic_summary_min_interactions",
@@ -402,6 +410,10 @@ class AdminSettingsService:
         ai["max_retries"] = max(0, int(ai["max_retries"]))
         ai["memory_max_tokens"] = max(100, int(ai["memory_max_tokens"]))
         ai["history_message_limit"] = max(1, int(ai["history_message_limit"]))
+        ai["long_term_memory_enabled"] = bool(ai.get("long_term_memory_enabled", True))
+        ai["long_term_memory_max_items"] = max(4, int(ai.get("long_term_memory_max_items", 12)))
+        ai["long_term_memory_auto_prune_enabled"] = bool(ai.get("long_term_memory_auto_prune_enabled", True))
+        ai["long_term_memory_soft_limit"] = max(12, int(ai.get("long_term_memory_soft_limit", 60)))
         ai["episodic_summary_enabled"] = bool(ai.get("episodic_summary_enabled", True))
         ai["episodic_summary_interval"] = max(1, int(ai.get("episodic_summary_interval", 6)))
         ai["episodic_summary_min_interactions"] = max(1, int(ai.get("episodic_summary_min_interactions", 4)))

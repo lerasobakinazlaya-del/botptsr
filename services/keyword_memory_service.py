@@ -7,6 +7,12 @@ class KeywordMemoryService:
     MAX_ITEMS_PER_CATEGORY = 5
     MAX_PROFILE_ITEMS = 6
 
+    def extract_memory_candidates(self, message_text: str) -> dict[str, list[str]]:
+        extracted = self._extract(message_text)
+        profile_updates = self._extract_user_profile(message_text)
+        episodic_updates = self._extract_episodic_memory(message_text)
+        return extracted | profile_updates | episodic_updates
+
     def apply(self, state: dict[str, Any], message_text: str) -> dict[str, Any]:
         updated_state = state.copy()
         memory_flags = dict(updated_state.get("memory_flags") or {})

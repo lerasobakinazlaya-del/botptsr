@@ -7,6 +7,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
 from database.db import Database
+from database.memory_repository import MemoryRepository
 from database.payment_repository import PaymentRepository
 from database.repository import MessageRepository
 from database.user_state_repository import UserStateRepository
@@ -15,6 +16,7 @@ from services.ai_service import AIService
 from services.admin_settings_service import AdminSettingsService
 from services.conversation_summary_service import ConversationSummaryService
 from services.keyword_memory_service import KeywordMemoryService
+from services.long_term_memory_service import LongTermMemoryService
 from services.memory_engine import MemoryEngine
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
@@ -40,6 +42,7 @@ class Container:
         )
 
         self.message_repository = MessageRepository(self.db)
+        self.memory_repository = MemoryRepository(self.db)
         self.payment_repository = PaymentRepository(self.db)
         self.state_repository = UserStateRepository(self.db)
 
@@ -47,6 +50,11 @@ class Container:
         self.state_engine = StateEngine(self.admin_settings_service)
         self.memory_engine = MemoryEngine()
         self.keyword_memory_service = KeywordMemoryService()
+        self.long_term_memory_service = LongTermMemoryService(
+            repository=self.memory_repository,
+            keyword_memory_service=self.keyword_memory_service,
+            settings_service=self.admin_settings_service,
+        )
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
         self.access_engine = AccessEngine(self.admin_settings_service)
 
@@ -56,6 +64,7 @@ class Container:
             state_engine=self.state_engine,
             memory_engine=self.memory_engine,
             keyword_memory_service=self.keyword_memory_service,
+            long_term_memory_service=self.long_term_memory_service,
             prompt_builder=self.prompt_builder,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
@@ -70,6 +79,7 @@ class Container:
             message_repository=self.message_repository,
             state_repository=self.state_repository,
             settings_service=self.admin_settings_service,
+            long_term_memory_service=self.long_term_memory_service,
         )
 
         self.user_service = UserService(self.db, settings=self.settings)

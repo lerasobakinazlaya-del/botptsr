@@ -27,6 +27,7 @@ async def lifespan(container: Container):
     logging.info("Initializing tables...")
     await container.user_service.init_table()
     await container.state_repository.init_table()
+    await container.long_term_memory_service.init_table()
 
     logging.info("Starting AI workers...")
     await container.ai_service.start()
@@ -58,6 +59,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["ai_service"] = container.ai_service
     dp["user_service"] = container.user_service
     dp["message_repository"] = container.message_repository
+    dp["long_term_memory_service"] = container.long_term_memory_service
     dp["payment_service"] = container.payment_service
     dp["payment_repository"] = container.payment_repository
     dp["referral_service"] = container.referral_service
