@@ -53,7 +53,8 @@ def get_broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
 
 
 @router.message(Command("admin"))
-async def admin_panel(message: Message, settings):
+async def admin_panel(message: Message, settings, user_service):
+    await user_service.ensure_user(message.from_user)
     keyboard = get_admin_keyboard(
         is_owner_value=is_owner(message.from_user.id, settings)
     )

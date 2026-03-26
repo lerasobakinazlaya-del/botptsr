@@ -31,7 +31,8 @@ async def send_premium_offer(message: Message, payment_service) -> bool:
 
 
 @router.message(Command("buy"))
-async def buy_premium(message: Message, payment_service):
+async def buy_premium(message: Message, payment_service, user_service):
+    await user_service.ensure_user(message.from_user)
     await send_premium_offer(message, payment_service)
 
 
@@ -41,7 +42,8 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery, bot):
 
 
 @router.message(F.successful_payment)
-async def successful_payment_handler(message: Message, payment_service):
+async def successful_payment_handler(message: Message, payment_service, user_service):
+    await user_service.ensure_user(message.from_user)
     result = await payment_service.handle_successful_payment(message)
     payment_settings = payment_service.get_payment_settings()
     await message.answer(payment_settings["success_message"])

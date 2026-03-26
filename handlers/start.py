@@ -37,7 +37,7 @@ async def start_handler(
     admin_settings_service,
     referral_service,
 ):
-    is_new_user = await user_service.register_user(message.from_user)
+    is_new_user = await user_service.ensure_user(message.from_user)
     runtime = admin_settings_service.get_runtime_settings()
     ui_settings = runtime["ui"]
     referral_settings = runtime["referral"]

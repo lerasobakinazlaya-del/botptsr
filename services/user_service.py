@@ -18,6 +18,29 @@ class UserService:
             )
             """
         )
+        await self.db.connection.execute(
+            """
+            INSERT OR IGNORE INTO users (
+                id,
+                username,
+                first_name,
+                active_mode,
+                is_premium,
+                created_at
+            )
+            SELECT
+                m.user_id,
+                NULL,
+                '',
+                'base',
+                0,
+                MIN(m.created_at)
+            FROM messages m
+            LEFT JOIN users u ON u.id = m.user_id
+            WHERE u.id IS NULL
+            GROUP BY m.user_id
+            """
+        )
         await self.db.connection.commit()
 
     async def register_user(self, telegram_user) -> bool:
@@ -35,6 +58,23 @@ class UserService:
         )
         await self.db.connection.commit()
         return cursor.rowcount > 0
+
+    async def ensure_user(self, telegram_user) -> bool:
+        is_new_user = await self.register_user(telegram_user)
+        await self.db.connection.execute(
+            """
+            UPDATE users
+            SET username = ?, first_name = ?
+            WHERE id = ?
+            """,
+            (
+                telegram_user.username,
+                telegram_user.first_name,
+                telegram_user.id,
+            ),
+        )
+        await self.db.connection.commit()
+        return is_new_user
 
     async def get_user(self, user_id: int) -> dict[str, Any] | None:
         cursor = await self.db.connection.execute(

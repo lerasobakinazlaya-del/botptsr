@@ -37,6 +37,9 @@ async def chat_handler(
     user_id = message.from_user.id
     user_text = message.text.strip()
     user = await user_service.get_user(user_id)
+    if user is None and message.from_user is not None:
+        await user_service.ensure_user(message.from_user)
+        user = await user_service.get_user(user_id)
 
     if user_text == ui_settings["write_button_text"]:
         await message.answer(chat_settings["write_prompt_message"])
