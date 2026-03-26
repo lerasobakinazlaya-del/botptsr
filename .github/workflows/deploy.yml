@@ -74,6 +74,7 @@ jobs:
             mkdir -p '${APP_DIR}'
             tar -xzf /tmp/bot-deploy.tgz -C '${APP_DIR}'
             rm -f /tmp/bot-deploy.tgz
+            find '${APP_DIR}/deploy' -type f \( -name '*.sh' -o -name '*.service' \) -exec sed -i 's/\r$//' {} +
             chmod +x '${APP_DIR}/deploy/systemd/update_bot.sh'
             cd '${APP_DIR}'
             SKIP_GIT=1 APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'
