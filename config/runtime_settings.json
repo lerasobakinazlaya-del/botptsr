@@ -100,7 +100,11 @@
   "limits": {
     "free_daily_messages_enabled": false,
     "free_daily_messages_limit": 25,
-    "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра."
+    "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
+    "premium_daily_messages_enabled": false,
+    "premium_daily_messages_limit": 150,
+    "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
+    "admins_bypass_daily_limits": true
   },
   "referral": {
     "enabled": true,

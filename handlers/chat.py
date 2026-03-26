@@ -65,13 +65,25 @@ async def chat_handler(
         )
         return
 
-    if (
-        user
-        and not user.get("is_premium")
-        and limits_settings["free_daily_messages_enabled"]
-    ):
+    limits_bypass_for_admins = limits_settings.get("admins_bypass_daily_limits", True)
+    should_apply_limits = user is not None and (
+        not user.get("is_admin") or not limits_bypass_for_admins
+    )
+
+    if should_apply_limits:
         today_count = await message_repository.get_user_messages_count_today(user_id)
-        if today_count >= limits_settings["free_daily_messages_limit"]:
+
+        if user.get("is_premium"):
+            if (
+                limits_settings.get("premium_daily_messages_enabled")
+                and today_count >= limits_settings["premium_daily_messages_limit"]
+            ):
+                await message.answer(limits_settings["premium_daily_limit_message"])
+                return
+        elif (
+            limits_settings["free_daily_messages_enabled"]
+            and today_count >= limits_settings["free_daily_messages_limit"]
+        ):
             await message.answer(limits_settings["free_daily_limit_message"])
             return
 

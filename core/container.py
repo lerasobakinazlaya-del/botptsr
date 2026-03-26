@@ -65,7 +65,7 @@ class Container:
             queue_size=self.settings.openai_queue_size,
         )
 
-        self.user_service = UserService(self.db)
+        self.user_service = UserService(self.db, settings=self.settings)
         self.referral_service = ReferralService(
             db=self.db,
             user_service=self.user_service,

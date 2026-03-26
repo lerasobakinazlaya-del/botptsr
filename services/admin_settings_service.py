@@ -104,6 +104,10 @@ class AdminSettingsService:
             "free_daily_messages_enabled": False,
             "free_daily_messages_limit": 25,
             "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
+            "premium_daily_messages_enabled": False,
+            "premium_daily_messages_limit": 150,
+            "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
+            "admins_bypass_daily_limits": True,
         },
         "referral": {
             "enabled": True,
@@ -428,6 +432,13 @@ class AdminSettingsService:
         limits["free_daily_messages_enabled"] = bool(limits["free_daily_messages_enabled"])
         limits["free_daily_messages_limit"] = max(1, int(limits["free_daily_messages_limit"]))
         limits["free_daily_limit_message"] = self._normalize_text(limits["free_daily_limit_message"], multiline=True)
+        limits["premium_daily_messages_enabled"] = bool(limits.get("premium_daily_messages_enabled"))
+        limits["premium_daily_messages_limit"] = max(1, int(limits.get("premium_daily_messages_limit", 150)))
+        limits["premium_daily_limit_message"] = self._normalize_text(
+            limits.get("premium_daily_limit_message", ""),
+            multiline=True,
+        )
+        limits["admins_bypass_daily_limits"] = bool(limits.get("admins_bypass_daily_limits", True))
 
         referral = current["referral"]
         referral["enabled"] = bool(referral["enabled"])

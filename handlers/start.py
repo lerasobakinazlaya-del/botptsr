@@ -33,7 +33,6 @@ def _extract_referrer_id(text: str, prefix: str) -> int | None:
 async def start_handler(
     message: Message,
     user_service,
-    settings,
     admin_settings_service,
     referral_service,
 ):
@@ -55,7 +54,7 @@ async def start_handler(
         if created and referral_settings["referred_welcome_message"]:
             await message.answer(referral_settings["referred_welcome_message"], reply_markup=keyboard)
 
-    if message.from_user.id in settings.admin_id:
+    if await user_service.is_admin(message.from_user.id):
         await message.answer(ui_settings["welcome_admin_text"], reply_markup=keyboard)
         return
 

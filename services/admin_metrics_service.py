@@ -84,6 +84,7 @@ class AdminMetricsService:
         referral_overview = await self.referral_service.get_overview()
         total_users = await self.user_service.get_total_users()
         premium_users = await self.user_service.get_premium_users_count()
+        admin_users = await self.user_service.get_admin_users_count()
         total_messages = await self.message_repository.get_total_messages()
         active_users = await self.message_repository.get_total_users()
         support_stats = await self.state_repository.get_support_stats()
@@ -95,6 +96,7 @@ class AdminMetricsService:
                 "new_7d": await self.user_service.get_new_users_since(7),
                 "new_30d": await self.user_service.get_new_users_since(30),
                 "premium_total": premium_users,
+                "admins_total": admin_users,
                 "active_with_messages": active_users,
             },
             "payments": {
