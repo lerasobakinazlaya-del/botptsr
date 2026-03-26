@@ -67,28 +67,22 @@ class PromptBuilder:
         active_mode: str,
         access_level: str,
     ) -> str:
-        keys = [
-            "interest",
-            "control",
-            "attraction",
-            "instability",
-            "fatigue",
-            "irritation",
-            "conversation_phase",
-            "interaction_count",
-        ]
+        phase = str(state.get("conversation_phase") or "start")
+        interest = float(state.get("interest", 0.0) or 0.0)
+        control = float(state.get("control", 1.0) or 1.0)
+        attraction = float(state.get("attraction", 0.0) or 0.0)
+        fatigue = float(state.get("fatigue", 0.0) or 0.0)
+        irritation = float(state.get("irritation", 0.0) or 0.0)
+        emotional_tone = str(state.get("emotional_tone") or "neutral")
 
         lines = [
-            f"- active_mode: {active_mode}",
-            f"- access_level: {access_level}",
+            f"- Conversation phase: {self._describe_phase(phase)}.",
+            f"- User signal right now: {self._describe_emotional_tone(emotional_tone)}.",
+            f"- Rapport level: {self._describe_rapport(interest, attraction)}.",
+            f"- Pressure guidance: {self._describe_pressure(fatigue, irritation)}.",
+            f"- Closeness budget: {self._describe_access_budget(access_level, control)}.",
+            f"- Active mode texture: keep '{active_mode}' present in tone, not as a gimmick.",
         ]
-
-        for key in keys:
-            if key in state:
-                value = state[key]
-                if isinstance(value, float):
-                    value = round(value, 3)
-                lines.append(f"- {key}: {value}")
 
         return "\n".join(lines)
 
@@ -127,15 +121,16 @@ class PromptBuilder:
         emoji_level = int(mode_config.get("emoji_level", 0) or 0)
 
         lines = [
-            "Response contract:",
-            "- Stay in character, but optimize for usefulness, emotional precision, and natural flow.",
-            "- Answer the user's actual point before you steer the conversation anywhere else.",
-            "- Use memory naturally. Do not dump profile facts or sound like you are reading notes.",
-            "- Ask at most one focused follow-up question unless the user explicitly asks for a deeper breakdown.",
+            "Reply priorities:",
+            "- Begin with the user's immediate need: answer, attunement, steadiness, or momentum.",
+            "- Sound like one coherent person with taste and inner continuity, not a workflow or support script.",
+            "- Use memory only when it sharpens the moment. Never recite notes back at the user.",
+            "- Keep some texture in the wording: specific phrasing, varied sentence flow, no canned reassurance.",
+            "- Ask at most one focused follow-up question unless the user explicitly wants a deeper exploration.",
         ]
 
         if "?" in text or self._looks_like_direct_question(lowered):
-            lines.append("- There is a direct question. Answer it clearly in the first part of the reply.")
+            lines.append("- There is a direct question. Answer it clearly in the opening of the reply.")
 
         if message_length <= 25 and "?" not in text:
             lines.append("- The user message is brief. Keep the reply compact, warm, and easy to continue.")
@@ -143,12 +138,12 @@ class PromptBuilder:
             lines.append("- The user gave a long message. Reflect the core emotion and meaning before offering guidance.")
 
         if fatigue >= 0.55 or irritation >= 0.45:
-            lines.append("- The dialogue state suggests overload. Be calmer, shorter, and lower-pressure than usual.")
+            lines.append("- The dialogue suggests overload. Be calmer, shorter, and lower-pressure than usual.")
 
         if structure >= 7:
             lines.append("- Favor clean structure: short paragraphs, explicit transitions, and crisp logic.")
         elif structure <= 3:
-            lines.append("- Favor a more fluid, conversational rhythm over rigid structure.")
+            lines.append("- Favor a fluid, conversational rhythm over rigid structure.")
 
         if depth >= 7:
             lines.append("- If the user is reflective, name the deeper subtext gently and offer one meaningful angle to explore.")
@@ -157,7 +152,7 @@ class PromptBuilder:
             lines.append("- If the user is vague or stuck, move the conversation forward with one concrete next step or choice.")
 
         if warmth >= 8:
-            lines.append("- Let warmth be obvious in the wording, but keep it grounded and never cloying.")
+            lines.append("- Let warmth be obvious in the wording, but keep it grounded and never syrupy.")
 
         if flirt >= 6:
             lines.append("- If intimacy fits the moment, keep it subtle, tasteful, and responsive to the user's lead.")
@@ -168,7 +163,7 @@ class PromptBuilder:
             lines.append("- Sound composed and leading, but never harsh, humiliating, or coercive.")
 
         lines.append(self._build_emoji_rule(emoji_level))
-        lines.append(f"- Active mode is '{active_mode}'. Honor its tone without turning the reply into a caricature.")
+        lines.append(f"- Active mode is '{active_mode}'. Honor its tone without sounding like a preset.")
 
         return "\n".join(line for line in lines if line.strip())
 
@@ -213,3 +208,50 @@ class PromptBuilder:
             "подскажи",
         )
         return text.startswith(question_starts)
+
+    def _describe_phase(self, phase: str) -> str:
+        mapping = {
+            "start": "early contact, keep the tone easy and readable",
+            "warmup": "warm-up stage, trust is beginning to form",
+            "trust": "there is already familiarity, so nuance and continuity matter",
+            "deep": "the dialogue has history, so you can be more layered and quietly personal",
+        }
+        return mapping.get(phase, "ongoing conversation")
+
+    def _describe_emotional_tone(self, emotional_tone: str) -> str:
+        mapping = {
+            "overwhelmed": "overloaded and likely needing relief, simplicity, and steadiness",
+            "anxious": "anxious or unsettled, so lead with calm and orientation",
+            "guarded": "guarded, so do not push closeness or heavy interpretation",
+            "playful": "playful and more open to lightness if it stays natural",
+            "warm": "warm and receptive, so warmth can be more visible in return",
+            "reflective": "reflective and meaning-seeking, so deeper language may fit",
+            "curious": "curious and looking for a clear answer first",
+            "neutral": "mixed or neutral, so keep the reply balanced and human",
+        }
+        return mapping.get(emotional_tone, mapping["neutral"])
+
+    def _describe_rapport(self, interest: float, attraction: float) -> str:
+        if interest >= 0.7 or attraction >= 0.55:
+            return "strong engagement; the user is likely leaning in"
+        if interest >= 0.35:
+            return "present and workable; keep the exchange alive without forcing it"
+        return "fragile or low engagement; earn attention with clarity and restraint"
+
+    def _describe_pressure(self, fatigue: float, irritation: float) -> str:
+        if fatigue >= 0.55 or irritation >= 0.45:
+            return "low-pressure response, shorter wording, no emotional crowding"
+        if fatigue >= 0.3:
+            return "keep pacing gentle and do not overload the reply"
+        return "normal pressure is fine, but still keep the response focused"
+
+    def _describe_access_budget(self, access_level: str, control: float) -> str:
+        if access_level == "rare_layer":
+            return "deeper intimacy is allowed if it still feels earned and respectful"
+        if access_level == "personal_focus":
+            return "gently personal is welcome, but keep self-control and dignity"
+        if access_level == "tension":
+            return "more emotional charge is allowed, but do not overplay it"
+        if access_level == "analysis" and control >= 0.7:
+            return "warm and attentive, though still measured rather than intimate"
+        return "restrained; build safety and trust before increasing closeness"

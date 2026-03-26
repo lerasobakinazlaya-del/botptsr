@@ -19,6 +19,7 @@ class StateEngine:
         message = (user_message or "").strip()
         message_len = len(message)
         lowered = message.lower()
+        emotional_tone = self._infer_emotional_tone(lowered)
 
         if message_len > int(effects["long_message_threshold"]):
             current_state["interest"] += effects["long_interest_bonus"]
@@ -45,6 +46,7 @@ class StateEngine:
             current_state["interest"] += effects["attraction_interest_bonus"]
             current_state["control"] -= effects["attraction_control_penalty"]
 
+        self._apply_emotional_tone_effects(current_state, emotional_tone)
         current_state["fatigue"] += effects["fatigue_per_message"]
         current_state["instability"] += (
             current_state["attraction"] - current_state["control"]
@@ -55,6 +57,7 @@ class StateEngine:
 
         current_state["interaction_count"] = int(current_state.get("interaction_count", 0)) + 1
         current_state["conversation_phase"] = self._derive_phase(current_state["interaction_count"])
+        current_state["emotional_tone"] = emotional_tone
 
         return self._clamp_numeric_values(current_state)
 
@@ -99,6 +102,7 @@ class StateEngine:
         current_state.setdefault("interaction_count", 0)
         current_state.setdefault("conversation_phase", "start")
         current_state.setdefault("active_mode", "base")
+        current_state.setdefault("emotional_tone", "neutral")
         return current_state
 
     def _derive_phase(self, interaction_count: int) -> str:
@@ -109,6 +113,62 @@ class StateEngine:
         if interaction_count >= 3:
             return "warmup"
         return "start"
+
+    def _infer_emotional_tone(self, text: str) -> str:
+        if any(
+            phrase in text
+            for phrase in ("не вывожу", "выгорел", "перегруз", "опустош", "сил нет", "устал")
+        ):
+            return "overwhelmed"
+        if any(
+            phrase in text
+            for phrase in ("тревож", "страшно", "паник", "накрыва", "не могу успоко")
+        ):
+            return "anxious"
+        if any(
+            phrase in text
+            for phrase in ("не хочу об этом", "сложно доверять", "закрываюсь", "осторожно")
+        ):
+            return "guarded"
+        if any(
+            phrase in text
+            for phrase in ("ахах", "шучу", "подкалываю", "играю", "улыбнуло")
+        ):
+            return "playful"
+        if any(
+            phrase in text
+            for phrase in ("спасибо", "ценю", "нежно", "приятно", "тепло")
+        ):
+            return "warm"
+        if any(
+            phrase in text
+            for phrase in ("думаю", "чувствую", "осознал", "понял", "смысл", "кажется")
+        ):
+            return "reflective"
+        if "?" in text:
+            return "curious"
+        return "neutral"
+
+    def _apply_emotional_tone_effects(self, state: dict, emotional_tone: str) -> None:
+        if emotional_tone == "overwhelmed":
+            state["interest"] += 0.03
+            state["control"] -= 0.02
+            state["fatigue"] += 0.02
+        elif emotional_tone == "anxious":
+            state["interest"] += 0.03
+            state["control"] -= 0.02
+        elif emotional_tone == "warm":
+            state["attraction"] += 0.03
+        elif emotional_tone == "playful":
+            state["interest"] += 0.02
+            state["attraction"] += 0.02
+            state["control"] -= 0.01
+        elif emotional_tone == "guarded":
+            state["control"] += 0.02
+        elif emotional_tone == "reflective":
+            state["interest"] += 0.03
+        elif emotional_tone == "curious":
+            state["interest"] += 0.02
 
     def _clamp_numeric_values(self, state: dict) -> dict:
         for key, value in state.items():

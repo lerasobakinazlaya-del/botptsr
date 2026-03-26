@@ -162,7 +162,10 @@ class AIService:
         active_mode = new_state.get("active_mode", "base")
         access_level = self.access_engine.update_access_level(new_state)
         memory_messages = await self.memory_engine.build_context(history)
-        memory_context = self.keyword_memory_service.build_prompt_context(new_state)
+        memory_context = self.keyword_memory_service.build_prompt_context(
+            new_state,
+            history=history,
+        )
         grounding_kind = self.keyword_memory_service.detect_grounding_need(user_message)
 
         logger.debug(
