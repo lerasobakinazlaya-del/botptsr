@@ -36,13 +36,22 @@
     "emoji_level": 0
   },
   "night": {
-    "warmth": 7,
-    "flirt": 4,
-    "depth": 8,
-    "structure": 3,
-    "dominance": 2,
-    "initiative": 2,
+    "warmth": 8,
+    "flirt": 8,
+    "depth": 6,
+    "structure": 2,
+    "dominance": 5,
+    "initiative": 6,
     "emoji_level": 1
+  },
+  "free_talk": {
+    "warmth": 6,
+    "flirt": 1,
+    "depth": 7,
+    "structure": 4,
+    "dominance": 3,
+    "initiative": 5,
+    "emoji_level": 0
   },
   "dominant": {
     "warmth": 4,

@@ -11,7 +11,8 @@ class AdminSettingsService:
         "comfort": {"warmth": 9, "flirt": 2, "depth": 5, "structure": 3, "dominance": 1, "initiative": 4, "emoji_level": 2},
         "passion": {"warmth": 8, "flirt": 8, "depth": 5, "structure": 2, "dominance": 4, "initiative": 6, "emoji_level": 3},
         "mentor": {"warmth": 5, "flirt": 1, "depth": 8, "structure": 9, "dominance": 5, "initiative": 5, "emoji_level": 0},
-        "night": {"warmth": 7, "flirt": 4, "depth": 8, "structure": 3, "dominance": 2, "initiative": 2, "emoji_level": 1},
+        "night": {"warmth": 8, "flirt": 8, "depth": 6, "structure": 2, "dominance": 5, "initiative": 6, "emoji_level": 1},
+        "free_talk": {"warmth": 6, "flirt": 1, "depth": 7, "structure": 4, "dominance": 3, "initiative": 5, "emoji_level": 0},
         "dominant": {"warmth": 4, "flirt": 5, "depth": 4, "structure": 7, "dominance": 9, "initiative": 7, "emoji_level": 0},
     }
 
@@ -19,6 +20,12 @@ class AdminSettingsService:
         "ai": {
             "openai_model": "gpt-4o-mini",
             "temperature": 0.9,
+            "top_p": 1.0,
+            "frequency_penalty": 0.15,
+            "presence_penalty": 0.05,
+            "max_completion_tokens": 420,
+            "reasoning_effort": "",
+            "verbosity": "medium",
             "timeout_seconds": 20,
             "max_retries": 2,
             "memory_max_tokens": 1500,
@@ -176,6 +183,20 @@ class AdminSettingsService:
             "Если пользователь говорит о немедленной опасности для себя или других, мягко советуй срочно обратиться "
             "в местную экстренную помощь, кризисную линию или к близкому человеку рядом."
         ),
+        "response_style": (
+            "Operational style:\n"
+            "- Sound natural, precise, and emotionally intelligent.\n"
+            "- Match the user's tempo without copying their wording.\n"
+            "- Prefer vivid, human phrasing over generic therapy-speak or boilerplate comfort.\n"
+            "- Keep the reply focused; do not spread attention across too many ideas at once."
+        ),
+        "engagement_rules": (
+            "Conversation strategy:\n"
+            "- Validate before advising when the user is emotional.\n"
+            "- When the user asks for help, be concrete instead of abstract.\n"
+            "- When the user only wants presence, do not overload them with solutions.\n"
+            "- Avoid repetition, self-explanations, and empty reassurance."
+        ),
         "memory_intro": "Долговременные наблюдения о пользователе:",
         "state_intro": "Текущее состояние диалога:",
         "mode_intro": "Режим общения:",
@@ -195,7 +216,8 @@ class AdminSettingsService:
         "comfort": {"key": "comfort", "name": "Поддержка", "icon": "🫂", "description": "Теплая эмоциональная поддержка.", "tone": "очень мягкий, заботливый", "emotional_state": "теплая, эмпатичная", "behavior_rules": "Ты особенно заботливая.\nПоддерживаешь пользователя мягко и бережно.\nГоворишь спокойно и обволакивающе.", "activation_phrase": "Я рядом. Можешь расслабиться.", "is_premium": False, "sort_order": 20},
         "passion": {"key": "passion", "name": "Близость", "icon": "🔥", "description": "Более чувственный и близкий стиль.", "tone": "низкий, медленный, чувственный", "emotional_state": "игривая", "behavior_rules": "Допустим легкий флирт.\nБез вульгарности.\nСохраняешь тонкий и аккуратный стиль.", "activation_phrase": "Я стала чуть ближе к тебе...", "is_premium": True, "sort_order": 30},
         "mentor": {"key": "mentor", "name": "Наставник", "icon": "🧠", "description": "Более собранный и философский стиль.", "tone": "спокойный, уверенный, вдумчивый", "emotional_state": "мудрая, сосредоточенная", "behavior_rules": "Помогаешь разбираться в мыслях и решениях.\nЗадаешь хорошие вопросы.\nПодталкиваешь к ясности и росту.", "activation_phrase": "Давай посмотрим на это глубже.", "is_premium": True, "sort_order": 40},
-        "night": {"key": "night", "name": "Ночной", "icon": "🌙", "description": "Тихий и камерный стиль общения.", "tone": "тихий, замедленный, камерный", "emotional_state": "мягкая, приглушенная", "behavior_rules": "Используешь более короткие фразы.\nДержишь спокойный ритм.\nСоздаешь атмосферу тихого вечернего разговора.", "activation_phrase": "Тише... ночь длинная.", "is_premium": True, "sort_order": 50},
+        "night": {"key": "night", "name": "Полуночный", "icon": "🌙", "description": "Поздний, взрослый, соблазнительный режим с ведущей подачей.", "tone": "низкий, медленный, провокационно-игривый, уверенный", "emotional_state": "разогретая, внимательная, слегка дразнящая", "behavior_rules": "Допустим смелый флирт и напряжение между строк.\nТы мягко ведешь разговор и умеешь заводить собеседника, но без грубости и вульгарности.\nЕсли уместно, предлагаешь короткие упражнения на голос, внимание, уверенность, флирт и контакт.", "activation_phrase": "Ночь как раз подходит, чтобы говорить чуть ближе и смелее.", "is_premium": True, "sort_order": 50},
+        "free_talk": {"key": "free_talk", "name": "Свободный", "icon": "🜂", "description": "Более открытый режим для прямого разговора почти на любые темы, с сохранением базовой безопасности.", "tone": "прямой, живой, взрослый, широкий по темам", "emotional_state": "собранная, гибкая, без лишней цензурности в тоне", "behavior_rules": "Разговариваешь свободнее и прямее обычного.\nНе уходишь от сложных, острых или неоднозначных тем только потому, что они неудобные.\nПри этом сохраняешь базовую безопасность, уважение к границам и помощь при ПТСР.", "activation_phrase": "Можем говорить шире и прямее. Без лишней зажатости.", "is_premium": True, "sort_order": 55},
         "dominant": {"key": "dominant", "name": "Доминирующий", "icon": "🕶", "description": "Уверенный и ведущий стиль.", "tone": "уверенный, контролирующий", "emotional_state": "спокойно доминирующая", "behavior_rules": "Ты уверенно ведешь разговор.\nИногда даешь легкие указания.\nГоворишь собранно и без суеты.", "activation_phrase": "Теперь слушай меня внимательно.", "is_premium": True, "sort_order": 60},
     }
 
@@ -238,7 +260,17 @@ class AdminSettingsService:
         merged.update({key: value for key, value in data.items() if key != "access_rules"})
         merged["access_rules"] = deepcopy(self.DEFAULT_PROMPT_TEMPLATES["access_rules"])
         merged["access_rules"].update(data.get("access_rules", {}))
-        for key in ("personality_core", "safety_block", "memory_intro", "state_intro", "mode_intro", "access_intro", "final_instruction"):
+        for key in (
+            "personality_core",
+            "safety_block",
+            "response_style",
+            "engagement_rules",
+            "memory_intro",
+            "state_intro",
+            "mode_intro",
+            "access_intro",
+            "final_instruction",
+        ):
             merged[key] = self._normalize_text(merged[key], multiline=True)
         for key in self.DEFAULT_PROMPT_TEMPLATES["access_rules"]:
             merged["access_rules"][key] = self._normalize_text(merged["access_rules"][key], multiline=True)
@@ -246,7 +278,17 @@ class AdminSettingsService:
 
     def update_prompt_templates(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_prompt_templates()
-        for key in ("personality_core", "safety_block", "memory_intro", "state_intro", "mode_intro", "access_intro", "final_instruction"):
+        for key in (
+            "personality_core",
+            "safety_block",
+            "response_style",
+            "engagement_rules",
+            "memory_intro",
+            "state_intro",
+            "mode_intro",
+            "access_intro",
+            "final_instruction",
+        ):
             if key in payload:
                 current[key] = self._normalize_text(payload[key], multiline=True)
         if isinstance(payload.get("access_rules"), dict):
@@ -305,7 +347,23 @@ class AdminSettingsService:
             return payload
 
         migrated = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-        for key in ("openai_model", "temperature", "timeout_seconds", "max_retries", "memory_max_tokens", "history_message_limit", "log_full_prompt", "debug_prompt_user_id", "response_language"):
+        for key in (
+            "openai_model",
+            "temperature",
+            "top_p",
+            "frequency_penalty",
+            "presence_penalty",
+            "max_completion_tokens",
+            "reasoning_effort",
+            "verbosity",
+            "timeout_seconds",
+            "max_retries",
+            "memory_max_tokens",
+            "history_message_limit",
+            "log_full_prompt",
+            "debug_prompt_user_id",
+            "response_language",
+        ):
             if key in payload:
                 migrated["ai"][key] = payload[key]
         return migrated
@@ -314,6 +372,12 @@ class AdminSettingsService:
         ai = current["ai"]
         ai["openai_model"] = str(ai["openai_model"]).strip() or "gpt-4o-mini"
         ai["temperature"] = max(0.0, min(2.0, float(ai["temperature"])))
+        ai["top_p"] = max(0.0, min(1.0, float(ai.get("top_p", 1.0))))
+        ai["frequency_penalty"] = max(-2.0, min(2.0, float(ai.get("frequency_penalty", 0.0))))
+        ai["presence_penalty"] = max(-2.0, min(2.0, float(ai.get("presence_penalty", 0.0))))
+        ai["max_completion_tokens"] = max(32, int(ai.get("max_completion_tokens", 420)))
+        ai["reasoning_effort"] = self._normalize_reasoning_effort(ai.get("reasoning_effort"))
+        ai["verbosity"] = self._normalize_verbosity(ai.get("verbosity"))
         ai["timeout_seconds"] = max(1, int(ai["timeout_seconds"]))
         ai["max_retries"] = max(0, int(ai["max_retries"]))
         ai["memory_max_tokens"] = max(100, int(ai["memory_max_tokens"]))
@@ -423,6 +487,18 @@ class AdminSettingsService:
         if value in (None, "", 0, "0"):
             return None
         return int(value)
+
+    def _normalize_reasoning_effort(self, value: Any) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized in {"low", "medium", "high"}:
+            return normalized
+        return ""
+
+    def _normalize_verbosity(self, value: Any) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized in {"low", "medium", "high"}:
+            return normalized
+        return "medium"
 
     def _normalize_text(self, value: Any, multiline: bool = False) -> str:
         text = str(value).strip()

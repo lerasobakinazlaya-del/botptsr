@@ -179,6 +179,7 @@ class AIService:
             access_level=access_level,
             active_mode=active_mode,
             memory_context=memory_context,
+            user_message=user_message,
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -198,7 +199,11 @@ class AIService:
             + [{"role": "user", "content": user_message.strip()}]
         )
 
-        response_text, tokens_used = await self._call_with_retry(messages, ai_settings)
+        response_text, tokens_used = await self._call_with_retry(
+            messages,
+            ai_settings,
+            user_id=user_id,
+        )
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
@@ -235,12 +240,21 @@ class AIService:
         self,
         messages: List[Dict[str, str]],
         ai_settings: dict[str, Any],
+        user_id: int,
     ) -> tuple[str, int | None]:
         last_exception = None
         max_retries = int(ai_settings.get("max_retries", self.max_retries))
         timeout_seconds = int(ai_settings.get("timeout_seconds", self.timeout_seconds))
         model = str(ai_settings.get("openai_model") or self.client.model)
         temperature = float(ai_settings.get("temperature", self.client.temperature))
+        top_p = float(ai_settings.get("top_p", 1.0))
+        frequency_penalty = float(ai_settings.get("frequency_penalty", 0.0))
+        presence_penalty = float(ai_settings.get("presence_penalty", 0.0))
+        max_completion_tokens = int(
+            ai_settings.get("max_completion_tokens", 400),
+        )
+        reasoning_effort = str(ai_settings.get("reasoning_effort") or "").strip() or None
+        verbosity = str(ai_settings.get("verbosity") or "").strip() or None
 
         for attempt in range(max_retries + 1):
             try:
@@ -249,6 +263,13 @@ class AIService:
                         messages=messages,
                         model=model,
                         temperature=temperature,
+                        top_p=top_p,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                        max_completion_tokens=max_completion_tokens,
+                        reasoning_effort=reasoning_effort,
+                        verbosity=verbosity,
+                        user=str(user_id),
                     ),
                     timeout=timeout_seconds,
                 )
