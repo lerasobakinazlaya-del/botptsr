@@ -132,13 +132,13 @@
     "modes_button_text": "🎛 Режимы",
     "premium_button_text": "💎 Premium",
     "input_placeholder": "Напиши мне...",
-    "welcome_user_text": "Привет.\\n\\nЯ рядом.\\nМожешь просто написать мне.\\n\\nИли выбрать режим общения 🎛\\nИли оформить Premium 💎",
-    "welcome_admin_text": "🔐 Панель администратора активирована.\\n\\nБот работает в штатном режиме.",
+    "welcome_user_text": "Привет.\n\nЯ рядом.\nМожешь просто написать мне.\n\nИли выбрать режим общения 🎛\nИли оформить Premium 💎",
+    "welcome_admin_text": "🔐 Панель администратора активирована.\n\nБот работает в штатном режиме.",
     "modes_title": "Выбери режим общения:",
     "user_not_found_text": "Пользователь не найден.",
     "unknown_mode_text": "Неизвестный режим.",
     "mode_locked_text": "Этот режим доступен только в Premium 🔒",
-    "mode_saved_template": "Режим активирован: {mode_name}\\n\\n{activation_phrase}",
+    "mode_saved_template": "Режим активирован: {mode_name}\n\n{activation_phrase}",
     "mode_saved_toast": "Готово ✅"
   }
 }

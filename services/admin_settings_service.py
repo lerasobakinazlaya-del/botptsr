@@ -237,17 +237,21 @@ class AdminSettingsService:
         merged.update({key: value for key, value in data.items() if key != "access_rules"})
         merged["access_rules"] = deepcopy(self.DEFAULT_PROMPT_TEMPLATES["access_rules"])
         merged["access_rules"].update(data.get("access_rules", {}))
+        for key in ("personality_core", "safety_block", "memory_intro", "state_intro", "mode_intro", "access_intro", "final_instruction"):
+            merged[key] = self._normalize_text(merged[key], multiline=True)
+        for key in self.DEFAULT_PROMPT_TEMPLATES["access_rules"]:
+            merged["access_rules"][key] = self._normalize_text(merged["access_rules"][key], multiline=True)
         return merged
 
     def update_prompt_templates(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_prompt_templates()
         for key in ("personality_core", "safety_block", "memory_intro", "state_intro", "mode_intro", "access_intro", "final_instruction"):
             if key in payload:
-                current[key] = str(payload[key]).strip()
+                current[key] = self._normalize_text(payload[key], multiline=True)
         if isinstance(payload.get("access_rules"), dict):
             for key in self.DEFAULT_PROMPT_TEMPLATES["access_rules"]:
                 if key in payload["access_rules"]:
-                    current["access_rules"][key] = str(payload["access_rules"][key]).strip()
+                    current["access_rules"][key] = self._normalize_text(payload["access_rules"][key], multiline=True)
         self._write_json(self.prompts_path, current)
         return current
 
@@ -320,16 +324,16 @@ class AdminSettingsService:
         chat = current["chat"]
         chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
         for key in ("non_text_message", "busy_message", "ai_error_message", "write_prompt_message"):
-            chat[key] = str(chat[key]).strip()
+            chat[key] = self._normalize_text(chat[key], multiline=True)
 
         safety = current["safety"]
         safety["throttle_rate_limit_seconds"] = max(0.1, float(safety["throttle_rate_limit_seconds"]))
         safety["throttle_warning_interval_seconds"] = max(0.1, float(safety["throttle_warning_interval_seconds"]))
         safety["max_message_length"] = max(100, int(safety["max_message_length"]))
         safety["reject_suspicious_messages"] = bool(safety["reject_suspicious_messages"])
-        safety["throttle_warning_text"] = str(safety["throttle_warning_text"]).strip()
-        safety["message_too_long_text"] = str(safety["message_too_long_text"]).strip()
-        safety["suspicious_rejection_text"] = str(safety["suspicious_rejection_text"]).strip()
+        safety["throttle_warning_text"] = self._normalize_text(safety["throttle_warning_text"], multiline=True)
+        safety["message_too_long_text"] = self._normalize_text(safety["message_too_long_text"], multiline=True)
+        safety["suspicious_rejection_text"] = self._normalize_text(safety["suspicious_rejection_text"], multiline=True)
         safety["suspicious_keywords"] = self._normalize_string_list(safety["suspicious_keywords"])
 
         state_engine = current["state_engine"]
@@ -358,7 +362,7 @@ class AdminSettingsService:
         limits = current["limits"]
         limits["free_daily_messages_enabled"] = bool(limits["free_daily_messages_enabled"])
         limits["free_daily_messages_limit"] = max(1, int(limits["free_daily_messages_limit"]))
-        limits["free_daily_limit_message"] = str(limits["free_daily_limit_message"]).strip()
+        limits["free_daily_limit_message"] = self._normalize_text(limits["free_daily_limit_message"], multiline=True)
 
         referral = current["referral"]
         referral["enabled"] = bool(referral["enabled"])
@@ -368,18 +372,18 @@ class AdminSettingsService:
         referral["award_referrer_premium"] = bool(referral["award_referrer_premium"])
         referral["award_referred_user_premium"] = bool(referral["award_referred_user_premium"])
         for key in ("program_title", "program_description", "share_text_template", "referred_welcome_message", "referrer_reward_message"):
-            referral[key] = str(referral[key]).strip()
+            referral[key] = self._normalize_text(referral[key], multiline=True)
 
         payment = current["payment"]
         payment["provider_token"] = str(payment["provider_token"]).strip()
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["price_minor_units"] = max(1, int(payment["price_minor_units"]))
         for key in ("product_title", "product_description", "premium_benefits_text", "buy_cta_text", "unavailable_message", "invoice_error_message", "success_message"):
-            payment[key] = str(payment[key]).strip()
+            payment[key] = self._normalize_text(payment[key], multiline=True)
 
         ui = current["ui"]
         for key in self.DEFAULT_RUNTIME_SETTINGS["ui"]:
-            ui[key] = str(ui[key]).strip()
+            ui[key] = self._normalize_text(ui[key], multiline=True)
 
         return current
 
@@ -396,13 +400,13 @@ class AdminSettingsService:
         self._deep_merge(merged, payload)
         for mode_key, mode in merged.items():
             mode["key"] = mode_key
-            mode["name"] = str(mode["name"]).strip() or mode_key
-            mode["icon"] = str(mode["icon"]).strip() or "•"
-            mode["description"] = str(mode["description"]).strip()
-            mode["tone"] = str(mode["tone"]).strip()
-            mode["emotional_state"] = str(mode["emotional_state"]).strip()
-            mode["behavior_rules"] = str(mode["behavior_rules"]).strip()
-            mode["activation_phrase"] = str(mode["activation_phrase"]).strip()
+            mode["name"] = self._normalize_text(mode["name"]) or mode_key
+            mode["icon"] = self._normalize_text(mode["icon"]) or "•"
+            mode["description"] = self._normalize_text(mode["description"], multiline=True)
+            mode["tone"] = self._normalize_text(mode["tone"], multiline=True)
+            mode["emotional_state"] = self._normalize_text(mode["emotional_state"], multiline=True)
+            mode["behavior_rules"] = self._normalize_text(mode["behavior_rules"], multiline=True)
+            mode["activation_phrase"] = self._normalize_text(mode["activation_phrase"], multiline=True)
             mode["is_premium"] = bool(mode["is_premium"])
             mode["sort_order"] = int(mode["sort_order"])
         return merged
@@ -418,6 +422,12 @@ class AdminSettingsService:
         if value in (None, "", 0, "0"):
             return None
         return int(value)
+
+    def _normalize_text(self, value: Any, multiline: bool = False) -> str:
+        text = str(value).strip()
+        if multiline:
+            text = text.replace("\\r\\n", "\n").replace("\\n", "\n")
+        return text
 
     def _normalize_string_list(self, value: Any) -> list[str]:
         if isinstance(value, str):
