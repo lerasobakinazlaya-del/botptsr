@@ -16,15 +16,13 @@ def setup_logger(debug: bool = False):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # ===== Консоль =====
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     console_handler.setLevel(log_level)
 
-    # ===== Файл (с ротацией) =====
     file_handler = RotatingFileHandler(
         LOG_DIR / "bot.log",
-        maxBytes=5 * 1024 * 1024,  # 5 MB
+        maxBytes=5 * 1024 * 1024,
         backupCount=5,
         encoding="utf-8",
     )
@@ -36,7 +34,6 @@ def setup_logger(debug: bool = False):
         handlers=[console_handler, file_handler],
     )
 
-    # Настройка логов сторонних библиотек
     logging.getLogger("aiogram").setLevel(logging.INFO)
 
-    logging.info("📝 Логирование запущено")
+    logging.info("Логирование запущено")

@@ -1,0 +1,48 @@
+name: Deploy Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Git branch to deploy"
+        required: false
+        default: ""
+      app_dir:
+        description: "Server project directory"
+        required: false
+        default: "/opt/bot"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve deploy branch
+        id: vars
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH="${{ github.ref_name }}"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run remote deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          APP_DIR: ${{ github.event.inputs.app_dir }}
+          DEPLOY_BRANCH: ${{ steps.vars.outputs.branch }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${APP_DIR}' && chmod +x deploy/systemd/update_bot.sh && APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'"

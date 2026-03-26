@@ -1,5 +1,9 @@
 import json
+import logging
 from typing import Any
+
+
+logger = logging.getLogger(__name__)
 
 
 class AdminMetricsService:
@@ -37,13 +41,21 @@ class AdminMetricsService:
     async def invalidate_cache(self) -> None:
         if self.redis is None:
             return
-        await self.redis.delete(self.CACHE_KEY)
+        try:
+            await self.redis.delete(self.CACHE_KEY)
+        except Exception as exc:
+            logger.warning("Failed to invalidate admin cache: %s", exc)
 
     async def _get_cached_payload(self) -> dict[str, Any] | None:
         if self.redis is None or self.cache_ttl <= 0:
             return None
 
-        raw_payload = await self.redis.get(self.CACHE_KEY)
+        try:
+            raw_payload = await self.redis.get(self.CACHE_KEY)
+        except Exception as exc:
+            logger.warning("Admin cache unavailable, falling back to live data: %s", exc)
+            return None
+
         if not raw_payload:
             return None
 
@@ -56,11 +68,14 @@ class AdminMetricsService:
         if self.redis is None or self.cache_ttl <= 0:
             return
 
-        await self.redis.set(
-            self.CACHE_KEY,
-            json.dumps(payload, ensure_ascii=False),
-            ex=self.cache_ttl,
-        )
+        try:
+            await self.redis.set(
+                self.CACHE_KEY,
+                json.dumps(payload, ensure_ascii=False),
+                ex=self.cache_ttl,
+            )
+        except Exception as exc:
+            logger.warning("Failed to store admin cache: %s", exc)
 
     async def _build_cached_payload(self) -> dict[str, Any]:
         payment_overview = await self.payment_repository.get_overview()

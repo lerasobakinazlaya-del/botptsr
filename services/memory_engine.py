@@ -82,6 +82,9 @@ class MemoryEngine:
         self.limiter = MemoryLimiter(max_tokens)
         self.formatter = MemoryFormatter()
 
+    def set_max_tokens(self, max_tokens: int) -> None:
+        self.limiter.max_tokens = max(100, int(max_tokens))
+
     async def build_context(self, history: list[ChatMessage]) -> list[dict[str, str]]:
         if not history:
             return []

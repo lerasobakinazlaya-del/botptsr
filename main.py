@@ -43,8 +43,9 @@ async def lifespan(container: Container):
         logging.info("Closing FSM storage...")
         await container.fsm_storage.close()
 
-        logging.info("Closing Redis connection...")
-        await container.redis.aclose()
+        if container.redis is not None:
+            logging.info("Closing Redis connection...")
+            await container.redis.aclose()
 
         logging.info("Closing database connection...")
         await container.db.close()

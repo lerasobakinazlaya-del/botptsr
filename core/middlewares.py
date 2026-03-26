@@ -50,27 +50,16 @@ class ThrottlingMiddleware(BaseMiddleware):
         self.redis = redis
         self.rate_limit_ms = max(1, int(rate_limit * 1000))
         self.warning_interval_ms = max(1, int(warning_interval * 1000))
+        self._local_throttle_until: dict[int, float] = {}
+        self._local_warning_until: dict[int, float] = {}
 
     async def __call__(self, handler, event, data):
         if isinstance(event, Message) and event.from_user:
             user_id = event.from_user.id
-            throttle_key = f"throttle:user:{user_id}"
-            warning_key = f"throttle-warning:user:{user_id}"
-
-            allowed = await self.redis.set(
-                throttle_key,
-                str(time.time()),
-                px=self.rate_limit_ms,
-                nx=True,
-            )
+            allowed = await self._is_allowed(user_id)
 
             if not allowed:
-                should_warn = await self.redis.set(
-                    warning_key,
-                    "1",
-                    px=self.warning_interval_ms,
-                    nx=True,
-                )
+                should_warn = await self._should_warn(user_id)
 
                 if should_warn:
                     await event.answer("Too many requests. Please wait a moment.")
@@ -78,6 +67,44 @@ class ThrottlingMiddleware(BaseMiddleware):
                 return
 
         return await handler(event, data)
+
+    async def _is_allowed(self, user_id: int) -> bool:
+        if self.redis is None:
+            now = time.time() * 1000
+            expires_at = self._local_throttle_until.get(user_id, 0)
+            if expires_at > now:
+                return False
+            self._local_throttle_until[user_id] = now + self.rate_limit_ms
+            return True
+
+        throttle_key = f"throttle:user:{user_id}"
+        return bool(
+            await self.redis.set(
+                throttle_key,
+                str(time.time()),
+                px=self.rate_limit_ms,
+                nx=True,
+            )
+        )
+
+    async def _should_warn(self, user_id: int) -> bool:
+        if self.redis is None:
+            now = time.time() * 1000
+            expires_at = self._local_warning_until.get(user_id, 0)
+            if expires_at > now:
+                return False
+            self._local_warning_until[user_id] = now + self.warning_interval_ms
+            return True
+
+        warning_key = f"throttle-warning:user:{user_id}"
+        return bool(
+            await self.redis.set(
+                warning_key,
+                "1",
+                px=self.warning_interval_ms,
+                nx=True,
+            )
+        )
 
 
 class MessageSizeMiddleware(BaseMiddleware):

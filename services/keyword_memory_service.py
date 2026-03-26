@@ -71,31 +71,40 @@ class KeywordMemoryService:
     def detect_grounding_need(self, text: str) -> str | None:
         lowered = " ".join(text.lower().split())
 
-        if any(phrase in lowered for phrase in [
-            "паника",
-            "паническая атака",
-            "меня трясет",
-            "не могу успокоиться",
-            "накрывает тревога",
-        ]):
+        if any(
+            phrase in lowered
+            for phrase in [
+                "паника",
+                "паническая атака",
+                "меня трясет",
+                "не могу успокоиться",
+                "накрывает тревога",
+            ]
+        ):
             return "panic"
 
-        if any(phrase in lowered for phrase in [
-            "флэшбек",
-            "флешбек",
-            "снова как тогда",
-            "накрыло воспоминаниями",
-            "будто это происходит снова",
-        ]):
+        if any(
+            phrase in lowered
+            for phrase in [
+                "флэшбек",
+                "флешбек",
+                "снова как тогда",
+                "накрыло воспоминаниями",
+                "будто это происходит снова",
+            ]
+        ):
             return "flashback"
 
-        if any(phrase in lowered for phrase in [
-            "не могу уснуть",
-            "бессонница",
-            "не сплю",
-            "снова не спится",
-            "боюсь засыпать",
-        ]):
+        if any(
+            phrase in lowered
+            for phrase in [
+                "не могу уснуть",
+                "бессонница",
+                "не сплю",
+                "снова не спится",
+                "боюсь засыпать",
+            ]
+        ):
             return "insomnia"
 
         return None
@@ -118,7 +127,8 @@ class KeywordMemoryService:
             "insomnia": (
                 "Ночь может усиливать напряжение.\n\n"
                 "Не заставляй себя уснуть любой ценой.\n"
-                "Попробуй убрать яркий свет, сделать несколько медленных выдохов и сосредоточиться на одной спокойной детали вокруг.\n"
+                "Попробуй убрать яркий свет, сделать несколько медленных выдохов "
+                "и сосредоточиться на одной спокойной детали вокруг.\n"
                 "Если хочешь, я побуду с тобой коротко и спокойно."
             ),
         }
@@ -129,10 +139,34 @@ class KeywordMemoryService:
         result: dict[str, list[str]] = {}
 
         for category, value in [
-            ("coping_tools", self._extract_phrase(lowered, r"(?:мне помогает|меня успокаивает|мне легче, когда)\s+([^.!?]+)")),
-            ("support_preferences", self._extract_phrase(lowered, r"(?:мне важно, чтобы|лучше со мной|со мной лучше)\s+([^.!?]+)")),
-            ("triggers", self._extract_phrase(lowered, r"(?:меня триггерит|мой триггер|меня пугает|меня накрывает от)\s+([^.!?]+)")),
-            ("important_context", self._extract_phrase(lowered, r"(?:у меня птср|у меня травма|после войны|после службы|после того случая)\s*([^.!?]*)")),
+            (
+                "coping_tools",
+                self._extract_phrase(
+                    lowered,
+                    r"(?:мне помогает|меня успокаивает|мне легче, когда)\s+([^.!?]+)",
+                ),
+            ),
+            (
+                "support_preferences",
+                self._extract_phrase(
+                    lowered,
+                    r"(?:мне важно, чтобы|лучше со мной|со мной лучше)\s+([^.!?]+)",
+                ),
+            ),
+            (
+                "triggers",
+                self._extract_phrase(
+                    lowered,
+                    r"(?:меня триггерит|мой триггер|меня пугает|меня накрывает от)\s+([^.!?]+)",
+                ),
+            ),
+            (
+                "important_context",
+                self._extract_phrase(
+                    lowered,
+                    r"(?:у меня птср|у меня травма|после войны|после службы|после того случая)\s*([^.!?]*)",
+                ),
+            ),
         ]:
             if value:
                 result.setdefault(category, []).append(value)
@@ -165,14 +199,35 @@ class KeywordMemoryService:
         if matched_symptoms:
             result["symptoms"] = matched_symptoms
 
-        if any(phrase in lowered for phrase in ["без советов", "не давай советов", "просто побудь рядом"]):
-            result.setdefault("support_preferences", []).append("лучше меньше советов и больше спокойного присутствия")
+        if any(
+            phrase in lowered
+            for phrase in ["без советов", "не давай советов", "просто побудь рядом"]
+        ):
+            result.setdefault("support_preferences", []).append(
+                "лучше меньше советов и больше спокойного присутствия"
+            )
 
-        if any(phrase in lowered for phrase in ["коротко", "без длинных ответов", "не пиши много"]):
-            result.setdefault("support_preferences", []).append("лучше отвечать короче и спокойнее")
+        if any(
+            phrase in lowered
+            for phrase in ["коротко", "без длинных ответов", "не пиши много"]
+        ):
+            result.setdefault("support_preferences", []).append(
+                "лучше отвечать короче и спокойнее"
+            )
 
-        if any(phrase in lowered for phrase in ["дыхание помогает", "дышать помогает", "заземление помогает", "вода помогает", "музыка помогает"]):
-            result.setdefault("coping_tools", []).append("помогают простые техники саморегуляции")
+        if any(
+            phrase in lowered
+            for phrase in [
+                "дыхание помогает",
+                "дышать помогает",
+                "заземление помогает",
+                "вода помогает",
+                "музыка помогает",
+            ]
+        ):
+            result.setdefault("coping_tools", []).append(
+                "помогают простые техники саморегуляции"
+            )
 
         return result
 

@@ -1,0 +1,10 @@
+{
+  "openai_model": "gpt-4o-mini",
+  "temperature": 0.9,
+  "timeout_seconds": 20,
+  "max_retries": 2,
+  "memory_max_tokens": 1500,
+  "log_full_prompt": false,
+  "debug_prompt_user_id": null,
+  "response_language": "ru"
+}

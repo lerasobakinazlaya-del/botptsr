@@ -25,8 +25,8 @@ def is_owner(user_id: int, settings) -> bool:
 def get_admin_keyboard(is_owner_value: bool) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="🛠 Debug", callback_data="admin_debug")],
-        [InlineKeyboardButton(text="❤️ Health", callback_data="admin_health")],
+        [InlineKeyboardButton(text="🛠 Отладка", callback_data="admin_debug")],
+        [InlineKeyboardButton(text="❤️ Состояние", callback_data="admin_health")],
         [InlineKeyboardButton(text="👑 Premium", callback_data="admin_premium")],
     ]
 
@@ -92,8 +92,8 @@ async def admin_debug(callback: CallbackQuery, ai_service, settings):
     stats = ai_service.get_runtime_stats()
 
     text = (
-        "🛠 Debug\n\n"
-        f"DEBUG режим: {settings.debug}\n"
+        "🛠 Отладка\n\n"
+        f"DEBUG-режим: {settings.debug}\n"
         f"AI workers запущены: {stats['started']}\n"
         f"Количество workers: {stats['workers']}\n"
         f"Лимит параллельных AI-запросов: {stats['max_parallel_requests']}\n"
@@ -123,7 +123,7 @@ async def admin_health(callback: CallbackQuery, db, redis, ai_service):
 
     stats = ai_service.get_runtime_stats()
     text = (
-        "❤️ Health\n\n"
+        "❤️ Состояние\n\n"
         f"DB: {db_status}\n"
         f"Redis: {redis_status}\n"
         f"AI workers started: {stats['started']}\n"

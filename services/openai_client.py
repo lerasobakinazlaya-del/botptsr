@@ -20,11 +20,13 @@ class OpenAIClient:
     async def generate(
         self,
         messages: List[Dict[str, str]],
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> Tuple[str, int | None]:
         response = await self.client.chat.completions.create(
-            model=self.model,
+            model=model or self.model,
             messages=messages,
-            temperature=self.temperature,
+            temperature=self.temperature if temperature is None else temperature,
         )
 
         text = response.choices[0].message.content or ""

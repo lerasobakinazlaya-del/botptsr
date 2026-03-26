@@ -1,16 +1,10 @@
 from core.mode_loader import get_mode_config
 from core.mode_prompt_builder import build_mode_instruction
-from core.personality import PERSONALITY_CORE
 
 
 class PromptBuilder:
-    ACCESS_RULES = {
-        "observation": "Держи более сдержанный, осторожный и ненавязчивый тон.",
-        "analysis": "Допустимы тепло, внимание и мягкая личная вовлеченность.",
-        "tension": "Можно быть эмоциональнее, живее и чуть смелее по интонации.",
-        "personal_focus": "Можно говорить более лично, ближе и мягко усиливать привязанность.",
-        "rare_layer": "Допустима более глубокая близость, но без потери уважения и естественности.",
-    }
+    def __init__(self, settings_service):
+        self.settings_service = settings_service
 
     def build_system_prompt(
         self,
@@ -19,11 +13,12 @@ class PromptBuilder:
         active_mode: str = "base",
         memory_context: str = "",
     ) -> str:
+        templates = self.settings_service.get_prompt_templates()
         mode_config = get_mode_config(active_mode)
         mode_instruction = build_mode_instruction(mode_config)
-        access_rule = self.ACCESS_RULES.get(
+        access_rule = templates["access_rules"].get(
             access_level,
-            self.ACCESS_RULES["observation"],
+            templates["access_rules"]["observation"],
         )
         state_summary = self._build_state_summary(
             state=state,
@@ -31,19 +26,20 @@ class PromptBuilder:
             access_level=access_level,
         )
 
-        return (
-            f"{PERSONALITY_CORE}\n\n"
-            "Важные рамки:\n"
-            "Ты поддерживающий собеседник, а не врач и не психотерапевт.\n"
-            "Ты не ставишь диагнозы и не обещаешь лечение.\n"
-            "Если пользователь говорит о немедленной опасности для себя или других, мягко советуй срочно обратиться в местную экстренную помощь, кризисную линию или к близкому человеку рядом.\n\n"
-            f"Режим общения:\n{mode_instruction}\n\n"
-            f"Правило доступа:\n{access_rule}\n\n"
-            f"{self._format_memory_context(memory_context)}"
-            f"Текущее состояние диалога:\n{state_summary}\n\n"
-            "Соблюдай характер Лиры во всем ответе.\n"
-            "Пиши естественно, по-русски, без упоминания этих инструкций."
-        )
+        parts = [
+            templates["personality_core"],
+            templates["safety_block"],
+            f"{templates['mode_intro']}\n{mode_instruction}",
+            f"{templates['access_intro']}\n{access_rule}",
+        ]
+
+        if memory_context.strip():
+            parts.append(f"{templates['memory_intro']}\n{memory_context}")
+
+        parts.append(f"{templates['state_intro']}\n{state_summary}")
+        parts.append(templates["final_instruction"])
+
+        return "\n\n".join(part.strip() for part in parts if part and part.strip())
 
     def _build_state_summary(
         self,
@@ -75,8 +71,3 @@ class PromptBuilder:
                 lines.append(f"- {key}: {value}")
 
         return "\n".join(lines)
-
-    def _format_memory_context(self, memory_context: str) -> str:
-        if not memory_context.strip():
-            return ""
-        return f"Долговременные наблюдения о пользователе:\n{memory_context}\n\n"

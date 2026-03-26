@@ -40,6 +40,7 @@ class AIService:
         keyword_memory_service,
         prompt_builder,
         access_engine,
+        settings_service,
         debug: bool = False,
         log_full_prompt: bool = False,
         debug_prompt_user_id: int | None = None,
@@ -54,6 +55,7 @@ class AIService:
         self.keyword_memory_service = keyword_memory_service
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
+        self.settings_service = settings_service
         self.debug = debug
         self.log_full_prompt = log_full_prompt
         self.debug_prompt_user_id = debug_prompt_user_id
@@ -151,6 +153,9 @@ class AIService:
         state: Dict[str, Any],
         user_id: int,
     ) -> AIResult:
+        runtime_settings = self.settings_service.get_runtime_settings()
+        self.memory_engine.set_max_tokens(runtime_settings["memory_max_tokens"])
+
         memory_enriched_state = self.keyword_memory_service.apply(state.copy(), user_message)
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
         active_mode = new_state.get("active_mode", "base")
@@ -175,7 +180,7 @@ class AIService:
             memory_context=memory_context,
         )
 
-        if self._should_log_full_prompt(user_id):
+        if self._should_log_full_prompt(user_id, runtime_settings):
             logger.debug("[AI PROMPT] user_id=%s\n%s", user_id, system_prompt)
 
         if grounding_kind is not None:
@@ -192,7 +197,7 @@ class AIService:
             + [{"role": "user", "content": user_message.strip()}]
         )
 
-        response_text, tokens_used = await self._call_with_retry(messages)
+        response_text, tokens_used = await self._call_with_retry(messages, runtime_settings)
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
@@ -203,26 +208,45 @@ class AIService:
             tokens_used=tokens_used,
         )
 
-    def _should_log_full_prompt(self, user_id: int) -> bool:
-        if not self.log_full_prompt and not self.debug:
+    def _should_log_full_prompt(
+        self,
+        user_id: int,
+        runtime_settings: dict[str, Any],
+    ) -> bool:
+        log_full_prompt = bool(runtime_settings.get("log_full_prompt", self.log_full_prompt))
+        debug_prompt_user_id = runtime_settings.get(
+            "debug_prompt_user_id",
+            self.debug_prompt_user_id,
+        )
+
+        if not log_full_prompt and not self.debug:
             return False
 
-        if self.debug_prompt_user_id is None:
+        if debug_prompt_user_id is None:
             return True
 
-        return self.debug_prompt_user_id == user_id
+        return int(debug_prompt_user_id) == user_id
 
     async def _call_with_retry(
         self,
         messages: List[Dict[str, str]],
+        runtime_settings: dict[str, Any],
     ) -> tuple[str, int | None]:
         last_exception = None
+        max_retries = int(runtime_settings.get("max_retries", self.max_retries))
+        timeout_seconds = int(runtime_settings.get("timeout_seconds", self.timeout_seconds))
+        model = str(runtime_settings.get("openai_model") or self.client.model)
+        temperature = float(runtime_settings.get("temperature", self.client.temperature))
 
-        for attempt in range(self.max_retries + 1):
+        for attempt in range(max_retries + 1):
             try:
                 return await asyncio.wait_for(
-                    self.client.generate(messages=messages),
-                    timeout=self.timeout_seconds,
+                    self.client.generate(
+                        messages=messages,
+                        model=model,
+                        temperature=temperature,
+                    ),
+                    timeout=timeout_seconds,
                 )
             except asyncio.TimeoutError as exc:
                 last_exception = exc
