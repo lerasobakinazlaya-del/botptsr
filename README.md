@@ -5,13 +5,22 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 ## Что умеет проект
 
 - несколько режимов общения с настраиваемыми шкалами поведения
+- отдельные AI-профили по режимам: модель, температура, память, таймауты и дополнительные инструкции
+- "человечная" память: профиль пользователя, темы, динамика отношений и контекст последних диалогов
+- фоновые re-engagement сообщения после долгой паузы с опорой на накопленную память
 - Premium-режимы и Telegram Payments
+- preview-доступ к premium-режимам с лимитами для бесплатных пользователей
 - веб-админка для runtime-настроек, промптов, режимов и UI
 - реферальная программа
 - базовые health-метрики, просмотр логов и тестирование промптов из админки
 
 ## Что изменено в этой версии
 
+- добавлены per-mode AI-профили и runtime-настройка AI отдельно для каждого режима
+- добавлена humanized memory: профиль пользователя, relationship state и сбор живого memory context для промпта
+- добавлен фоновый re-engagement worker для инициативных сообщений после периода тишины
+- добавлен adaptive mode switch: бот может мягко менять effective mode по контексту общения
+- добавлен preview-доступ к premium-режимам с дневными лимитами
 - админка в `docker-compose` по умолчанию публикуется только на `127.0.0.1`
 - Redis больше не публикуется наружу через `docker-compose`
 - успешный чат теперь сохраняется в БД одним `COMMIT`, а не несколькими подряд
@@ -42,6 +51,20 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `core/` — контейнер, middleware, логирование
 - `deploy/systemd/` — systemd-юниты и update-скрипт
 - `.github/workflows/deploy.yml` — деплой через GitHub Actions
+
+## Память и AI по режимам
+
+- `services/ai_profile_service.py` собирает effective AI-профиль для конкретного режима
+- `services/human_memory_service.py` поддерживает пользовательский профиль, recurring topics и relationship state
+- `services/ai_service.py` объединяет short-term историю, старую память и human memory context перед генерацией ответа
+- `services/reengagement_service.py` фоном ищет пользователей с паузой в диалоге и отправляет инициативные сообщения
+- `services/mode_access_service.py` управляет preview-доступом к premium-режимам
+
+Через админку можно отдельно настраивать:
+
+- AI-параметры по режимам
+- preview-лимиты для premium-режимов
+- re-engagement и adaptive mode switching
 
 ## Быстрый старт
 
