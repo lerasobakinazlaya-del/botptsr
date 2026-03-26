@@ -1,10 +1,110 @@
 {
-  "openai_model": "gpt-4o-mini",
-  "temperature": 0.9,
-  "timeout_seconds": 20,
-  "max_retries": 2,
-  "memory_max_tokens": 1500,
-  "log_full_prompt": false,
-  "debug_prompt_user_id": null,
-  "response_language": "ru"
+  "ai": {
+    "openai_model": "gpt-4o-mini",
+    "temperature": 0.9,
+    "timeout_seconds": 20,
+    "max_retries": 2,
+    "memory_max_tokens": 1500,
+    "history_message_limit": 20,
+    "log_full_prompt": false,
+    "debug_prompt_user_id": null,
+    "response_language": "ru"
+  },
+  "chat": {
+    "typing_action_enabled": true,
+    "non_text_message": "Я могу отвечать только на текстовые сообщения.",
+    "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
+    "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже."
+  },
+  "safety": {
+    "throttle_rate_limit_seconds": 1.5,
+    "throttle_warning_interval_seconds": 5.0,
+    "throttle_warning_text": "Слишком много сообщений подряд. Подожди немного.",
+    "max_message_length": 2000,
+    "message_too_long_text": "Сообщение слишком длинное.",
+    "reject_suspicious_messages": true,
+    "suspicious_rejection_text": "Сообщение отклонено фильтром безопасности.",
+    "suspicious_keywords": [
+      "bitcoin",
+      "btc",
+      "casino",
+      "bet",
+      "airdrop"
+    ]
+  },
+  "state_engine": {
+    "defaults": {
+      "coldness": 0.7,
+      "interest": 0.4,
+      "control": 0.9,
+      "irritation": 0.0,
+      "attraction": 0.1,
+      "instability": 0.1,
+      "fatigue": 0.0
+    },
+    "positive_keywords": [
+      "спасибо",
+      "ценю",
+      "приятно",
+      "нежно"
+    ],
+    "negative_keywords": [
+      "злишь",
+      "бесишь",
+      "отстань",
+      "хватит"
+    ],
+    "attraction_keywords": [
+      "люблю",
+      "скучаю",
+      "хочу тебя",
+      "близко"
+    ],
+    "message_effects": {
+      "long_message_threshold": 300.0,
+      "medium_message_threshold": 120.0,
+      "short_message_threshold": 30.0,
+      "long_interest_bonus": 0.07,
+      "long_attraction_bonus": 0.03,
+      "long_control_penalty": 0.01,
+      "medium_interest_bonus": 0.04,
+      "short_interest_penalty": 0.03,
+      "question_interest_bonus": 0.02,
+      "positive_attraction_bonus": 0.03,
+      "positive_control_penalty": 0.01,
+      "negative_irritation_bonus": 0.08,
+      "negative_interest_penalty": 0.04,
+      "attraction_bonus": 0.06,
+      "attraction_interest_bonus": 0.03,
+      "attraction_control_penalty": 0.03,
+      "fatigue_per_message": 0.01,
+      "instability_factor": 0.02,
+      "high_attraction_threshold": 0.5,
+      "high_attraction_control_penalty": 0.02
+    }
+  },
+  "payment": {
+    "provider_token": "",
+    "currency": "RUB",
+    "price_minor_units": 49900,
+    "product_title": "Premium access",
+    "product_description": "Unlock premium chat modes and paid features.",
+    "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
+    "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
+    "success_message": "Оплата прошла успешно. Premium уже активирован."
+  },
+  "ui": {
+    "write_button_text": "💬 Написать",
+    "modes_button_text": "🎛 Режимы",
+    "premium_button_text": "💎 Premium",
+    "input_placeholder": "Напиши мне...",
+    "welcome_user_text": "Привет.\\n\\nЯ рядом.\\nМожешь просто написать мне.\\n\\nИли выбрать режим общения 🎛\\nИли оформить Premium 💎",
+    "welcome_admin_text": "🔐 Панель администратора активирована.\\n\\nБот работает в штатном режиме.",
+    "modes_title": "Выбери режим общения:",
+    "user_not_found_text": "Пользователь не найден.",
+    "unknown_mode_text": "Неизвестный режим.",
+    "mode_locked_text": "Этот режим доступен только в Premium 🔒",
+    "mode_saved_template": "Режим активирован: {mode_name}\\n\\n{activation_phrase}",
+    "mode_saved_toast": "Готово ✅"
+  }
 }

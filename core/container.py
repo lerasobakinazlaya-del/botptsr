@@ -42,7 +42,7 @@ class Container:
         self.state_repository = UserStateRepository(self.db)
 
         self.admin_settings_service = AdminSettingsService()
-        self.state_engine = StateEngine()
+        self.state_engine = StateEngine(self.admin_settings_service)
         self.memory_engine = MemoryEngine()
         self.keyword_memory_service = KeywordMemoryService()
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
@@ -69,6 +69,7 @@ class Container:
             settings=self.settings,
             payment_repository=self.payment_repository,
             user_service=self.user_service,
+            settings_service=self.admin_settings_service,
         )
 
     def _create_redis_client(self) -> Redis | None:

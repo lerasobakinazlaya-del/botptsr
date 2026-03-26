@@ -2,35 +2,55 @@ from aiogram.types import LabeledPrice, Message
 
 
 class PaymentService:
-    def __init__(self, settings, payment_repository, user_service):
+    def __init__(self, settings, payment_repository, user_service, settings_service):
         self.settings = settings
         self.payment_repository = payment_repository
         self.user_service = user_service
+        self.settings_service = settings_service
+
+    def get_payment_settings(self) -> dict:
+        runtime = self.settings_service.get_runtime_settings()
+        payment = runtime["payment"].copy()
+
+        if not payment["provider_token"]:
+            payment["provider_token"] = self.settings.payment_provider_token
+        if not payment["currency"]:
+            payment["currency"] = self.settings.payment_currency or "RUB"
+        if not payment["price_minor_units"]:
+            payment["price_minor_units"] = self.settings.premium_price_minor_units
+        if not payment["product_title"]:
+            payment["product_title"] = self.settings.premium_product_title
+        if not payment["product_description"]:
+            payment["product_description"] = self.settings.premium_product_description
+
+        return payment
 
     def is_enabled(self) -> bool:
-        return bool(self.settings.payment_provider_token.strip())
+        return bool(self.get_payment_settings()["provider_token"].strip())
 
     def build_invoice_payload(self, user_id: int) -> str:
         return f"premium:{user_id}"
 
     def build_prices(self) -> list[LabeledPrice]:
+        payment = self.get_payment_settings()
         return [
             LabeledPrice(
-                label=self.settings.premium_product_title,
-                amount=self.settings.premium_price_minor_units,
+                label=payment["product_title"],
+                amount=payment["price_minor_units"],
             )
         ]
 
     async def send_premium_invoice(self, message: Message) -> bool:
-        if not self.is_enabled():
+        payment = self.get_payment_settings()
+        if not payment["provider_token"]:
             return False
 
         await message.answer_invoice(
-            title=self.settings.premium_product_title,
-            description=self.settings.premium_product_description,
+            title=payment["product_title"],
+            description=payment["product_description"],
             payload=self.build_invoice_payload(message.from_user.id),
-            provider_token=self.settings.payment_provider_token,
-            currency=self.settings.payment_currency,
+            provider_token=payment["provider_token"],
+            currency=payment["currency"],
             prices=self.build_prices(),
         )
         return True

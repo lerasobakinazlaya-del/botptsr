@@ -5,23 +5,24 @@ from aiogram.types import Message, PreCheckoutQuery
 
 router = Router(name="payments-router")
 
-PREMIUM_BUTTON_TEXT = "💎 Premium"
 
-
-@router.message(Command("buy"))
-@router.message(F.text == PREMIUM_BUTTON_TEXT)
-async def buy_premium(message: Message, payment_service):
+async def send_premium_offer(message: Message, payment_service) -> bool:
+    payment_settings = payment_service.get_payment_settings()
     if not payment_service.is_enabled():
-        await message.answer(
-            "Оплата пока не настроена. Обратись к администратору."
-        )
-        return
+        await message.answer(payment_settings["unavailable_message"])
+        return False
 
     sent = await payment_service.send_premium_invoice(message)
     if not sent:
-        await message.answer(
-            "Не удалось создать счет. Попробуй позже."
-        )
+        await message.answer(payment_settings["invoice_error_message"])
+        return False
+
+    return True
+
+
+@router.message(Command("buy"))
+async def buy_premium(message: Message, payment_service):
+    await send_premium_offer(message, payment_service)
 
 
 @router.pre_checkout_query()
@@ -32,6 +33,5 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery, bot):
 @router.message(F.successful_payment)
 async def successful_payment_handler(message: Message, payment_service):
     await payment_service.handle_successful_payment(message)
-    await message.answer(
-        "Оплата прошла успешно. Premium уже активирован."
-    )
+    payment_settings = payment_service.get_payment_settings()
+    await message.answer(payment_settings["success_message"])

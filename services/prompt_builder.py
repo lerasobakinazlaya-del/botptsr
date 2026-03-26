@@ -15,7 +15,9 @@ class PromptBuilder:
     ) -> str:
         templates = self.settings_service.get_prompt_templates()
         mode_config = get_mode_config(active_mode)
+        mode_catalog = self.settings_service.get_mode_catalog().get(active_mode, {})
         mode_instruction = build_mode_instruction(mode_config)
+        mode_description = self._build_mode_description(mode_catalog)
         access_rule = templates["access_rules"].get(
             access_level,
             templates["access_rules"]["observation"],
@@ -30,6 +32,7 @@ class PromptBuilder:
             templates["personality_core"],
             templates["safety_block"],
             f"{templates['mode_intro']}\n{mode_instruction}",
+            mode_description,
             f"{templates['access_intro']}\n{access_rule}",
         ]
 
@@ -71,3 +74,16 @@ class PromptBuilder:
                 lines.append(f"- {key}: {value}")
 
         return "\n".join(lines)
+
+    def _build_mode_description(self, mode_catalog: dict) -> str:
+        if not mode_catalog:
+            return ""
+
+        lines = [
+            f"Название режима: {mode_catalog.get('name', '')}",
+            f"Описание: {mode_catalog.get('description', '')}",
+            f"Тон: {mode_catalog.get('tone', '')}",
+            f"Эмоциональное состояние: {mode_catalog.get('emotional_state', '')}",
+            f"Правила поведения:\n{mode_catalog.get('behavior_rules', '')}",
+        ]
+        return "\n".join(line for line in lines if line.strip())

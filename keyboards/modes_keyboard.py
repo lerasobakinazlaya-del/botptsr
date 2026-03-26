@@ -1,27 +1,17 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from config.modes import MODES, PREMIUM_MODES
-
-
-MODE_BUTTONS = [
-    ("💬 Базовый", "base"),
-    ("🫂 Поддержка", "comfort"),
-    ("🔥 Близость", "passion"),
-    ("🧠 Наставник", "mentor"),
-    ("🌙 Ночной", "night"),
-    ("👑 Доминирующий", "dominant"),
-]
+from config.modes import get_ordered_modes, get_premium_modes
 
 
 def get_modes_keyboard(user) -> InlineKeyboardMarkup:
+    premium_modes = get_premium_modes()
     buttons = []
 
-    for title, mode_key in MODE_BUTTONS:
-        button_title = title
-        if mode_key in PREMIUM_MODES and not user["is_premium"]:
+    for mode in get_ordered_modes():
+        button_title = f"{mode.icon} {mode.name}"
+        if mode.key in premium_modes and not user["is_premium"]:
             button_title += " 🔒"
 
-        mode = MODES[mode_key]
         buttons.append(
             [
                 InlineKeyboardButton(

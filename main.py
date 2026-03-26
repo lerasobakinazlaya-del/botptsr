@@ -63,16 +63,17 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["state_repository"] = container.state_repository
     dp["db"] = container.db
     dp["redis"] = container.redis
+    dp["admin_settings_service"] = container.admin_settings_service
 
     dp.message.middleware(LoggingMiddleware())
     dp.message.middleware(
         ThrottlingMiddleware(
             redis=container.redis,
-            rate_limit=1.5,
+            settings_service=container.admin_settings_service,
         )
     )
-    dp.message.middleware(MessageSizeMiddleware(max_length=2000))
-    dp.message.middleware(SuspiciousContentMiddleware())
+    dp.message.middleware(MessageSizeMiddleware(settings_service=container.admin_settings_service))
+    dp.message.middleware(SuspiciousContentMiddleware(settings_service=container.admin_settings_service))
 
     dp.include_router(admin.router)
     dp.include_router(start.router)

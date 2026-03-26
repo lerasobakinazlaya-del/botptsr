@@ -2,26 +2,26 @@
 
 Telegram-бот на `aiogram` с SQLite, Redis, OpenAI и отдельной веб-админкой на FastAPI.
 
-## Что есть в проекте
+## Что умеет проект
 
-- `main.py` - точка входа бота
-- `admin_dashboard.py` - отдельная веб-админка
-- `handlers/` - Telegram-хендлеры
-- `services/` - AI, платежи, метрики, память, настройки админки
-- `database/` - SQLite-репозитории и инициализация БД
-- `config/` - конфиги режимов и runtime-настроек
-- `core/` - контейнер зависимостей, middleware, логирование
-- `deploy/systemd/` - шаблоны unit-файлов
-
-## Возможности
-
-- Telegram-бот с несколькими режимами общения
+- несколько режимов общения с настраиваемыми шкалами поведения
 - Premium-режимы и Telegram Payments
-- отдельная русскоязычная веб-админка
-- просмотр метрик, логов и состояния рантайма
-- редактирование системных промптов без изменения кода
-- настройка модели, `temperature`, таймаута и памяти из админки
-- редактирование шкал режимов через админку
+- русская веб-админка с несколькими разделами
+- редактирование runtime-настроек, промптов, режимов и UI без правки кода
+- тестирование системного промпта, state engine и live-ответа модели из админки
+- просмотр логов, health-статуса и базовой аналитики
+
+## Структура
+
+- `main.py` - запуск Telegram-бота
+- `admin_dashboard.py` - веб-админка
+- `handlers/` - Telegram-хендлеры
+- `services/` - AI, платежи, память, метрики и настройки
+- `database/` - SQLite и репозитории
+- `config/` - редактируемые JSON-конфиги
+- `core/` - контейнер, middleware, логирование
+- `deploy/systemd/` - systemd-юниты и update-скрипт
+- `.github/workflows/deploy.yml` - one-click deploy через GitHub Actions
 
 ## Требования
 
@@ -39,8 +39,6 @@ python -m venv venv
 ```
 
 ## Настройка `.env`
-
-Создай `.env` в корне проекта:
 
 ```env
 BOT_TOKEN=your_telegram_bot_token
@@ -68,7 +66,7 @@ PREMIUM_PRODUCT_TITLE=Premium access
 PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 ```
 
-## Быстрый запуск
+## Локальный запуск
 
 Бот:
 
@@ -76,7 +74,7 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 .\venv\Scripts\python.exe main.py
 ```
 
-Веб-админка:
+Админка:
 
 ```powershell
 .\venv\Scripts\uvicorn.exe admin_dashboard:app --host 127.0.0.1 --port 8080
@@ -86,43 +84,87 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 
 - `http://127.0.0.1:8080`
 
-Логин и пароль для входа берутся из:
+Логин и пароль берутся из:
 
 - `ADMIN_DASHBOARD_USERNAME`
 - `ADMIN_DASHBOARD_PASSWORD`
 
 ## Что настраивается через админку
 
-В веб-админке можно:
+### 1. Обзор
 
-- смотреть обзор по пользователям, оплатам и выручке
-- смотреть последние логи бота
-- видеть состояние AI-очереди и воркеров
-- менять модель OpenAI
-- менять `temperature`
-- менять таймаут запросов к модели
-- менять количество повторных попыток
-- менять лимит памяти для истории
-- включать логирование полного промпта
-- задавать `user_id` для точечного логирования промпта
-- редактировать базовые системные промпты
-- редактировать правила доступа
-- менять шкалы режимов в `config/modes.json`
+- пользователи, Premium, сообщения, выручка
+- недавние пользователи и платежи
+- состояние DB, Redis и AI-воркеров
 
-## Файлы настраиваемых конфигов
+### 2. AI и интерфейс
 
-Часть настроек теперь хранится отдельно от кода:
+- модель OpenAI
+- `temperature`
+- таймаут и ретраи
+- размер памяти и длина истории
+- логирование полного промпта
+- тексты ошибок чата
+- кнопки и приветствия Telegram-интерфейса
 
-- `config/runtime_settings.json` - runtime-настройки модели
-- `config/prompt_templates.json` - редактируемые шаблоны системного промпта
+### 3. Безопасность и state engine
+
+- rate limit и предупреждения
+- максимальная длина сообщения
+- фильтр подозрительных ссылок
+- списки ключевых слов
+- стартовые значения состояния
+- коэффициенты изменения `interest`, `attraction`, `control` и других метрик
+
+### 4. Промпты
+
+- ядро личности
+- safety-блок
+- префиксы памяти, состояния, режима и доступа
+- финальная инструкция
+- правила доступа: `observation`, `analysis`, `tension`, `personal_focus`, `rare_layer`
+
+### 5. Режимы
+
+- название, иконка и описание режима
+- Premium / Free
+- порядок отображения
+- тон, эмоциональное состояние, правила поведения
+- фраза активации
+- числовые шкалы режима в `config/modes.json`
+
+### 6. Оплата
+
+- provider token
+- валюта
+- цена
+- название и описание Premium
+- пользовательские сообщения оплаты
+
+### 7. Тестирование
+
+- превью системного промпта
+- dry-run обновления state
+- live-тест ответа модели из текущих настроек
+
+### 8. Логи
+
+- просмотр `logs/bot.log`
+- health-данные
+- проверка конфигурационных файлов
+
+## Редактируемые конфиги
+
+- `config/runtime_settings.json` - runtime-настройки, UI, безопасность, state engine, платежи
+- `config/prompt_templates.json` - шаблоны системных промптов
 - `config/modes.json` - числовые шкалы режимов
-- `config/modes.py` - названия, описания и фразы активации режимов
+- `config/mode_catalog.json` - тексты, названия, иконки и Premium-статусы режимов
 
-Если файлов `runtime_settings.json` и `prompt_templates.json` еще нет, они создаются автоматически при первом обращении к админке или сервису настроек.
+Если каких-то файлов нет, сервис настроек создаст их автоматически.
 
 ## Режимы общения
 
-Поддерживаются режимы:
+Доступны:
 
 - `base`
 - `comfort`
@@ -131,7 +173,7 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 - `night`
 - `dominant`
 
-Premium-режимы:
+По умолчанию Premium:
 
 - `passion`
 - `mentor`
@@ -140,82 +182,39 @@ Premium-режимы:
 
 ## Telegram-админка
 
-Команда `/admin` доступна администраторам и позволяет:
+Команда `/admin` доступна администраторам и владельцу.
+
+Она позволяет:
 
 - смотреть статистику
-- смотреть debug/runtime
+- смотреть runtime/debug
 - проверять состояние зависимостей
 - выдавать и снимать Premium
 - запускать рассылку с подтверждением
 
-## Веб-админка
-
-Веб-админка показывает:
-
-- общее число пользователей
-- новых пользователей за 1 / 7 / 30 дней
-- premium-пользователей
-- успешные оплаты
-- первые оплаты
-- выручку
-- динамику по дням
-- последних пользователей
-- последние оплаты
-- runtime AI-очереди
-- хвост лог-файла `logs/bot.log`
-
-## Платежи
-
-В проекте есть базовый Telegram Payments flow:
-
-- кнопка `💎 Premium`
-- команда `/buy`
-- `pre_checkout` обработчик
-- запись успешной оплаты в таблицу `payments`
-- автоматическая выдача Premium после успешной оплаты
-
-`PREMIUM_PRICE_MINOR_UNITS` задается в минимальных единицах валюты.
-Для `RUB` значение `49900` означает `499.00 RUB`.
-
-## База данных
-
-Основные таблицы:
-
-- `users`
-- `messages`
-- `user_state`
-- `payments`
-
-SQLite настроен с:
-
-- `WAL`
-- `busy_timeout`
-- индексами на сообщения и оплаты
-
-## Redis и кеш
+## Redis
 
 Redis используется для:
 
 - FSM storage
-- rate limit / middleware
-- кеша обзорной аналитики админки
+- rate limit middleware
+- кеша метрик админки
 
-Если Redis временно недоступен, веб-админка не падает: обзор строится без кеша.
+Если Redis временно недоступен, проект не падает:
+
+- FSM переходит на `MemoryStorage`
+- middleware используют локальный fallback
+- админка строит overview без Redis-кеша
 
 ## Логи
 
-Логи пишутся в:
+Основной лог:
 
 - `logs/bot.log`
 
-Используется ротация логов:
+## Docker
 
-- до `5 MB` на файл
-- до `5` файлов истории
-
-## Docker Compose
-
-Для серверного запуска есть:
+Для серверного запуска можно использовать:
 
 - `Dockerfile`
 - `docker-compose.yml`
@@ -226,130 +225,46 @@ Redis используется для:
 docker compose up --build -d
 ```
 
-Сервисы:
-
-- `redis`
-- `bot`
-- `admin-dashboard`
-
 ## systemd
 
-Шаблоны unit-файлов:
+Шаблоны:
 
 - `deploy/systemd/bot.service`
 - `deploy/systemd/admin-dashboard.service`
 - `deploy/systemd/update_bot.sh`
 
-Они рассчитаны на установку проекта в `/opt/bot`.
+Скрипт `update_bot.sh` выполняет:
 
-Пример обновления на сервере:
-
-```bash
-cd /opt/bot
-git pull
-source venv/bin/activate
-pip install -r requirements.txt
-sudo systemctl restart bot.service admin-dashboard.service
-sudo systemctl status bot.service
-sudo systemctl status admin-dashboard.service
-```
-
-Скрипт `deploy/systemd/update_bot.sh` делает:
-
-- `git fetch` и `git pull`
+- обновление кода
 - установку зависимостей
-- быструю проверку Python-файлов
-- обновление `systemd` unit-файлов
-- перезапуск `bot.service` и `admin-dashboard.service`
+- проверку Python-компиляции
+- перезапуск `bot.service`
+- перезапуск `admin-dashboard.service`
 
-Ручной запуск на сервере:
+## GitHub Actions деплой
 
-```bash
-cd /opt/bot
-chmod +x deploy/systemd/update_bot.sh
-./deploy/systemd/update_bot.sh main
-```
+В репозитории есть workflow `Deploy Bot`.
 
-## Обновление одной кнопкой через GitHub
+Нужно добавить secrets:
 
-В репозиторий добавлен workflow:
+- `DEPLOY_HOST`
+- `DEPLOY_PORT`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
 
-- `.github/workflows/deploy.yml`
+После этого можно запускать деплой кнопкой `Run workflow` в GitHub Actions.
 
-После настройки GitHub Secrets можно запускать деплой из вкладки `Actions` кнопкой `Run workflow`.
-
-Нужные Secrets в GitHub:
-
-- `DEPLOY_HOST` - IP или домен сервера
-- `DEPLOY_PORT` - SSH-порт, обычно `22`
-- `DEPLOY_USER` - SSH-пользователь
-- `DEPLOY_SSH_KEY` - приватный SSH-ключ для входа на сервер
-
-Что делает workflow:
-
-- подключается по SSH к серверу
-- переходит в директорию проекта
-- запускает `deploy/systemd/update_bot.sh`
-- обновляет код
-- ставит зависимости
-- перезапускает бот и веб-админку
-
-Если у тебя основная ветка не `main`, при запуске workflow просто укажи нужную ветку в поле `branch`, например `master`.
-
-## Oracle Cloud Free
-
-Подготовлены файлы:
-
-- `deploy/oracle/bootstrap.sh`
-- `deploy/oracle/nginx-admin.conf`
-
-Базовый сценарий:
+## Быстрая проверка после деплоя
 
 ```bash
-git clone <your-repo-url> /opt/bot
-cd /opt/bot
-chmod +x deploy/oracle/bootstrap.sh
-./deploy/oracle/bootstrap.sh
-```
-
-После этого:
-
-1. заполнить `/opt/bot/.env`
-2. при необходимости настроить `nginx`
-3. перезапустить сервисы
-
-```bash
-sudo systemctl restart bot.service admin-dashboard.service
+redis-cli ping
 sudo systemctl status bot.service
 sudo systemctl status admin-dashboard.service
+sudo journalctl -u bot.service -n 100 --no-pager
+sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 ```
 
-## Beget VPS
+Ожидаемо:
 
-Для этого проекта на Beget лучше использовать VPS, а не обычный виртуальный хостинг, потому что боту нужны постоянный polling-процесс, Redis и отдельная web-admin.
-
-Подготовлены файлы:
-
-- `deploy/beget/bootstrap.sh`
-- `deploy/beget/nginx-admin.conf`
-
-Базовый сценарий:
-
-```bash
-git clone https://github.com/lerasobakinazlaya-del/botptsr.git /opt/bot
-cd /opt/bot
-chmod +x deploy/beget/bootstrap.sh
-./deploy/beget/bootstrap.sh
-```
-
-После этого:
-
-1. заполнить `/opt/bot/.env`
-2. при необходимости настроить `nginx`
-3. запустить или перезапустить сервисы
-
-```bash
-sudo systemctl restart bot.service admin-dashboard.service
-sudo systemctl status bot.service
-sudo systemctl status admin-dashboard.service
-```
+- `redis-cli ping` -> `PONG`
+- оба сервиса в состоянии `active (running)`

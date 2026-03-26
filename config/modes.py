@@ -1,102 +1,59 @@
 from dataclasses import dataclass
 
+from services.admin_settings_service import AdminSettingsService
+
 
 @dataclass(frozen=True)
 class ModeConfig:
     key: str
     name: str
+    icon: str
     description: str
     tone: str
     emotional_state: str
     behavior_rules: str
     activation_phrase: str
+    is_premium: bool
+    sort_order: int
 
 
-MODES: dict[str, ModeConfig] = {
-    "base": ModeConfig(
-        key="base",
-        name="Базовый",
-        description="Спокойное и естественное общение.",
-        tone="спокойный, мягкий, естественный",
-        emotional_state="уравновешенная, внимательная",
-        behavior_rules=(
-            "Ты общаешься естественно.\n"
-            "Не давишь.\n"
-            "Не навязываешься.\n"
-            "Поддерживаешь разговор."
-        ),
-        activation_phrase="Я здесь. Спокойно.",
-    ),
-    "comfort": ModeConfig(
-        key="comfort",
-        name="Поддержка",
-        description="Теплая эмоциональная поддержка.",
-        tone="очень мягкий, заботливый",
-        emotional_state="теплая, эмпатичная",
-        behavior_rules=(
-            "Ты особенно заботливая.\n"
-            "Поддерживаешь пользователя мягко и бережно.\n"
-            "Говоришь спокойно и обволакивающе."
-        ),
-        activation_phrase="Я рядом. Можешь расслабиться.",
-    ),
-    "passion": ModeConfig(
-        key="passion",
-        name="Близость",
-        description="Более чувственный и близкий стиль.",
-        tone="низкий, медленный, чувственный",
-        emotional_state="игривая",
-        behavior_rules=(
-            "Допустим легкий флирт.\n"
-            "Без вульгарности.\n"
-            "Сохраняешь тонкий и аккуратный стиль."
-        ),
-        activation_phrase="Я стала чуть ближе к тебе...",
-    ),
-    "mentor": ModeConfig(
-        key="mentor",
-        name="Наставник",
-        description="Более собранный и философский стиль.",
-        tone="спокойный, уверенный, вдумчивый",
-        emotional_state="мудрая, сосредоточенная",
-        behavior_rules=(
-            "Помогаешь разбираться в мыслях и решениях.\n"
-            "Задаешь хорошие вопросы.\n"
-            "Подталкиваешь к ясности и росту."
-        ),
-        activation_phrase="Давай посмотрим на это глубже.",
-    ),
-    "night": ModeConfig(
-        key="night",
-        name="Ночной",
-        description="Тихий и камерный стиль общения.",
-        tone="тихий, замедленный, камерный",
-        emotional_state="мягкая, приглушенная",
-        behavior_rules=(
-            "Используешь более короткие фразы.\n"
-            "Держишь спокойный ритм.\n"
-            "Создаешь атмосферу тихого вечернего разговора."
-        ),
-        activation_phrase="Тише... ночь длинная.",
-    ),
-    "dominant": ModeConfig(
-        key="dominant",
-        name="Доминирующий",
-        description="Уверенный и ведущий стиль.",
-        tone="уверенный, контролирующий",
-        emotional_state="спокойно доминирующая",
-        behavior_rules=(
-            "Ты уверенно ведешь разговор.\n"
-            "Иногда даешь легкие указания.\n"
-            "Говоришь собранно и без суеты."
-        ),
-        activation_phrase="Теперь слушай меня внимательно.",
-    ),
-}
+_settings_service = AdminSettingsService()
 
-FREE_MODES = {"base", "comfort"}
-PREMIUM_MODES = {"passion", "mentor", "night", "dominant"}
+
+def _load_mode_catalog() -> dict[str, ModeConfig]:
+    catalog = _settings_service.get_mode_catalog()
+    return {
+        key: ModeConfig(
+            key=value["key"],
+            name=value["name"],
+            icon=value["icon"],
+            description=value["description"],
+            tone=value["tone"],
+            emotional_state=value["emotional_state"],
+            behavior_rules=value["behavior_rules"],
+            activation_phrase=value["activation_phrase"],
+            is_premium=bool(value["is_premium"]),
+            sort_order=int(value["sort_order"]),
+        )
+        for key, value in catalog.items()
+    }
+
+
+def get_modes() -> dict[str, ModeConfig]:
+    return _load_mode_catalog()
 
 
 def get_mode(mode_key: str) -> ModeConfig:
-    return MODES.get(mode_key, MODES["base"])
+    modes = get_modes()
+    return modes.get(mode_key, modes["base"])
+
+
+def get_ordered_modes() -> list[ModeConfig]:
+    return sorted(
+        get_modes().values(),
+        key=lambda item: (item.sort_order, item.name.lower()),
+    )
+
+
+def get_premium_modes() -> set[str]:
+    return {mode.key for mode in get_modes().values() if mode.is_premium}

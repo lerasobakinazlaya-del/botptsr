@@ -1,12 +1,7 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from filters.admin_filter import AdminFilter
 from states.admin_states import BroadcastStates, PremiumStates
@@ -27,7 +22,7 @@ def get_admin_keyboard(is_owner_value: bool) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
         [InlineKeyboardButton(text="🛠 Отладка", callback_data="admin_debug")],
         [InlineKeyboardButton(text="❤️ Состояние", callback_data="admin_health")],
-        [InlineKeyboardButton(text="👑 Premium", callback_data="admin_premium")],
+        [InlineKeyboardButton(text="💎 Premium", callback_data="admin_premium")],
     ]
 
     if is_owner_value:
@@ -117,7 +112,10 @@ async def admin_health(callback: CallbackQuery, db, redis, ai_service):
         db_status = f"error: {exc}"
 
     try:
-        await redis.ping()
+        if redis is None:
+            redis_status = "fallback without redis"
+        else:
+            await redis.ping()
     except Exception as exc:
         redis_status = f"error: {exc}"
 
@@ -149,11 +147,7 @@ async def broadcast_prompt(callback: CallbackQuery, state: FSMContext, settings)
 
 
 @router.message(BroadcastStates.waiting_for_message)
-async def broadcast_prepare(
-    message: Message,
-    state: FSMContext,
-    settings,
-):
+async def broadcast_prepare(message: Message, state: FSMContext, settings):
     if not is_owner(message.from_user.id, settings):
         await state.clear()
         await message.answer("Доступно только владельцу")
@@ -187,12 +181,7 @@ async def broadcast_cancel(callback: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(F.data == "broadcast_confirm")
-async def broadcast_send(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user_service,
-    settings,
-):
+async def broadcast_send(callback: CallbackQuery, state: FSMContext, user_service, settings):
     if not is_owner(callback.from_user.id, settings):
         await state.clear()
         await callback.answer("Доступно только владельцу", show_alert=True)
@@ -232,7 +221,7 @@ async def broadcast_send(
 @router.callback_query(F.data == "admin_premium")
 async def premium_menu(callback: CallbackQuery):
     await callback.message.edit_text(
-        "👑 Управление Premium",
+        "💎 Управление Premium",
         reply_markup=get_premium_keyboard(),
     )
     await callback.answer()
@@ -243,7 +232,6 @@ async def admin_back(callback: CallbackQuery, settings):
     keyboard = get_admin_keyboard(
         is_owner_value=is_owner(callback.from_user.id, settings)
     )
-
     await callback.message.edit_text(
         "🔐 Админ-панель\n\nВыбери нужное действие:",
         reply_markup=keyboard,
@@ -259,12 +247,7 @@ async def premium_give_prompt(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(PremiumStates.waiting_for_give_user_id)
-async def premium_give_handler(
-    message: Message,
-    state: FSMContext,
-    user_service,
-    settings,
-):
+async def premium_give_handler(message: Message, state: FSMContext, user_service, settings):
     if not message.text or not message.text.isdigit():
         await message.answer("Введи корректный числовой `user_id`.")
         return
@@ -277,7 +260,6 @@ async def premium_give_handler(
         return
 
     success = await user_service.set_premium(target_user_id, True)
-
     if not success:
         await message.answer("Пользователь не найден.")
         await state.clear()
@@ -295,12 +277,7 @@ async def premium_remove_prompt(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(PremiumStates.waiting_for_remove_user_id)
-async def premium_remove_handler(
-    message: Message,
-    state: FSMContext,
-    user_service,
-    settings,
-):
+async def premium_remove_handler(message: Message, state: FSMContext, user_service, settings):
     if not message.text or not message.text.isdigit():
         await message.answer("Введи корректный числовой `user_id`.")
         return
@@ -313,7 +290,6 @@ async def premium_remove_handler(
         return
 
     success = await user_service.set_premium(target_user_id, False)
-
     if not success:
         await message.answer("Пользователь не найден.")
         await state.clear()

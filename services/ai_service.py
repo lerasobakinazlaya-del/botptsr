@@ -154,7 +154,8 @@ class AIService:
         user_id: int,
     ) -> AIResult:
         runtime_settings = self.settings_service.get_runtime_settings()
-        self.memory_engine.set_max_tokens(runtime_settings["memory_max_tokens"])
+        ai_settings = runtime_settings["ai"]
+        self.memory_engine.set_max_tokens(ai_settings["memory_max_tokens"])
 
         memory_enriched_state = self.keyword_memory_service.apply(state.copy(), user_message)
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
@@ -180,7 +181,7 @@ class AIService:
             memory_context=memory_context,
         )
 
-        if self._should_log_full_prompt(user_id, runtime_settings):
+        if self._should_log_full_prompt(user_id, ai_settings):
             logger.debug("[AI PROMPT] user_id=%s\n%s", user_id, system_prompt)
 
         if grounding_kind is not None:
@@ -197,7 +198,7 @@ class AIService:
             + [{"role": "user", "content": user_message.strip()}]
         )
 
-        response_text, tokens_used = await self._call_with_retry(messages, runtime_settings)
+        response_text, tokens_used = await self._call_with_retry(messages, ai_settings)
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
@@ -211,10 +212,10 @@ class AIService:
     def _should_log_full_prompt(
         self,
         user_id: int,
-        runtime_settings: dict[str, Any],
+        ai_settings: dict[str, Any],
     ) -> bool:
-        log_full_prompt = bool(runtime_settings.get("log_full_prompt", self.log_full_prompt))
-        debug_prompt_user_id = runtime_settings.get(
+        log_full_prompt = bool(ai_settings.get("log_full_prompt", self.log_full_prompt))
+        debug_prompt_user_id = ai_settings.get(
             "debug_prompt_user_id",
             self.debug_prompt_user_id,
         )
@@ -230,13 +231,13 @@ class AIService:
     async def _call_with_retry(
         self,
         messages: List[Dict[str, str]],
-        runtime_settings: dict[str, Any],
+        ai_settings: dict[str, Any],
     ) -> tuple[str, int | None]:
         last_exception = None
-        max_retries = int(runtime_settings.get("max_retries", self.max_retries))
-        timeout_seconds = int(runtime_settings.get("timeout_seconds", self.timeout_seconds))
-        model = str(runtime_settings.get("openai_model") or self.client.model)
-        temperature = float(runtime_settings.get("temperature", self.client.temperature))
+        max_retries = int(ai_settings.get("max_retries", self.max_retries))
+        timeout_seconds = int(ai_settings.get("timeout_seconds", self.timeout_seconds))
+        model = str(ai_settings.get("openai_model") or self.client.model)
+        temperature = float(ai_settings.get("temperature", self.client.temperature))
 
         for attempt in range(max_retries + 1):
             try:

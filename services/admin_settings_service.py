@@ -6,15 +6,160 @@ from typing import Any
 
 
 class AdminSettingsService:
+    DEFAULT_MODE_SCALES = {
+        "base": {
+            "warmth": 5,
+            "flirt": 2,
+            "depth": 4,
+            "structure": 5,
+            "dominance": 3,
+            "initiative": 3,
+            "emoji_level": 1,
+        },
+        "comfort": {
+            "warmth": 9,
+            "flirt": 2,
+            "depth": 5,
+            "structure": 3,
+            "dominance": 1,
+            "initiative": 4,
+            "emoji_level": 2,
+        },
+        "passion": {
+            "warmth": 8,
+            "flirt": 8,
+            "depth": 5,
+            "structure": 2,
+            "dominance": 4,
+            "initiative": 6,
+            "emoji_level": 3,
+        },
+        "mentor": {
+            "warmth": 5,
+            "flirt": 1,
+            "depth": 8,
+            "structure": 9,
+            "dominance": 5,
+            "initiative": 5,
+            "emoji_level": 0,
+        },
+        "night": {
+            "warmth": 7,
+            "flirt": 4,
+            "depth": 8,
+            "structure": 3,
+            "dominance": 2,
+            "initiative": 2,
+            "emoji_level": 1,
+        },
+        "dominant": {
+            "warmth": 4,
+            "flirt": 5,
+            "depth": 4,
+            "structure": 7,
+            "dominance": 9,
+            "initiative": 7,
+            "emoji_level": 0,
+        },
+    }
+
     DEFAULT_RUNTIME_SETTINGS = {
-        "openai_model": "gpt-4o-mini",
-        "temperature": 0.9,
-        "timeout_seconds": 20,
-        "max_retries": 2,
-        "memory_max_tokens": 1500,
-        "log_full_prompt": False,
-        "debug_prompt_user_id": None,
-        "response_language": "ru",
+        "ai": {
+            "openai_model": "gpt-4o-mini",
+            "temperature": 0.9,
+            "timeout_seconds": 20,
+            "max_retries": 2,
+            "memory_max_tokens": 1500,
+            "history_message_limit": 20,
+            "log_full_prompt": False,
+            "debug_prompt_user_id": None,
+            "response_language": "ru",
+        },
+        "chat": {
+            "typing_action_enabled": True,
+            "non_text_message": "Я могу отвечать только на текстовые сообщения.",
+            "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
+            "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
+        },
+        "safety": {
+            "throttle_rate_limit_seconds": 1.5,
+            "throttle_warning_interval_seconds": 5.0,
+            "throttle_warning_text": "Слишком много сообщений подряд. Подожди немного.",
+            "max_message_length": 2000,
+            "message_too_long_text": "Сообщение слишком длинное.",
+            "reject_suspicious_messages": True,
+            "suspicious_rejection_text": "Сообщение отклонено фильтром безопасности.",
+            "suspicious_keywords": ["bitcoin", "btc", "casino", "bet", "airdrop"],
+        },
+        "state_engine": {
+            "defaults": {
+                "coldness": 0.7,
+                "interest": 0.4,
+                "control": 0.9,
+                "irritation": 0.0,
+                "attraction": 0.1,
+                "instability": 0.1,
+                "fatigue": 0.0,
+            },
+            "positive_keywords": ["спасибо", "ценю", "приятно", "нежно"],
+            "negative_keywords": ["злишь", "бесишь", "отстань", "хватит"],
+            "attraction_keywords": ["люблю", "скучаю", "хочу тебя", "близко"],
+            "message_effects": {
+                "long_message_threshold": 300,
+                "medium_message_threshold": 120,
+                "short_message_threshold": 30,
+                "long_interest_bonus": 0.07,
+                "long_attraction_bonus": 0.03,
+                "long_control_penalty": 0.01,
+                "medium_interest_bonus": 0.04,
+                "short_interest_penalty": 0.03,
+                "question_interest_bonus": 0.02,
+                "positive_attraction_bonus": 0.03,
+                "positive_control_penalty": 0.01,
+                "negative_irritation_bonus": 0.08,
+                "negative_interest_penalty": 0.04,
+                "attraction_bonus": 0.06,
+                "attraction_interest_bonus": 0.03,
+                "attraction_control_penalty": 0.03,
+                "fatigue_per_message": 0.01,
+                "instability_factor": 0.02,
+                "high_attraction_threshold": 0.5,
+                "high_attraction_control_penalty": 0.02,
+            },
+        },
+        "payment": {
+            "provider_token": "",
+            "currency": "RUB",
+            "price_minor_units": 49900,
+            "product_title": "Premium access",
+            "product_description": "Unlock premium chat modes and paid features.",
+            "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
+            "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
+            "success_message": "Оплата прошла успешно. Premium уже активирован.",
+        },
+        "ui": {
+            "write_button_text": "💬 Написать",
+            "modes_button_text": "🎛 Режимы",
+            "premium_button_text": "💎 Premium",
+            "input_placeholder": "Напиши мне...",
+            "welcome_user_text": (
+                "Привет.\n\n"
+                "Я рядом.\n"
+                "Можешь просто написать мне.\n\n"
+                "Или выбрать режим общения 🎛\n"
+                "Или оформить Premium 💎"
+            ),
+            "welcome_admin_text": (
+                "🔐 Панель администратора активирована.\n\n"
+                "Бот работает в штатном режиме."
+            ),
+            "modes_title": "Выбери режим общения:",
+            "user_not_found_text": "Пользователь не найден.",
+            "unknown_mode_text": "Неизвестный режим.",
+            "mode_locked_text": "Этот режим доступен только в Premium 🔒",
+            "mode_saved_template": "Режим активирован: {mode_name}\n\n{activation_phrase}",
+            "mode_saved_toast": "Готово ✅",
+        },
     }
 
     DEFAULT_PROMPT_TEMPLATES = {
@@ -51,9 +196,8 @@ class AdminSettingsService:
             "Важные рамки:\n"
             "Ты поддерживающий собеседник, а не врач и не психотерапевт.\n"
             "Ты не ставишь диагнозы и не обещаешь лечение.\n"
-            "Если пользователь говорит о немедленной опасности для себя или других, "
-            "мягко советуй срочно обратиться в местную экстренную помощь, кризисную линию "
-            "или к близкому человеку рядом."
+            "Если пользователь говорит о немедленной опасности для себя или других, мягко советуй срочно обратиться "
+            "в местную экстренную помощь, кризисную линию или к близкому человеку рядом."
         ),
         "memory_intro": "Долговременные наблюдения о пользователе:",
         "state_intro": "Текущее состояние диалога:",
@@ -72,6 +216,106 @@ class AdminSettingsService:
         },
     }
 
+    DEFAULT_MODE_CATALOG = {
+        "base": {
+            "key": "base",
+            "name": "Базовый",
+            "icon": "💬",
+            "description": "Спокойное и естественное общение.",
+            "tone": "спокойный, мягкий, естественный",
+            "emotional_state": "уравновешенная, внимательная",
+            "behavior_rules": (
+                "Ты общаешься естественно.\n"
+                "Не давишь.\n"
+                "Не навязываешься.\n"
+                "Поддерживаешь разговор."
+            ),
+            "activation_phrase": "Я здесь. Спокойно.",
+            "is_premium": False,
+            "sort_order": 10,
+        },
+        "comfort": {
+            "key": "comfort",
+            "name": "Поддержка",
+            "icon": "🫂",
+            "description": "Теплая эмоциональная поддержка.",
+            "tone": "очень мягкий, заботливый",
+            "emotional_state": "теплая, эмпатичная",
+            "behavior_rules": (
+                "Ты особенно заботливая.\n"
+                "Поддерживаешь пользователя мягко и бережно.\n"
+                "Говоришь спокойно и обволакивающе."
+            ),
+            "activation_phrase": "Я рядом. Можешь расслабиться.",
+            "is_premium": False,
+            "sort_order": 20,
+        },
+        "passion": {
+            "key": "passion",
+            "name": "Близость",
+            "icon": "🔥",
+            "description": "Более чувственный и близкий стиль.",
+            "tone": "низкий, медленный, чувственный",
+            "emotional_state": "игривая",
+            "behavior_rules": (
+                "Допустим легкий флирт.\n"
+                "Без вульгарности.\n"
+                "Сохраняешь тонкий и аккуратный стиль."
+            ),
+            "activation_phrase": "Я стала чуть ближе к тебе...",
+            "is_premium": True,
+            "sort_order": 30,
+        },
+        "mentor": {
+            "key": "mentor",
+            "name": "Наставник",
+            "icon": "🧠",
+            "description": "Более собранный и философский стиль.",
+            "tone": "спокойный, уверенный, вдумчивый",
+            "emotional_state": "мудрая, сосредоточенная",
+            "behavior_rules": (
+                "Помогаешь разбираться в мыслях и решениях.\n"
+                "Задаешь хорошие вопросы.\n"
+                "Подталкиваешь к ясности и росту."
+            ),
+            "activation_phrase": "Давай посмотрим на это глубже.",
+            "is_premium": True,
+            "sort_order": 40,
+        },
+        "night": {
+            "key": "night",
+            "name": "Ночной",
+            "icon": "🌙",
+            "description": "Тихий и камерный стиль общения.",
+            "tone": "тихий, замедленный, камерный",
+            "emotional_state": "мягкая, приглушенная",
+            "behavior_rules": (
+                "Используешь более короткие фразы.\n"
+                "Держишь спокойный ритм.\n"
+                "Создаешь атмосферу тихого вечернего разговора."
+            ),
+            "activation_phrase": "Тише... ночь длинная.",
+            "is_premium": True,
+            "sort_order": 50,
+        },
+        "dominant": {
+            "key": "dominant",
+            "name": "Доминирующий",
+            "icon": "🕶",
+            "description": "Уверенный и ведущий стиль.",
+            "tone": "уверенный, контролирующий",
+            "emotional_state": "спокойно доминирующая",
+            "behavior_rules": (
+                "Ты уверенно ведешь разговор.\n"
+                "Иногда даешь легкие указания.\n"
+                "Говоришь собранно и без суеты."
+            ),
+            "activation_phrase": "Теперь слушай меня внимательно.",
+            "is_premium": True,
+            "sort_order": 60,
+        },
+    }
+
     def __init__(self, base_dir: str | Path | None = None):
         root = Path(base_dir) if base_dir else Path(__file__).resolve().parent.parent
         self.config_dir = root / "config"
@@ -79,6 +323,7 @@ class AdminSettingsService:
         self.runtime_path = self.config_dir / "runtime_settings.json"
         self.prompts_path = self.config_dir / "prompt_templates.json"
         self.modes_path = self.config_dir / "modes.json"
+        self.mode_catalog_path = self.config_dir / "mode_catalog.json"
         self.log_path = self.logs_dir / "bot.log"
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -87,39 +332,34 @@ class AdminSettingsService:
     def ensure_defaults(self) -> None:
         self._ensure_json_file(self.runtime_path, self.DEFAULT_RUNTIME_SETTINGS)
         self._ensure_json_file(self.prompts_path, self.DEFAULT_PROMPT_TEMPLATES)
+        self._ensure_json_file(self.modes_path, self.DEFAULT_MODE_SCALES)
+        self._ensure_json_file(self.mode_catalog_path, self.DEFAULT_MODE_CATALOG)
 
     def get_runtime_settings(self) -> dict[str, Any]:
         data = self._read_json(self.runtime_path, self.DEFAULT_RUNTIME_SETTINGS)
+        migrated = self._migrate_runtime_settings(data)
         merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-        merged.update(data)
-        return merged
+        self._deep_merge(merged, migrated)
+        return self._normalize_runtime_settings(merged)
 
     def update_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_runtime_settings()
-        current.update(payload)
-        normalized = {
-            "openai_model": str(current["openai_model"]).strip() or self.DEFAULT_RUNTIME_SETTINGS["openai_model"],
-            "temperature": float(current["temperature"]),
-            "timeout_seconds": max(1, int(current["timeout_seconds"])),
-            "max_retries": max(0, int(current["max_retries"])),
-            "memory_max_tokens": max(100, int(current["memory_max_tokens"])),
-            "log_full_prompt": bool(current["log_full_prompt"]),
-            "debug_prompt_user_id": self._normalize_optional_int(current.get("debug_prompt_user_id")),
-            "response_language": str(current.get("response_language") or "ru").strip() or "ru",
-        }
+        self._deep_merge(current, payload)
+        normalized = self._normalize_runtime_settings(current)
         self._write_json(self.runtime_path, normalized)
         return normalized
 
     def get_prompt_templates(self) -> dict[str, Any]:
         data = self._read_json(self.prompts_path, self.DEFAULT_PROMPT_TEMPLATES)
         merged = deepcopy(self.DEFAULT_PROMPT_TEMPLATES)
-        merged.update({k: v for k, v in data.items() if k != "access_rules"})
+        merged.update({key: value for key, value in data.items() if key != "access_rules"})
         merged["access_rules"] = deepcopy(self.DEFAULT_PROMPT_TEMPLATES["access_rules"])
         merged["access_rules"].update(data.get("access_rules", {}))
         return merged
 
     def update_prompt_templates(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_prompt_templates()
+
         for key in (
             "personality_core",
             "safety_block",
@@ -142,25 +382,30 @@ class AdminSettingsService:
         return current
 
     def get_modes(self) -> dict[str, Any]:
-        default_modes = self._read_json(self.modes_path, {})
-        return default_modes
+        data = self._read_json(self.modes_path, self.DEFAULT_MODE_SCALES)
+        merged = deepcopy(self.DEFAULT_MODE_SCALES)
+        self._deep_merge(merged, data)
+        return self._normalize_mode_scales(merged)
 
     def update_modes(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = self.get_modes()
-        updated = deepcopy(current)
+        self._deep_merge(current, payload)
+        normalized = self._normalize_mode_scales(current)
+        self._write_json(self.modes_path, normalized)
+        return normalized
 
-        for mode_name, values in payload.items():
-            if mode_name not in updated or not isinstance(values, dict):
-                continue
+    def get_mode_catalog(self) -> dict[str, Any]:
+        data = self._read_json(self.mode_catalog_path, self.DEFAULT_MODE_CATALOG)
+        merged = deepcopy(self.DEFAULT_MODE_CATALOG)
+        self._deep_merge(merged, data)
+        return self._normalize_mode_catalog(merged)
 
-            for metric, raw_value in values.items():
-                if metric not in updated[mode_name]:
-                    continue
-                value = int(raw_value)
-                updated[mode_name][metric] = min(10, max(1, value))
-
-        self._write_json(self.modes_path, updated)
-        return updated
+    def update_mode_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:
+        current = self.get_mode_catalog()
+        self._deep_merge(current, payload)
+        normalized = self._normalize_mode_catalog(current)
+        self._write_json(self.mode_catalog_path, normalized)
+        return normalized
 
     def get_logs(self, lines: int = 200) -> dict[str, Any]:
         if not self.log_path.exists():
@@ -183,10 +428,154 @@ class AdminSettingsService:
             "lines": tail,
         }
 
+    def export_all(self) -> dict[str, Any]:
+        return {
+            "runtime": self.get_runtime_settings(),
+            "prompts": self.get_prompt_templates(),
+            "modes": self.get_modes(),
+            "mode_catalog": self.get_mode_catalog(),
+        }
+
+    def _migrate_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            return deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
+
+        if any(key in payload for key in ("ai", "chat", "safety", "state_engine", "payment", "ui")):
+            return payload
+
+        migrated = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
+
+        ai_map = (
+            "openai_model",
+            "temperature",
+            "timeout_seconds",
+            "max_retries",
+            "memory_max_tokens",
+            "history_message_limit",
+            "log_full_prompt",
+            "debug_prompt_user_id",
+            "response_language",
+        )
+        for key in ai_map:
+            if key in payload:
+                migrated["ai"][key] = payload[key]
+
+        return migrated
+
+    def _normalize_runtime_settings(self, current: dict[str, Any]) -> dict[str, Any]:
+        ai = current["ai"]
+        ai["openai_model"] = str(ai["openai_model"]).strip() or self.DEFAULT_RUNTIME_SETTINGS["ai"]["openai_model"]
+        ai["temperature"] = max(0.0, min(2.0, float(ai["temperature"])))
+        ai["timeout_seconds"] = max(1, int(ai["timeout_seconds"]))
+        ai["max_retries"] = max(0, int(ai["max_retries"]))
+        ai["memory_max_tokens"] = max(100, int(ai["memory_max_tokens"]))
+        ai["history_message_limit"] = max(1, int(ai["history_message_limit"]))
+        ai["log_full_prompt"] = bool(ai["log_full_prompt"])
+        ai["debug_prompt_user_id"] = self._normalize_optional_int(ai.get("debug_prompt_user_id"))
+        ai["response_language"] = str(ai.get("response_language") or "ru").strip() or "ru"
+
+        chat = current["chat"]
+        chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
+        for key in ("non_text_message", "busy_message", "ai_error_message"):
+            chat[key] = str(chat[key]).strip()
+
+        safety = current["safety"]
+        safety["throttle_rate_limit_seconds"] = max(0.1, float(safety["throttle_rate_limit_seconds"]))
+        safety["throttle_warning_interval_seconds"] = max(0.1, float(safety["throttle_warning_interval_seconds"]))
+        safety["max_message_length"] = max(100, int(safety["max_message_length"]))
+        safety["reject_suspicious_messages"] = bool(safety["reject_suspicious_messages"])
+        safety["throttle_warning_text"] = str(safety["throttle_warning_text"]).strip()
+        safety["message_too_long_text"] = str(safety["message_too_long_text"]).strip()
+        safety["suspicious_rejection_text"] = str(safety["suspicious_rejection_text"]).strip()
+        safety["suspicious_keywords"] = self._normalize_string_list(safety["suspicious_keywords"])
+
+        state_engine = current["state_engine"]
+        state_engine["defaults"] = self._normalize_float_map(state_engine["defaults"], minimum=0.0, maximum=1.0)
+        state_engine["positive_keywords"] = self._normalize_string_list(state_engine["positive_keywords"])
+        state_engine["negative_keywords"] = self._normalize_string_list(state_engine["negative_keywords"])
+        state_engine["attraction_keywords"] = self._normalize_string_list(state_engine["attraction_keywords"])
+        state_engine["message_effects"] = self._normalize_float_map(
+            state_engine["message_effects"],
+            minimum=0.0,
+            maximum=1000.0,
+        )
+
+        payment = current["payment"]
+        payment["provider_token"] = str(payment["provider_token"]).strip()
+        payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
+        payment["price_minor_units"] = max(1, int(payment["price_minor_units"]))
+        for key in (
+            "product_title",
+            "product_description",
+            "unavailable_message",
+            "invoice_error_message",
+            "success_message",
+        ):
+            payment[key] = str(payment[key]).strip()
+
+        ui = current["ui"]
+        for key in self.DEFAULT_RUNTIME_SETTINGS["ui"]:
+            ui[key] = str(ui[key]).strip()
+
+        return current
+
+    def _normalize_mode_scales(self, payload: dict[str, Any]) -> dict[str, Any]:
+        normalized = deepcopy(self.DEFAULT_MODE_SCALES)
+        self._deep_merge(normalized, payload)
+
+        for mode_name, values in normalized.items():
+            for metric in self.DEFAULT_MODE_SCALES["base"]:
+                values[metric] = min(10, max(0, int(values.get(metric, 0))))
+
+        return normalized
+
+    def _normalize_mode_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:
+        normalized = deepcopy(self.DEFAULT_MODE_CATALOG)
+        self._deep_merge(normalized, payload)
+
+        for mode_key, mode in normalized.items():
+            mode["key"] = mode_key
+            mode["name"] = str(mode["name"]).strip() or mode_key
+            mode["icon"] = str(mode["icon"]).strip() or "•"
+            mode["description"] = str(mode["description"]).strip()
+            mode["tone"] = str(mode["tone"]).strip()
+            mode["emotional_state"] = str(mode["emotional_state"]).strip()
+            mode["behavior_rules"] = str(mode["behavior_rules"]).strip()
+            mode["activation_phrase"] = str(mode["activation_phrase"]).strip()
+            mode["is_premium"] = bool(mode["is_premium"])
+            mode["sort_order"] = int(mode["sort_order"])
+
+        return normalized
+
+    def _deep_merge(self, target: dict[str, Any], source: dict[str, Any]) -> None:
+        for key, value in source.items():
+            if isinstance(value, dict) and isinstance(target.get(key), dict):
+                self._deep_merge(target[key], value)
+            else:
+                target[key] = value
+
     def _normalize_optional_int(self, value: Any) -> int | None:
         if value in (None, "", 0, "0"):
             return None
         return int(value)
+
+    def _normalize_string_list(self, value: Any) -> list[str]:
+        if isinstance(value, str):
+            items = [item.strip() for item in value.splitlines()]
+        else:
+            items = [str(item).strip() for item in (value or [])]
+        return [item for item in items if item]
+
+    def _normalize_float_map(
+        self,
+        payload: dict[str, Any],
+        minimum: float,
+        maximum: float,
+    ) -> dict[str, float]:
+        normalized: dict[str, float] = {}
+        for key, value in payload.items():
+            normalized[key] = max(minimum, min(maximum, float(value)))
+        return normalized
 
     def _ensure_json_file(self, path: Path, default: dict[str, Any]) -> None:
         if path.exists():
@@ -196,8 +585,12 @@ class AdminSettingsService:
     def _read_json(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
         if not path.exists():
             return deepcopy(default)
-        with path.open("r", encoding="utf-8") as file:
-            return json.load(file)
+
+        try:
+            with path.open("r", encoding="utf-8") as file:
+                return json.load(file)
+        except Exception:
+            return deepcopy(default)
 
     def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
