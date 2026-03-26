@@ -309,59 +309,6 @@ async def api_user_update(user_id: int, request: Request, _: str = Depends(requi
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/users/{user_id}/conversation")
-async def api_user_conversation(
-    user_id: int,
-    limit: int = 100,
-    _: str = Depends(require_auth),
-):
-    user = await container.user_service.get_user(user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-
-    safe_limit = max(1, min(limit, 200))
-    messages = await container.message_repository.get_user_messages(
-        user_id,
-        limit=safe_limit,
-    )
-    stats = await container.message_repository.get_user_message_stats(user_id)
-    state_payload = await container.state_repository.get(user_id)
-
-    ai_settings = container.admin_settings_service.get_runtime_settings()["ai"]
-    memory_history_limit = max(
-        safe_limit,
-        int(ai_settings.get("episodic_summary_history_limit", 18)),
-        int(ai_settings.get("history_message_limit", 20)),
-    )
-    history = await container.message_repository.get_last_messages(
-        user_id=user_id,
-        limit=memory_history_limit,
-    )
-
-    return {
-        "user": user,
-        "stats": stats,
-        "messages": messages,
-        "state": state_payload,
-        "memory_preview": container.keyword_memory_service.build_prompt_context(
-            state_payload,
-            history=history,
-        ),
-        "settings": {
-            "history_message_limit": int(ai_settings.get("history_message_limit", 20)),
-            "memory_max_tokens": int(ai_settings.get("memory_max_tokens", 1500)),
-            "episodic_summary_enabled": bool(ai_settings.get("episodic_summary_enabled", True)),
-            "episodic_summary_interval": int(ai_settings.get("episodic_summary_interval", 6)),
-            "episodic_summary_min_interactions": int(
-                ai_settings.get("episodic_summary_min_interactions", 4)
-            ),
-            "episodic_summary_history_limit": int(
-                ai_settings.get("episodic_summary_history_limit", 18)
-            ),
-        },
-    }
-
-
 @app.post("/api/actions/cache/invalidate")
 async def api_invalidate_cache(_: str = Depends(require_auth)):
     await _invalidate_metrics_cache()
@@ -479,7 +426,6 @@ def _dashboard_html() -> str:
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
     .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
-    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box,.json-box{min-height:180px;max-height:320px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
   </style>
 </head>
@@ -491,7 +437,6 @@ def _dashboard_html() -> str:
       <div class="nav">
         <button class="active" data-view="overview">Обзор</button>
         <button data-view="users">Пользователи</button>
-        <button data-view="conversations">Диалоги</button>
         <button data-view="runtime">AI и UI</button>
         <button data-view="safety">Безопасность</button>
         <button data-view="prompts">Промпты</button>
@@ -545,7 +490,6 @@ def _dashboard_html() -> str:
             <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <div class="actions">
               <button id="load-user">Загрузить</button>
-              <button id="open-user-conversation">Открыть диалог</button>
               <button class="primary" id="save-user">Сохранить пользователя</button>
             </div>
           </div>
@@ -557,38 +501,6 @@ def _dashboard_html() -> str:
               <button id="reset-users">Сбросить</button>
             </div>
             <div id="users-table"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-view="conversations">
-        <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, текущего state и памяти, которую бот подмешивает в промпт для конкретного пользователя.</p></div>
-        <div class="cols">
-          <div class="panel">
-            <h3>Пользователь</h3>
-            <div class="toolbar">
-              <input id="conversation_user_id" type="number" min="1" placeholder="ID пользователя">
-              <input id="conversation_limit" type="number" min="10" max="200" value="80" placeholder="Лимит сообщений">
-              <button class="primary" id="load-conversation">Загрузить диалог</button>
-            </div>
-            <p class="muted" id="conversation-meta">Выберите пользователя, чтобы увидеть историю и память.</p>
-            <div id="conversation-stats"></div>
-            <div style="margin-top:16px">
-              <h3>Память для промпта</h3>
-              <pre id="conversation-memory-preview" class="memory-box">Пока нет данных.</pre>
-            </div>
-            <div style="margin-top:16px">
-              <h3>State JSON</h3>
-              <pre id="conversation-state" class="json-box">Пока нет данных.</pre>
-            </div>
-          </div>
-          <div class="panel">
-            <h3>Выбор пользователя</h3>
-            <div id="conversation-users-table"></div>
-            <div style="margin-top:16px">
-              <h3>История сообщений</h3>
-              <div id="conversation-messages" class="conversation-feed"><div class="muted">Пока нет данных.</div></div>
-            </div>
           </div>
         </div>
       </section>
@@ -615,16 +527,6 @@ def _dashboard_html() -> str:
               <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
-            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить summary-memory между сессиями</label>
-            <div class="two">
-              <label>Summary: интервал обновления<input id="ai_episodic_summary_interval" type="number"></label>
-              <label>Summary: минимум диалогов<input id="ai_episodic_summary_min_interactions" type="number"></label>
-              <label>Summary: окно истории<input id="ai_episodic_summary_history_limit" type="number"></label>
-              <label>Summary: отдельная модель<input id="ai_episodic_summary_model"></label>
-              <label>Summary: температура<input id="ai_episodic_summary_temperature" type="number" step="0.1"></label>
-              <label>Summary: max tokens<input id="ai_episodic_summary_max_tokens" type="number"></label>
-              <label>Summary: reasoning<input id="ai_episodic_summary_reasoning_effort"></label>
-            </div>
           </div>
           <div class="panel">
             <h3>Чат</h3>
@@ -823,10 +725,9 @@ def _dashboard_html() -> str:
     </main>
   </div>
   <script>
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-    const escText=v=>esc(v).replaceAll('\n','<br>');
     const setValue=(selector,value)=>{const el=$(selector);if(el)el.value=value??''};
     const setChecked=(selector,value)=>{const el=$(selector);if(el)el.checked=!!value};
     const num=v=>Number(v??0).toLocaleString('ru-RU');
