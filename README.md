@@ -224,6 +224,21 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 4. При необходимости укажите `branch` и `app_dir`.
 5. Запустите workflow вручную.
 
+CLI-запуск из PowerShell:
+
+```powershell
+.\deploy\run_github_deploy.ps1 -Branch codex/proactive-gta6 -AppDir /opt/bot -Wait
+```
+
+Что важно про авторизацию:
+
+- скрипт сначала пробует `GH_TOKEN` или `GITHUB_TOKEN`
+- если `gh` установлен и авторизован, скрипт использует `gh auth token`
+- если `gh` нет в `PATH`, скрипт умеет брать GitHub credential из Git Credential Manager
+- на этой машине это рабочий сценарий, потому что Git настроен с `credential.helper=manager`
+
+То есть информацию о том, что GitHub-доступ у нас уже есть, фиксируем именно в этом разделе `README`, рядом с workflow `Deploy Bot`, а не в `.env`
+
 ## Безопасность
 
 - не публикуйте Redis в интернет
