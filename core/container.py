@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 from database.db import Database
 from database.memory_repository import MemoryRepository
 from database.payment_repository import PaymentRepository
+from database.proactive_repository import ProactiveRepository
 from database.repository import MessageRepository
 from database.user_state_repository import UserStateRepository
 from services.access_engine import AccessEngine
@@ -20,6 +21,7 @@ from services.long_term_memory_service import LongTermMemoryService
 from services.memory_engine import MemoryEngine
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
+from services.proactive_message_service import ProactiveMessageService
 from services.prompt_builder import PromptBuilder
 from services.referral_service import ReferralService
 from services.state_engine import StateEngine
@@ -44,6 +46,7 @@ class Container:
         self.message_repository = MessageRepository(self.db)
         self.memory_repository = MemoryRepository(self.db)
         self.payment_repository = PaymentRepository(self.db)
+        self.proactive_repository = ProactiveRepository(self.db)
         self.state_repository = UserStateRepository(self.db)
 
         self.admin_settings_service = AdminSettingsService()
@@ -94,6 +97,18 @@ class Container:
             user_service=self.user_service,
             settings_service=self.admin_settings_service,
             referral_service=self.referral_service,
+        )
+        self.proactive_message_service = ProactiveMessageService(
+            client=self.openai_client,
+            message_repository=self.message_repository,
+            proactive_repository=self.proactive_repository,
+            state_repository=self.state_repository,
+            long_term_memory_service=self.long_term_memory_service,
+            keyword_memory_service=self.keyword_memory_service,
+            prompt_builder=self.prompt_builder,
+            access_engine=self.access_engine,
+            settings_service=self.admin_settings_service,
+            user_service=self.user_service,
         )
 
     def _create_redis_client(self) -> Redis | None:

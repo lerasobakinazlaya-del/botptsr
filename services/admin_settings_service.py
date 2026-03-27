@@ -53,6 +53,30 @@ class AdminSettingsService:
             "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
             "write_prompt_message": "Я рядом. Напиши, что у тебя на уме.",
         },
+        "proactive": {
+            "enabled": False,
+            "scan_interval_seconds": 180,
+            "min_inactive_hours": 12,
+            "max_inactive_days": 21,
+            "cooldown_hours": 72,
+            "min_user_messages": 4,
+            "min_interaction_count": 6,
+            "candidate_batch_size": 25,
+            "max_messages_per_cycle": 3,
+            "history_limit": 8,
+            "per_message_delay_seconds": 1.0,
+            "temperature": 0.85,
+            "max_completion_tokens": 160,
+            "reasoning_effort": "",
+            "model": "",
+            "min_interest": 0.45,
+            "max_irritation": 0.35,
+            "max_fatigue": 0.65,
+            "quiet_hours_enabled": True,
+            "quiet_hours_start": 0,
+            "quiet_hours_end": 8,
+            "timezone": "Europe/Moscow",
+        },
         "safety": {
             "throttle_rate_limit_seconds": 1.5,
             "throttle_warning_interval_seconds": 5.0,
@@ -359,7 +383,7 @@ class AdminSettingsService:
     def _migrate_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, dict):
             return deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-        if any(key in payload for key in ("ai", "chat", "safety", "state_engine", "access", "limits", "referral", "payment", "ui")):
+        if any(key in payload for key in ("ai", "chat", "proactive", "safety", "state_engine", "access", "limits", "referral", "payment", "ui")):
             return payload
 
         migrated = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
@@ -435,6 +459,32 @@ class AdminSettingsService:
         chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
         for key in ("non_text_message", "busy_message", "ai_error_message", "write_prompt_message"):
             chat[key] = self._normalize_text(chat[key], multiline=True)
+
+        proactive = current["proactive"]
+        proactive["enabled"] = bool(proactive.get("enabled", False))
+        proactive["scan_interval_seconds"] = max(30, int(proactive.get("scan_interval_seconds", 180)))
+        proactive["min_inactive_hours"] = max(1, int(proactive.get("min_inactive_hours", 12)))
+        proactive["max_inactive_days"] = max(1, int(proactive.get("max_inactive_days", 21)))
+        proactive["cooldown_hours"] = max(1, int(proactive.get("cooldown_hours", 72)))
+        proactive["min_user_messages"] = max(1, int(proactive.get("min_user_messages", 4)))
+        proactive["min_interaction_count"] = max(1, int(proactive.get("min_interaction_count", 6)))
+        proactive["candidate_batch_size"] = max(1, min(200, int(proactive.get("candidate_batch_size", 25))))
+        proactive["max_messages_per_cycle"] = max(1, min(50, int(proactive.get("max_messages_per_cycle", 3))))
+        proactive["history_limit"] = max(2, min(20, int(proactive.get("history_limit", 8))))
+        proactive["per_message_delay_seconds"] = max(0.0, float(proactive.get("per_message_delay_seconds", 1.0)))
+        proactive["temperature"] = max(0.0, min(2.0, float(proactive.get("temperature", 0.85))))
+        proactive["max_completion_tokens"] = max(48, int(proactive.get("max_completion_tokens", 160)))
+        proactive["reasoning_effort"] = self._normalize_reasoning_effort(
+            proactive.get("reasoning_effort")
+        )
+        proactive["model"] = str(proactive.get("model") or "").strip()
+        proactive["min_interest"] = max(0.0, min(1.0, float(proactive.get("min_interest", 0.45))))
+        proactive["max_irritation"] = max(0.0, min(1.0, float(proactive.get("max_irritation", 0.35))))
+        proactive["max_fatigue"] = max(0.0, min(1.0, float(proactive.get("max_fatigue", 0.65))))
+        proactive["quiet_hours_enabled"] = bool(proactive.get("quiet_hours_enabled", True))
+        proactive["quiet_hours_start"] = max(0, min(23, int(proactive.get("quiet_hours_start", 0))))
+        proactive["quiet_hours_end"] = max(0, min(23, int(proactive.get("quiet_hours_end", 8))))
+        proactive["timezone"] = str(proactive.get("timezone") or "Europe/Moscow").strip() or "Europe/Moscow"
 
         safety = current["safety"]
         safety["throttle_rate_limit_seconds"] = max(0.1, float(safety["throttle_rate_limit_seconds"]))

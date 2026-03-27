@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
@@ -16,6 +18,128 @@ from services.telegram_formatting import (
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+
+def _proactive_help_text() -> str:
+    return (
+        "Команды инициативности:\n"
+        "/proactive - показать статус\n"
+        "/proactive on - бот может иногда писать первым\n"
+        "/proactive off - отключить инициативные сообщения\n"
+        "/quiet - быстрый тихий режим\n"
+        "/quiet off - вернуть инициативные сообщения"
+    )
+
+
+def _set_proactive_enabled(state: dict, enabled: bool) -> dict:
+    updated = dict(state or {})
+    proactive_preferences = dict(updated.get("proactive_preferences") or {})
+    proactive_preferences["enabled"] = bool(enabled)
+    proactive_preferences["updated_at"] = datetime.now(timezone.utc).isoformat()
+    updated["proactive_preferences"] = proactive_preferences
+    return updated
+
+
+def _set_user_timezone(state: dict, timezone_name: str | None) -> dict:
+    updated = dict(state or {})
+    proactive_preferences = dict(updated.get("proactive_preferences") or {})
+    proactive_preferences["timezone"] = timezone_name
+    proactive_preferences["updated_at"] = datetime.now(timezone.utc).isoformat()
+    updated["proactive_preferences"] = proactive_preferences
+    return updated
+
+
+async def _handle_timezone_command(message: Message, state_repository) -> bool:
+    raw_text = (message.text or "").strip()
+    command, _, argument = raw_text.partition(" ")
+    if command.lower() != "/timezone":
+        return False
+
+    state = await state_repository.get(message.from_user.id)
+    proactive_preferences = dict(state.get("proactive_preferences") or {})
+    current_timezone = str(proactive_preferences.get("timezone") or "").strip()
+    normalized_argument = argument.strip()
+
+    if not normalized_argument:
+        await message.answer(
+            "Текущая timezone: "
+            + (current_timezone or "не задана, используется общая timezone бота.")
+            + "\n\nПример: /timezone Europe/Moscow"
+        )
+        return True
+
+    if normalized_argument.lower() in {"off", "reset", "default"}:
+        new_state = _set_user_timezone(state, None)
+        await state_repository.save(message.from_user.id, new_state)
+        await message.answer("Личная timezone сброшена. Теперь используется общая timezone бота.")
+        return True
+
+    try:
+        ZoneInfo(normalized_argument)
+    except Exception:
+        await message.answer(
+            "Не смог распознать timezone.\n\n"
+            "Используй формат вроде Europe/Moscow, Europe/Berlin или America/New_York."
+        )
+        return True
+
+    new_state = _set_user_timezone(state, normalized_argument)
+    await state_repository.save(message.from_user.id, new_state)
+    await message.answer(f"Timezone сохранена: {normalized_argument}")
+    return True
+
+
+async def _handle_proactive_command(message: Message, state_repository) -> bool:
+    raw_text = (message.text or "").strip()
+    command, _, argument = raw_text.partition(" ")
+    command = command.lower()
+    argument = argument.strip().lower()
+
+    if command not in {"/proactive", "/quiet"}:
+        return False
+
+    state = await state_repository.get(message.from_user.id)
+    proactive_preferences = dict(state.get("proactive_preferences") or {})
+    is_enabled = bool(proactive_preferences.get("enabled", True))
+
+    if command == "/quiet":
+        if argument in {"", "on"}:
+            new_state = _set_proactive_enabled(state, False)
+            await state_repository.save(message.from_user.id, new_state)
+            await message.answer(
+                "Тихий режим включён. Я не буду писать первой, пока ты сам снова это не разрешишь.\n\n"
+                "Вернуть можно командой /proactive on или /quiet off."
+            )
+            return True
+        if argument == "off":
+            new_state = _set_proactive_enabled(state, True)
+            await state_repository.save(message.from_user.id, new_state)
+            await message.answer("Тихий режим выключен. Если диалог подходящий, я снова смогу иногда написать первой.")
+            return True
+        await message.answer(_proactive_help_text())
+        return True
+
+    if argument in {"", "status"}:
+        await message.answer(
+            "Статус инициативных сообщений: "
+            + ("включены." if is_enabled else "выключены.")
+            + "\n\n"
+            + _proactive_help_text()
+        )
+        return True
+    if argument == "on":
+        new_state = _set_proactive_enabled(state, True)
+        await state_repository.save(message.from_user.id, new_state)
+        await message.answer("Инициативные сообщения включены. Я смогу иногда аккуратно напомнить о себе.")
+        return True
+    if argument == "off":
+        new_state = _set_proactive_enabled(state, False)
+        await state_repository.save(message.from_user.id, new_state)
+        await message.answer("Инициативные сообщения отключены. Буду писать только когда ты сам напишешь.")
+        return True
+
+    await message.answer(_proactive_help_text())
+    return True
 
 
 @router.message()
@@ -52,6 +176,11 @@ async def chat_handler(
 
     if user_text == ui_settings["write_button_text"]:
         await message.answer(chat_settings["write_prompt_message"])
+        return
+
+    if await _handle_proactive_command(message, state_repository):
+        return
+    if await _handle_timezone_command(message, state_repository):
         return
 
     if user_text == ui_settings["modes_button_text"]:

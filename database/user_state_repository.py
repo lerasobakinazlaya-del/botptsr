@@ -25,6 +25,11 @@ class UserStateRepository:
             "interaction_count": 0,
             "conversation_phase": "start",
             "emotional_tone": None,
+            "proactive_preferences": {
+                "enabled": True,
+                "updated_at": None,
+                "timezone": None,
+            },
             "user_profile": {
                 "goals": [],
                 "interests": [],
@@ -43,6 +48,10 @@ class UserStateRepository:
             user_profile = {}
 
         merged["user_profile"] = default["user_profile"] | user_profile
+        proactive_preferences = state.get("proactive_preferences", {})
+        if not isinstance(proactive_preferences, dict):
+            proactive_preferences = {}
+        merged["proactive_preferences"] = default["proactive_preferences"] | proactive_preferences
         return merged
 
     async def get(self, user_id: int) -> Dict[str, Any]:

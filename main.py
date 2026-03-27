@@ -20,7 +20,7 @@ from handlers import admin, chat, modes, payments, start
 
 
 @asynccontextmanager
-async def lifespan(container: Container):
+async def lifespan(container: Container, bot: Bot):
     logging.info("Connecting to database...")
     await container.db.connect()
 
@@ -28,13 +28,19 @@ async def lifespan(container: Container):
     await container.user_service.init_table()
     await container.state_repository.init_table()
     await container.long_term_memory_service.init_table()
+    await container.proactive_repository.init_table()
 
     logging.info("Starting AI workers...")
     await container.ai_service.start()
+    logging.info("Starting proactive messaging...")
+    await container.proactive_message_service.start(bot)
 
     try:
         yield
     finally:
+        logging.info("Stopping proactive messaging...")
+        await container.proactive_message_service.close()
+
         logging.info("Stopping AI workers...")
         await container.ai_service.close()
 
@@ -106,7 +112,7 @@ async def main():
         except TelegramNetworkError as exc:
             logging.warning("Failed to delete webhook before startup: %s", exc)
 
-        async with lifespan(container):
+        async with lifespan(container, bot):
             logging.info("Bot started")
             try:
                 await dp.start_polling(bot)

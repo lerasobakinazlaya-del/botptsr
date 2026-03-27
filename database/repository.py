@@ -169,3 +169,74 @@ class MessageRepository:
         )
         row = await cursor.fetchone()
         return row[0] if row else 0
+
+    async def get_inactive_user_candidates(
+        self,
+        *,
+        min_inactive_hours: int,
+        max_inactive_days: int,
+        min_user_messages: int,
+        limit: int = 25,
+    ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 200))
+        safe_min_hours = max(1, int(min_inactive_hours))
+        safe_max_days = max(1, int(max_inactive_days))
+        safe_min_user_messages = max(1, int(min_user_messages))
+
+        cursor = await self.db.connection.execute(
+            """
+            WITH message_stats AS (
+                SELECT
+                    user_id,
+                    SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) AS user_messages,
+                    SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) AS assistant_messages,
+                    MAX(created_at) AS last_message_at,
+                    MAX(CASE WHEN role = 'user' THEN created_at END) AS last_user_message_at
+                FROM messages
+                GROUP BY user_id
+            ),
+            last_message AS (
+                SELECT m.user_id, m.role, m.created_at
+                FROM messages m
+                INNER JOIN (
+                    SELECT user_id, MAX(id) AS last_id
+                    FROM messages
+                    GROUP BY user_id
+                ) latest
+                    ON latest.user_id = m.user_id
+                   AND latest.last_id = m.id
+            )
+            SELECT
+                stats.user_id,
+                COALESCE(stats.user_messages, 0) AS user_messages,
+                COALESCE(stats.assistant_messages, 0) AS assistant_messages,
+                stats.last_message_at,
+                stats.last_user_message_at,
+                last_message.role AS last_message_role
+            FROM message_stats stats
+            JOIN last_message ON last_message.user_id = stats.user_id
+            WHERE COALESCE(stats.user_messages, 0) >= ?
+              AND stats.last_message_at <= datetime('now', ?)
+              AND stats.last_user_message_at >= datetime('now', ?)
+            ORDER BY stats.last_message_at ASC, stats.user_id ASC
+            LIMIT ?
+            """,
+            (
+                safe_min_user_messages,
+                f"-{safe_min_hours} hours",
+                f"-{safe_max_days} days",
+                safe_limit,
+            ),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "user_id": int(row[0]),
+                "user_messages": int(row[1] or 0),
+                "assistant_messages": int(row[2] or 0),
+                "last_message_at": row[3],
+                "last_user_message_at": row[4],
+                "last_message_role": row[5],
+            }
+            for row in rows
+        ]
