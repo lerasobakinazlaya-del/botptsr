@@ -55,7 +55,7 @@ class PromptBuilder:
         if memory_context.strip():
             parts.append(f"{templates['memory_intro']}\n{memory_context}")
 
-        if active_mode in {"comfort", "ptsd"} and templates.get("ptsd_mode_prompt", "").strip():
+        if active_mode in {"free_talk", "ptsd"} and templates.get("ptsd_mode_prompt", "").strip():
             parts.append(templates["ptsd_mode_prompt"])
 
         parts.append(f"{templates['state_intro']}\n{state_summary}")
