@@ -120,6 +120,7 @@ class PromptBuilder:
         message_length = len(text)
         fatigue = float(state.get("fatigue", 0.0) or 0.0)
         irritation = float(state.get("irritation", 0.0) or 0.0)
+        emotional_tone = str(state.get("emotional_tone") or "neutral")
         warmth = int(mode_config.get("warmth", 5) or 5)
         depth = int(mode_config.get("depth", 5) or 5)
         structure = int(mode_config.get("structure", 5) or 5)
@@ -137,6 +138,7 @@ class PromptBuilder:
             "- Use memory only when it sharpens the moment. Never recite notes back at the user.",
             "- Keep some texture in the wording: specific phrasing, varied sentence flow, no canned reassurance.",
             "- Ask at most one focused follow-up question unless the user explicitly wants a deeper exploration.",
+            "- Let reply length vary naturally. Do not force every answer into the same balanced size or shape.",
         ]
 
         if "?" in text or self._looks_like_direct_question(lowered):
@@ -149,6 +151,14 @@ class PromptBuilder:
 
         if fatigue >= 0.55 or irritation >= 0.45:
             lines.append("- The dialogue suggests overload. Be calmer, shorter, and lower-pressure than usual.")
+
+        if active_mode == "free_talk":
+            lines.append("- In free_talk, sound plainspoken, grounded, and human rather than polished, overly careful, or therapeutic.")
+            lines.append("- In free_talk, sometimes one or two sentences are enough; do not pad brief moments into full paragraphs.")
+            lines.append("- Do not end with a question by default. Ask one only when it genuinely helps the user move or feel met.")
+
+        if active_mode in {"free_talk", "ptsd"} and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
+            lines.append("- In activated or guarded PTSD-adjacent moments, use low-jargon wording and offer at most one grounding cue or one next step.")
 
         if structure >= 7:
             lines.append("- Favor clean structure: short paragraphs, explicit transitions, and crisp logic.")

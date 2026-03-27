@@ -45,12 +45,12 @@
     "emoji_level": 1
   },
   "free_talk": {
-    "warmth": 6,
+    "warmth": 8,
     "flirt": 1,
-    "depth": 7,
-    "structure": 4,
-    "dominance": 3,
-    "initiative": 5,
+    "depth": 8,
+    "structure": 3,
+    "dominance": 2,
+    "initiative": 4,
     "emoji_level": 0
   },
   "dominant": {
