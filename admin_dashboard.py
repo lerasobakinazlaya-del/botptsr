@@ -4,6 +4,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+from aiogram import Bot
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -12,6 +16,11 @@ from config.settings import get_settings
 from core.container import Container
 from services.ai_profile_service import resolve_ai_profile
 from services.admin_metrics_service import AdminMetricsService
+from services.telegram_formatting import (
+    TelegramFormattingOptions,
+    escape_plain_text_for_telegram,
+    format_model_response_for_telegram,
+)
 
 
 security = HTTPBasic()
@@ -48,6 +57,10 @@ async def lifespan(app: FastAPI):
     await container.long_term_memory_service.init_table()
     await container.proactive_repository.init_table()
     await container.ai_service.start()
+    app.state.bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
 
     container.admin_metrics = AdminMetricsService(
         user_service=container.user_service,
@@ -64,6 +77,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await app.state.bot.session.close()
     await container.ai_service.close()
     await container.openai_client.close()
     await container.db.close()
@@ -132,6 +146,13 @@ def _parse_history(value: Any) -> list[dict[str, str]]:
 
 async def _invalidate_metrics_cache() -> None:
     await _ensure_admin_metrics().invalidate_cache()
+
+
+def _get_dashboard_bot() -> Bot:
+    bot = getattr(app.state, "bot", None)
+    if bot is None:
+        raise HTTPException(status_code=503, detail="Telegram bot is not initialized")
+    return bot
 
 
 async def _build_health() -> dict[str, Any]:
@@ -324,6 +345,78 @@ async def api_user_update(user_id: int, request: Request, _: str = Depends(requi
         return user
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/users/{user_id}/message")
+async def api_user_send_message(
+    user_id: int,
+    request: Request,
+    _: str = Depends(require_auth),
+):
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    payload = await request.json()
+    text = str(payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Текст сообщения не может быть пустым")
+
+    state_payload = await container.state_repository.get(user_id)
+    active_mode = str(
+        state_payload.get("active_mode")
+        or user.get("active_mode")
+        or "base"
+    ).strip() or "base"
+    mode_config = container.admin_settings_service.get_modes().get(active_mode, {})
+    formatting_options = TelegramFormattingOptions(
+        allow_bold=bool(mode_config.get("allow_bold", False)),
+        allow_italic=bool(mode_config.get("allow_italic", False)),
+    )
+    formatted_text = format_model_response_for_telegram(text, formatting_options)
+    outbound_text = formatted_text or escape_plain_text_for_telegram(text)
+    bot = _get_dashboard_bot()
+
+    try:
+        try:
+            await bot.send_message(chat_id=user_id, text=outbound_text)
+        except TelegramBadRequest:
+            await bot.send_message(
+                chat_id=user_id,
+                text=escape_plain_text_for_telegram(text),
+            )
+    except TelegramForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=f"Нельзя написать пользователю: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Не удалось отправить сообщение: {exc}") from exc
+
+    new_state = container.human_memory_service.apply_assistant_message(
+        state_payload,
+        text,
+        source="reply",
+    )
+    try:
+        async with container.db.transaction():
+            await container.state_repository.save(user_id, new_state, commit=False)
+            await container.message_repository.save(user_id, "assistant", text, commit=False)
+        await _invalidate_metrics_cache()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Сообщение отправлено, но не сохранилось в базе: {exc}",
+        ) from exc
+
+    try:
+        container.conversation_summary_service.schedule_refresh(user_id, new_state)
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "user_id": user_id,
+        "text": text,
+        "active_mode": active_mode,
+    }
 
 
 @app.get("/api/users/{user_id}/conversation")
@@ -585,7 +678,7 @@ def _dashboard_html() -> str:
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
     .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
-    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}
+    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px;margin-bottom:16px}.composer textarea{min-height:120px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
   </style>
 </head>
@@ -720,6 +813,13 @@ def _dashboard_html() -> str:
           </div>
           <div class="panel">
             <h3>История сообщений</h3>
+            <div class="composer">
+              <label>Сообщение пользователю<textarea id="conversation_outbound_text" placeholder="Написать пользователю от имени бота"></textarea></label>
+              <div class="composer-meta">
+                <div class="muted">Сообщение уйдет в Telegram и сохранится в историю как ответ бота.</div>
+                <button class="primary" id="send-conversation-message">Отправить</button>
+              </div>
+            </div>
             <div id="conversation-messages" class="conversation-feed"><div class="muted">Пока нет данных.</div></div>
           </div>
         </div>
@@ -1175,6 +1275,7 @@ def _dashboard_html() -> str:
     async function refreshUsers(query){const search=query??$('#user-search').value.trim();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100`);renderUsers()}
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
     async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
+    async function sendConversationMessage(){const rawUserId=String($('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||state.currentConversation?.user?.id||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const textarea=$('#conversation_outbound_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст сообщения');const button=$('#send-conversation-message');if(button)button.disabled=true;try{await api(`/api/users/${encodeURIComponent(rawUserId)}/message`,{method:'POST',body:JSON.stringify({text})});if(textarea)textarea.value='';await loadConversation(rawUserId);notice('Сообщение отправлено.')}finally{if(button)button.disabled=false}}
     async function toggleMemoryPin(memoryId,pinned){await api(`/api/memories/${encodeURIComponent(memoryId)}/pin`,{method:'POST',body:JSON.stringify({pinned:!!Number(pinned)})});await loadConversation();notice('Статус памяти обновлен.')}
     function memoryEditorPayload(){return {user_id:Number($('#conversation_user_id').value||0),category:$('#memory_editor_category').value.trim(),value:$('#memory_editor_value').value.trim(),weight:Number($('#memory_editor_weight').value||0),pinned:$('#memory_editor_pinned').checked}}
     async function saveMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const payload=memoryEditorPayload();if(!payload.category)throw new Error('Выбери категорию memory');if(!payload.value)throw new Error('Заполни текст memory');const memoryId=String($('#memory_editor_id').value||'').trim();const result=memoryId?await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'PUT',body:JSON.stringify(payload)}):await api(`/api/users/${encodeURIComponent(rawUserId)}/memories`,{method:'POST',body:JSON.stringify(payload)});state.currentMemoryId=result.memory?.id||null;await loadConversation(rawUserId);notice(memoryId?'Memory обновлена.':'Memory создана.')}
@@ -1190,6 +1291,7 @@ def _dashboard_html() -> str:
     on('#load-user','click',()=>loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error')));
     on('#open-user-conversation','click',()=>{setValue('#conversation_user_id',$('#user_user_id')?.value?.trim()||'');openView('conversations');loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error'))});
     on('#load-conversation','click',()=>loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error')));
+    on('#send-conversation-message','click',()=>sendConversationMessage().catch(e=>notice(e.message,'error')));
     on('#memory-editor-new','click',()=>resetMemoryEditor());
     on('#memory-editor-save','click',()=>saveMemoryEditor().catch(e=>notice(e.message,'error')));
     on('#memory-editor-delete','click',()=>deleteMemoryEditor().catch(e=>notice(e.message,'error')));
