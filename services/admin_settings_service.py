@@ -201,6 +201,11 @@ class AdminSettingsService:
             "mode_locked_text": "Этот режим доступен только в Premium 🔒",
             "mode_saved_template": "Режим активирован: {mode_name}\n\n{activation_phrase}",
             "mode_saved_toast": "Готово ✅",
+            "message_templates": [
+                "Привет. Я на связи, если захочется продолжить разговор.",
+                "Как ты сегодня? Можешь ответить в любом темпе.",
+                "Если хочешь, можем спокойно вернуться к тому, на чем остановились.",
+            ],
         },
     }
 
@@ -615,8 +620,11 @@ class AdminSettingsService:
             payment[key] = self._normalize_text(payment[key], multiline=True)
 
         ui = current["ui"]
-        for key in self.DEFAULT_RUNTIME_SETTINGS["ui"]:
-            ui[key] = self._normalize_text(ui[key], multiline=True)
+        for key, default_value in self.DEFAULT_RUNTIME_SETTINGS["ui"].items():
+            if isinstance(default_value, list):
+                ui[key] = self._normalize_string_list(ui.get(key))
+            else:
+                ui[key] = self._normalize_text(ui[key], multiline=True)
 
         return current
 
