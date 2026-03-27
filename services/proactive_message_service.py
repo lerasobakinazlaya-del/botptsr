@@ -24,6 +24,7 @@ class ProactiveMessageService:
         client,
         message_repository,
         proactive_repository,
+        user_preference_repository,
         state_repository,
         long_term_memory_service,
         keyword_memory_service,
@@ -35,6 +36,7 @@ class ProactiveMessageService:
         self.client = client
         self.message_repository = message_repository
         self.proactive_repository = proactive_repository
+        self.user_preference_repository = user_preference_repository
         self.state_repository = state_repository
         self.long_term_memory_service = long_term_memory_service
         self.keyword_memory_service = keyword_memory_service
@@ -127,8 +129,6 @@ class ProactiveMessageService:
 
         state = await self.state_repository.get(user_id)
         candidate["state_snapshot"] = state
-        proactive_preferences = state.get("proactive_preferences", {})
-
         if candidate.get("last_message_role") != "assistant":
             return False
 
@@ -136,7 +136,12 @@ class ProactiveMessageService:
         if not last_user_message_at:
             return False
 
-        if not bool(proactive_preferences.get("enabled", True)):
+        proactive_preferences = await self.user_preference_repository.get_preferences(
+            user_id,
+            fallback=state.get("proactive_preferences"),
+        )
+
+        if not bool(proactive_preferences.get("proactive_enabled", True)):
             return False
 
         if self._is_in_quiet_hours(

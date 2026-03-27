@@ -11,6 +11,7 @@ from database.memory_repository import MemoryRepository
 from database.payment_repository import PaymentRepository
 from database.proactive_repository import ProactiveRepository
 from database.repository import MessageRepository
+from database.user_preference_repository import UserPreferenceRepository
 from database.user_state_repository import UserStateRepository
 from services.access_engine import AccessEngine
 from services.ai_service import AIService
@@ -47,6 +48,7 @@ class Container:
         self.memory_repository = MemoryRepository(self.db)
         self.payment_repository = PaymentRepository(self.db)
         self.proactive_repository = ProactiveRepository(self.db)
+        self.user_preference_repository = UserPreferenceRepository(self.db)
         self.state_repository = UserStateRepository(self.db)
 
         self.admin_settings_service = AdminSettingsService()
@@ -102,6 +104,7 @@ class Container:
             client=self.openai_client,
             message_repository=self.message_repository,
             proactive_repository=self.proactive_repository,
+            user_preference_repository=self.user_preference_repository,
             state_repository=self.state_repository,
             long_term_memory_service=self.long_term_memory_service,
             keyword_memory_service=self.keyword_memory_service,

@@ -130,6 +130,8 @@ class ProactiveRepository:
             }
 
         recent = await self.get_recent_events(limit=20)
+        reply_stats = await self.get_reply_stats(hours=24)
+        opt_out_stats = await self.get_opt_out_stats(days=7)
         return {
             "total_events": int(row[0] or 0),
             "sent_total": int(row[1] or 0),
@@ -139,6 +141,8 @@ class ProactiveRepository:
             "failed_1d": int(row[5] or 0),
             "users_contacted_total": int(row[6] or 0),
             "users_contacted_7d": int(row[7] or 0),
+            **reply_stats,
+            **opt_out_stats,
             "recent": recent,
         }
 
@@ -165,3 +169,73 @@ class ProactiveRepository:
             }
             for row in rows
         ]
+
+    async def get_reply_stats(self, *, hours: int = 24) -> dict:
+        safe_hours = max(1, int(hours))
+        cursor = await self.db.connection.execute(
+            """
+            WITH sent_events AS (
+                SELECT id, user_id, created_at
+                FROM proactive_messages
+                WHERE status = 'sent'
+            )
+            SELECT
+                COUNT(*) AS sent_events_total,
+                SUM(
+                    CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM messages m
+                        WHERE m.user_id = sent_events.user_id
+                          AND m.role = 'user'
+                          AND m.created_at > sent_events.created_at
+                          AND m.created_at <= datetime(sent_events.created_at, ?)
+                    ) THEN 1 ELSE 0 END
+                ) AS replied_events
+            FROM sent_events
+            """,
+            (f"+{safe_hours} hours",),
+        )
+        row = await cursor.fetchone()
+        sent_events_total = int(row[0] or 0) if row else 0
+        replied_events = int(row[1] or 0) if row else 0
+        reply_rate = round((replied_events / sent_events_total) * 100, 1) if sent_events_total else 0.0
+        return {
+            "reply_after_proactive_total": replied_events,
+            "reply_after_proactive_rate": reply_rate,
+        }
+
+    async def get_opt_out_stats(self, *, days: int = 7) -> dict:
+        safe_days = max(1, int(days))
+        cursor = await self.db.connection.execute(
+            """
+            WITH sent_events AS (
+                SELECT id, user_id, created_at
+                FROM proactive_messages
+                WHERE status = 'sent'
+            )
+            SELECT
+                COUNT(*) AS sent_events_total,
+                SUM(
+                    CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM user_preference_events e
+                        WHERE e.user_id = sent_events.user_id
+                          AND e.event_kind = 'proactive_enabled'
+                          AND e.proactive_enabled = 0
+                          AND e.created_at > sent_events.created_at
+                          AND e.created_at <= datetime(sent_events.created_at, ?)
+                    ) THEN 1 ELSE 0 END
+                ) AS opt_out_events
+            FROM sent_events
+            """
+            ,
+            (f"+{safe_days} days",),
+        )
+        row = await cursor.fetchone()
+        sent_events_total = int(row[0] or 0) if row else 0
+        opt_out_events = int(row[1] or 0) if row else 0
+        opt_out_rate = round((opt_out_events / sent_events_total) * 100, 1) if sent_events_total else 0.0
+        return {
+            "opt_out_after_proactive_total": opt_out_events,
+            "opt_out_after_proactive_rate": opt_out_rate,
+        }

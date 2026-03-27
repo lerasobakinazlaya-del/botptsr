@@ -27,6 +27,7 @@ async def lifespan(container: Container, bot: Bot):
     logging.info("Initializing tables...")
     await container.user_service.init_table()
     await container.state_repository.init_table()
+    await container.user_preference_repository.init_table()
     await container.long_term_memory_service.init_table()
     await container.proactive_repository.init_table()
 
@@ -70,6 +71,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["payment_repository"] = container.payment_repository
     dp["referral_service"] = container.referral_service
     dp["state_repository"] = container.state_repository
+    dp["user_preference_repository"] = container.user_preference_repository
     dp["db"] = container.db
     dp["redis"] = container.redis
     dp["admin_settings_service"] = container.admin_settings_service

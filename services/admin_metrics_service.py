@@ -18,6 +18,7 @@ class AdminMetricsService:
         state_repository,
         ai_service,
         proactive_repository,
+        user_preference_repository,
         redis=None,
         cache_ttl: int = 15,
     ):
@@ -28,6 +29,7 @@ class AdminMetricsService:
         self.state_repository = state_repository
         self.ai_service = ai_service
         self.proactive_repository = proactive_repository
+        self.user_preference_repository = user_preference_repository
         self.redis = redis
         self.cache_ttl = cache_ttl
 
@@ -91,6 +93,7 @@ class AdminMetricsService:
         active_users = await self.message_repository.get_total_users()
         support_stats = await self.state_repository.get_support_stats()
         proactive_overview = await self.proactive_repository.get_overview()
+        preference_stats = await self.user_preference_repository.get_stats()
 
         return {
             "users": {
@@ -116,6 +119,7 @@ class AdminMetricsService:
             },
             "support": support_stats,
             "proactive": proactive_overview,
+            "preferences": preference_stats,
             "referrals": referral_overview,
             "series": {
                 "users": await self.user_service.get_daily_registrations(days=14),

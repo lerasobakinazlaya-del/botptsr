@@ -49,14 +49,17 @@ def _set_user_timezone(state: dict, timezone_name: str | None) -> dict:
     return updated
 
 
-async def _handle_timezone_command(message: Message, state_repository) -> bool:
+async def _handle_timezone_command(message: Message, user_preference_repository, state_repository) -> bool:
     raw_text = (message.text or "").strip()
     command, _, argument = raw_text.partition(" ")
     if command.lower() != "/timezone":
         return False
 
     state = await state_repository.get(message.from_user.id)
-    proactive_preferences = dict(state.get("proactive_preferences") or {})
+    proactive_preferences = await user_preference_repository.get_preferences(
+        message.from_user.id,
+        fallback=state.get("proactive_preferences"),
+    )
     current_timezone = str(proactive_preferences.get("timezone") or "").strip()
     normalized_argument = argument.strip()
 
@@ -71,6 +74,7 @@ async def _handle_timezone_command(message: Message, state_repository) -> bool:
     if normalized_argument.lower() in {"off", "reset", "default"}:
         new_state = _set_user_timezone(state, None)
         await state_repository.save(message.from_user.id, new_state)
+        await user_preference_repository.set_timezone(message.from_user.id, None)
         await message.answer("Личная timezone сброшена. Теперь используется общая timezone бота.")
         return True
 
@@ -85,11 +89,12 @@ async def _handle_timezone_command(message: Message, state_repository) -> bool:
 
     new_state = _set_user_timezone(state, normalized_argument)
     await state_repository.save(message.from_user.id, new_state)
+    await user_preference_repository.set_timezone(message.from_user.id, normalized_argument)
     await message.answer(f"Timezone сохранена: {normalized_argument}")
     return True
 
 
-async def _handle_proactive_command(message: Message, state_repository) -> bool:
+async def _handle_proactive_command(message: Message, user_preference_repository, state_repository) -> bool:
     raw_text = (message.text or "").strip()
     command, _, argument = raw_text.partition(" ")
     command = command.lower()
@@ -99,13 +104,17 @@ async def _handle_proactive_command(message: Message, state_repository) -> bool:
         return False
 
     state = await state_repository.get(message.from_user.id)
-    proactive_preferences = dict(state.get("proactive_preferences") or {})
-    is_enabled = bool(proactive_preferences.get("enabled", True))
+    proactive_preferences = await user_preference_repository.get_preferences(
+        message.from_user.id,
+        fallback=state.get("proactive_preferences"),
+    )
+    is_enabled = bool(proactive_preferences.get("proactive_enabled", True))
 
     if command == "/quiet":
         if argument in {"", "on"}:
             new_state = _set_proactive_enabled(state, False)
             await state_repository.save(message.from_user.id, new_state)
+            await user_preference_repository.set_proactive_enabled(message.from_user.id, False)
             await message.answer(
                 "Тихий режим включён. Я не буду писать первой, пока ты сам снова это не разрешишь.\n\n"
                 "Вернуть можно командой /proactive on или /quiet off."
@@ -114,6 +123,7 @@ async def _handle_proactive_command(message: Message, state_repository) -> bool:
         if argument == "off":
             new_state = _set_proactive_enabled(state, True)
             await state_repository.save(message.from_user.id, new_state)
+            await user_preference_repository.set_proactive_enabled(message.from_user.id, True)
             await message.answer("Тихий режим выключен. Если диалог подходящий, я снова смогу иногда написать первой.")
             return True
         await message.answer(_proactive_help_text())
@@ -130,11 +140,13 @@ async def _handle_proactive_command(message: Message, state_repository) -> bool:
     if argument == "on":
         new_state = _set_proactive_enabled(state, True)
         await state_repository.save(message.from_user.id, new_state)
+        await user_preference_repository.set_proactive_enabled(message.from_user.id, True)
         await message.answer("Инициативные сообщения включены. Я смогу иногда аккуратно напомнить о себе.")
         return True
     if argument == "off":
         new_state = _set_proactive_enabled(state, False)
         await state_repository.save(message.from_user.id, new_state)
+        await user_preference_repository.set_proactive_enabled(message.from_user.id, False)
         await message.answer("Инициативные сообщения отключены. Буду писать только когда ты сам напишешь.")
         return True
 
@@ -149,6 +161,7 @@ async def chat_handler(
     ai_service,
     long_term_memory_service,
     state_repository,
+    user_preference_repository,
     payment_service,
     user_service,
     referral_service,
@@ -178,9 +191,9 @@ async def chat_handler(
         await message.answer(chat_settings["write_prompt_message"])
         return
 
-    if await _handle_proactive_command(message, state_repository):
+    if await _handle_proactive_command(message, user_preference_repository, state_repository):
         return
-    if await _handle_timezone_command(message, state_repository):
+    if await _handle_timezone_command(message, user_preference_repository, state_repository):
         return
 
     if user_text == ui_settings["modes_button_text"]:

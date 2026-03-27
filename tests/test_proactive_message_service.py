@@ -21,6 +21,18 @@ class FakeStateRepository:
         return self.state
 
 
+class FakeUserPreferenceRepository:
+    def __init__(self, preferences=None):
+        self.preferences = preferences or {
+            "proactive_enabled": True,
+            "timezone": None,
+            "updated_at": None,
+        }
+
+    async def get_preferences(self, user_id: int, *, fallback=None):
+        return dict(self.preferences)
+
+
 class FakeProactiveRepository:
     def __init__(self, silence=False, recent=False):
         self.silence = silence
@@ -47,6 +59,15 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
             client=None,
             message_repository=None,
             proactive_repository=FakeProactiveRepository(silence=silence, recent=recent),
+            user_preference_repository=FakeUserPreferenceRepository(
+                {
+                    "proactive_enabled": bool(
+                        (state.get("proactive_preferences") or {}).get("enabled", True)
+                    ),
+                    "timezone": (state.get("proactive_preferences") or {}).get("timezone"),
+                    "updated_at": None,
+                }
+            ),
             state_repository=FakeStateRepository(state),
             long_term_memory_service=None,
             keyword_memory_service=None,
