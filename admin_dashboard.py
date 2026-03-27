@@ -1,3 +1,4 @@
+import asyncio
 import json
 import secrets
 from contextlib import asynccontextmanager
@@ -26,6 +27,13 @@ from services.telegram_formatting import (
 security = HTTPBasic()
 settings = get_settings()
 container = Container(settings)
+
+
+class DashboardMessageDeliveryError(Exception):
+    def __init__(self, detail: str, status_code: int = 400):
+        super().__init__(detail)
+        self.detail = detail
+        self.status_code = status_code
 
 
 def require_auth(credentials: HTTPBasicCredentials = Depends(security)) -> str:
@@ -153,6 +161,85 @@ def _get_dashboard_bot() -> Bot:
     if bot is None:
         raise HTTPException(status_code=503, detail="Telegram bot is not initialized")
     return bot
+
+
+def _build_formatting_options(active_mode: str) -> TelegramFormattingOptions:
+    mode_config = container.admin_settings_service.get_modes().get(active_mode, {})
+    return TelegramFormattingOptions(
+        allow_bold=bool(mode_config.get("allow_bold", False)),
+        allow_italic=bool(mode_config.get("allow_italic", False)),
+    )
+
+
+async def _deliver_dashboard_message(
+    user_id: int,
+    text: str,
+    *,
+    invalidate_metrics: bool = True,
+) -> dict[str, Any]:
+    user = await container.user_service.get_user(user_id)
+    if user is None:
+        raise DashboardMessageDeliveryError("Пользователь не найден", status_code=404)
+
+    state_payload = await container.state_repository.get(user_id)
+    active_mode = str(
+        state_payload.get("active_mode")
+        or user.get("active_mode")
+        or "base"
+    ).strip() or "base"
+    formatting_options = _build_formatting_options(active_mode)
+    formatted_text = format_model_response_for_telegram(text, formatting_options)
+    outbound_text = formatted_text or escape_plain_text_for_telegram(text)
+    bot = _get_dashboard_bot()
+
+    try:
+        try:
+            await bot.send_message(chat_id=user_id, text=outbound_text)
+        except TelegramBadRequest:
+            await bot.send_message(
+                chat_id=user_id,
+                text=escape_plain_text_for_telegram(text),
+            )
+    except TelegramForbiddenError as exc:
+        raise DashboardMessageDeliveryError(
+            f"Нельзя написать пользователю: {exc}",
+            status_code=403,
+        ) from exc
+    except Exception as exc:
+        raise DashboardMessageDeliveryError(
+            f"Не удалось отправить сообщение: {exc}",
+            status_code=502,
+        ) from exc
+
+    new_state = container.human_memory_service.apply_assistant_message(
+        state_payload,
+        text,
+        source="reply",
+    )
+    try:
+        async with container.db.transaction():
+            await container.state_repository.save(user_id, new_state, commit=False)
+            await container.message_repository.save(user_id, "assistant", text, commit=False)
+    except Exception as exc:
+        raise DashboardMessageDeliveryError(
+            f"Сообщение отправлено, но не сохранилось в базе: {exc}",
+            status_code=500,
+        ) from exc
+
+    if invalidate_metrics:
+        await _invalidate_metrics_cache()
+
+    try:
+        container.conversation_summary_service.schedule_refresh(user_id, new_state)
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "user_id": user_id,
+        "text": text,
+        "active_mode": active_mode,
+    }
 
 
 async def _build_health() -> dict[str, Any]:
@@ -353,69 +440,96 @@ async def api_user_send_message(
     request: Request,
     _: str = Depends(require_auth),
 ):
-    user = await container.user_service.get_user(user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-
     payload = await request.json()
     text = str(payload.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Текст сообщения не может быть пустым")
 
-    state_payload = await container.state_repository.get(user_id)
-    active_mode = str(
-        state_payload.get("active_mode")
-        or user.get("active_mode")
-        or "base"
-    ).strip() or "base"
-    mode_config = container.admin_settings_service.get_modes().get(active_mode, {})
-    formatting_options = TelegramFormattingOptions(
-        allow_bold=bool(mode_config.get("allow_bold", False)),
-        allow_italic=bool(mode_config.get("allow_italic", False)),
-    )
-    formatted_text = format_model_response_for_telegram(text, formatting_options)
-    outbound_text = formatted_text or escape_plain_text_for_telegram(text)
-    bot = _get_dashboard_bot()
-
     try:
+        return await _deliver_dashboard_message(user_id, text)
+    except DashboardMessageDeliveryError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@app.post("/api/users/broadcast")
+async def api_users_broadcast(
+    request: Request,
+    _: str = Depends(require_auth),
+):
+    payload = await request.json()
+    text = str(payload.get("text") or "").strip()
+    raw_user_ids = payload.get("user_ids")
+    if not text:
+        raise HTTPException(status_code=400, detail="Текст сообщения не может быть пустым")
+    if not isinstance(raw_user_ids, list):
+        raise HTTPException(status_code=400, detail="Передай список user_ids")
+
+    user_ids: list[int] = []
+    seen: set[int] = set()
+    for value in raw_user_ids:
         try:
-            await bot.send_message(chat_id=user_id, text=outbound_text)
-        except TelegramBadRequest:
-            await bot.send_message(
-                chat_id=user_id,
-                text=escape_plain_text_for_telegram(text),
+            user_id = int(str(value).strip())
+        except (TypeError, ValueError):
+            continue
+        if user_id <= 0 or user_id in seen:
+            continue
+        seen.add(user_id)
+        user_ids.append(user_id)
+
+    if not user_ids:
+        raise HTTPException(status_code=400, detail="Не выбраны получатели")
+    if len(user_ids) > 100:
+        raise HTTPException(status_code=400, detail="За один раз можно отправить максимум 100 сообщений")
+
+    sent: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
+
+    for index, user_id in enumerate(user_ids):
+        try:
+            result = await _deliver_dashboard_message(
+                user_id,
+                text,
+                invalidate_metrics=False,
             )
-    except TelegramForbiddenError as exc:
-        raise HTTPException(status_code=403, detail=f"Нельзя написать пользователю: {exc}") from exc
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Не удалось отправить сообщение: {exc}") from exc
+            sent.append(
+                {
+                    "user_id": user_id,
+                    "active_mode": result["active_mode"],
+                }
+            )
+        except DashboardMessageDeliveryError as exc:
+            failed.append(
+                {
+                    "user_id": user_id,
+                    "status_code": exc.status_code,
+                    "error": exc.detail,
+                }
+            )
+        except Exception as exc:
+            failed.append(
+                {
+                    "user_id": user_id,
+                    "status_code": 500,
+                    "error": f"Неожиданная ошибка: {exc}",
+                }
+            )
 
-    new_state = container.human_memory_service.apply_assistant_message(
-        state_payload,
-        text,
-        source="reply",
-    )
-    try:
-        async with container.db.transaction():
-            await container.state_repository.save(user_id, new_state, commit=False)
-            await container.message_repository.save(user_id, "assistant", text, commit=False)
-        await _invalidate_metrics_cache()
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Сообщение отправлено, но не сохранилось в базе: {exc}",
-        ) from exc
+        if index < len(user_ids) - 1:
+            await asyncio.sleep(0.05)
 
-    try:
-        container.conversation_summary_service.schedule_refresh(user_id, new_state)
-    except Exception:
-        pass
+    if sent:
+        try:
+            await _invalidate_metrics_cache()
+        except Exception:
+            pass
 
     return {
-        "ok": True,
-        "user_id": user_id,
-        "text": text,
-        "active_mode": active_mode,
+        "ok": not failed,
+        "requested_count": len(user_ids),
+        "sent_count": len(sent),
+        "failed_count": len(failed),
+        "sent": sent,
+        "failed": failed,
     }
 
 
@@ -678,7 +792,7 @@ def _dashboard_html() -> str:
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
     .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
-    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px;margin-bottom:16px}.composer textarea{min-height:120px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px;margin-bottom:16px}.composer textarea{min-height:120px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:120px;max-height:240px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
   </style>
 </head>
@@ -755,6 +869,21 @@ def _dashboard_html() -> str:
               <button class="primary" id="search-users">Найти</button>
               <button id="reset-users">Сбросить</button>
             </div>
+            <div class="composer">
+              <label>Групповое сообщение
+                <textarea id="bulk_message_text" placeholder="Сообщение уйдет только выбранным пользователям"></textarea>
+              </label>
+              <div id="bulk-message-templates" class="template-list"></div>
+              <div class="bulk-summary">
+                <div class="muted" id="selected-users-count">Выбрано пользователей: 0</div>
+                <div class="actions">
+                  <button id="select-visible-users">Выбрать видимых</button>
+                  <button id="clear-selected-users">Снять выбор</button>
+                  <button class="primary" id="send-bulk-message">Отправить выбранным</button>
+                </div>
+              </div>
+              <pre id="bulk-message-results" class="memory-box bulk-result">Здесь появится отчет по рассылке.</pre>
+            </div>
             <div id="users-table"></div>
           </div>
         </div>
@@ -815,6 +944,7 @@ def _dashboard_html() -> str:
             <h3>История сообщений</h3>
             <div class="composer">
               <label>Сообщение пользователю<textarea id="conversation_outbound_text" placeholder="Написать пользователю от имени бота"></textarea></label>
+              <div id="conversation-message-templates" class="template-list"></div>
               <div class="composer-meta">
                 <div class="muted">Сообщение уйдет в Telegram и сохранится в историю как ответ бота.</div>
                 <button class="primary" id="send-conversation-message">Отправить</button>
@@ -1094,7 +1224,12 @@ def _dashboard_html() -> str:
     </main>
   </div>
   <script>
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null};
+    const MESSAGE_TEMPLATES=[
+      'Привет. Я на связи, если захочется продолжить разговор.',
+      'Как ты сегодня? Можешь ответить в любом темпе.',
+      'Если хочешь, можем спокойно вернуться к тому, на чем остановились.'
+    ];
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastResult:null};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
     const escText=v=>esc(v).replaceAll('\\n','<br>');
@@ -1105,6 +1240,14 @@ def _dashboard_html() -> str:
     const onAll=(selector,event,handler)=>{$$(selector).forEach(el=>el.addEventListener(event,handler))};
     async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`Ошибка запроса: ${path}`);return d}
     function notice(text,kind='ok'){const n=$('#notice');n.textContent=text;n.className='notice '+kind}
+    function normalizeUserId(value){const id=String(value??'').trim();return /^\\d+$/.test(id)&&Number(id)>0?id:''}
+    function selectedUserIds(){return [...state.selectedUserIds].sort((a,b)=>Number(a)-Number(b))}
+    function selectedVisibleUserIds(){return (state.users?.items||[]).map(user=>normalizeUserId(user.id)).filter(Boolean)}
+    function syncSelectedUsersUi(){const ids=selectedUserIds();const visibleIds=selectedVisibleUserIds();const selectedVisible=visibleIds.filter(id=>state.selectedUserIds.has(id));const countEl=$('#selected-users-count');if(countEl)countEl.textContent=`Выбрано пользователей: ${ids.length}${visibleIds.length?` • видимых: ${selectedVisible.length}/${visibleIds.length}`:''}`;const master=$('#users-select-all-visible');if(master){master.checked=!!visibleIds.length&&selectedVisible.length===visibleIds.length;master.indeterminate=selectedVisible.length>0&&selectedVisible.length<visibleIds.length}$$('[data-user-select]').forEach(input=>{input.checked=state.selectedUserIds.has(String(input.dataset.userSelect))})}
+    function setSelectedUsers(ids,selected=true){(ids||[]).map(normalizeUserId).filter(Boolean).forEach(id=>{if(selected)state.selectedUserIds.add(id);else state.selectedUserIds.delete(id)});syncSelectedUsersUi()}
+    function renderMessageTemplates(){const html=MESSAGE_TEMPLATES.map((text,index)=>`<button type="button" class="template-chip" data-template-index="${index}">Шаблон ${index+1}</button>`).join('');const bulk=$('#bulk-message-templates');if(bulk)bulk.innerHTML=html;const conversation=$('#conversation-message-templates');if(conversation)conversation.innerHTML=html}
+    function applyTemplate(textareaSelector,index){const textarea=$(textareaSelector);if(!textarea)return;const template=MESSAGE_TEMPLATES[index];if(!template)return;textarea.value=template;textarea.focus()}
+    function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится отчет по рассылке.';return}const lines=[`Запрошено: ${result.requested_count??0}`,`Отправлено: ${result.sent_count??0}`,`Ошибок: ${result.failed_count??0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
@@ -1124,8 +1267,8 @@ def _dashboard_html() -> str:
     function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'DB OK','DB error')} ${statusPill(redis.ok,'Redis OK','Redis error')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'OK',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["AI модель",esc(ai.model||ai.openai_model||'Не указана')],["Занято воркеров",esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь AI",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["DB статус",`${statusPill(db.ok,'OK','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis статус",`${statusPill(redis.ok,'OK','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Premium)':' (Free)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
-    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>Режим</th><th>Premium</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`).join('')}</tbody></table>`}
-    function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}}
+    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Username</th><th>Имя</th><th>Режим</th><th>Premium</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
+    function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult)}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
     function memoryCategoryOptions(items){return (items||[]).map(item=>`<option value="${esc(item.key)}">${esc(item.label)}</option>`).join('')}
     function resetMemoryEditor(categories){const categorySelect=$('#memory_editor_category');const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];categorySelect.innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id','');setValue('#memory_editor_weight','1.0');setValue('#memory_editor_value','');setChecked('#memory_editor_pinned',false);if(categoryList.length){setValue('#memory_editor_category',categoryList[0].key)}state.currentMemoryId=null}
@@ -1276,6 +1419,7 @@ def _dashboard_html() -> str:
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
     async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
     async function sendConversationMessage(){const rawUserId=String($('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||state.currentConversation?.user?.id||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const textarea=$('#conversation_outbound_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст сообщения');const button=$('#send-conversation-message');if(button)button.disabled=true;try{await api(`/api/users/${encodeURIComponent(rawUserId)}/message`,{method:'POST',body:JSON.stringify({text})});if(textarea)textarea.value='';await loadConversation(rawUserId);notice('Сообщение отправлено.')}finally{if(button)button.disabled=false}}
+    async function sendBulkMessage(){const ids=selectedUserIds();if(!ids.length)throw new Error('Выбери хотя бы одного пользователя');const textarea=$('#bulk_message_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст для рассылки');if(!window.confirm(`Отправить сообщение ${ids.length} пользователям?`))return;const button=$('#send-bulk-message');if(button)button.disabled=true;const results=$('#bulk-message-results');if(results)results.textContent='Отправляю сообщения...';try{const result=await api('/api/users/broadcast',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text})});state.lastBroadcastResult=result;renderBroadcastResult(result);await refreshUsers();notice(result.failed_count?`Рассылка завершена: ${result.sent_count} отправлено, ${result.failed_count} с ошибкой.`:`Рассылка завершена: отправлено ${result.sent_count}.`)}finally{if(button)button.disabled=false}}
     async function toggleMemoryPin(memoryId,pinned){await api(`/api/memories/${encodeURIComponent(memoryId)}/pin`,{method:'POST',body:JSON.stringify({pinned:!!Number(pinned)})});await loadConversation();notice('Статус памяти обновлен.')}
     function memoryEditorPayload(){return {user_id:Number($('#conversation_user_id').value||0),category:$('#memory_editor_category').value.trim(),value:$('#memory_editor_value').value.trim(),weight:Number($('#memory_editor_weight').value||0),pinned:$('#memory_editor_pinned').checked}}
     async function saveMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const payload=memoryEditorPayload();if(!payload.category)throw new Error('Выбери категорию memory');if(!payload.value)throw new Error('Заполни текст memory');const memoryId=String($('#memory_editor_id').value||'').trim();const result=memoryId?await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'PUT',body:JSON.stringify(payload)}):await api(`/api/users/${encodeURIComponent(rawUserId)}/memories`,{method:'POST',body:JSON.stringify(payload)});state.currentMemoryId=result.memory?.id||null;await loadConversation(rawUserId);notice(memoryId?'Memory обновлена.':'Memory создана.')}
@@ -1292,6 +1436,9 @@ def _dashboard_html() -> str:
     on('#open-user-conversation','click',()=>{setValue('#conversation_user_id',$('#user_user_id')?.value?.trim()||'');openView('conversations');loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error'))});
     on('#load-conversation','click',()=>loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error')));
     on('#send-conversation-message','click',()=>sendConversationMessage().catch(e=>notice(e.message,'error')));
+    on('#send-bulk-message','click',()=>sendBulkMessage().catch(e=>notice(e.message,'error')));
+    on('#select-visible-users','click',()=>{setSelectedUsers(selectedVisibleUserIds(),true);notice('Видимые пользователи выбраны.')});
+    on('#clear-selected-users','click',()=>{state.selectedUserIds.clear();syncSelectedUsersUi();notice('Выбор очищен.')});
     on('#memory-editor-new','click',()=>resetMemoryEditor());
     on('#memory-editor-save','click',()=>saveMemoryEditor().catch(e=>notice(e.message,'error')));
     on('#memory-editor-delete','click',()=>deleteMemoryEditor().catch(e=>notice(e.message,'error')));
@@ -1301,6 +1448,9 @@ def _dashboard_html() -> str:
     on('#search-users','click',()=>refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error')));
     on('#reset-users','click',()=>{$('#user-search').value='';refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});
     on('#users-table','click',event=>{const button=event.target.closest('[data-user-pick]');if(!button)return;$('#user_user_id').value=button.dataset.userPick;loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error'))});
+    on('#users-table','change',event=>{const checkbox=event.target.closest('[data-user-select]');if(checkbox){setSelectedUsers([checkbox.dataset.userSelect],checkbox.checked);return}if(event.target.id==='users-select-all-visible'){setSelectedUsers(selectedVisibleUserIds(),event.target.checked)}});
+    on('#bulk-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#bulk_message_text',Number(button.dataset.templateIndex))});
+    on('#conversation-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#conversation_outbound_text',Number(button.dataset.templateIndex))});
     on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines')?.value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
     on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
     on('#export-json','click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));
@@ -1314,6 +1464,8 @@ def _dashboard_html() -> str:
     on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Live-тест завершен.')).catch(e=>notice(e.message,'error'))});
     window.addEventListener('error',e=>{console.error('Admin dashboard error',e.error||e.message);notice(`Ошибка интерфейса: ${e.message||'см. консоль браузера'}`,'error')});
     window.addEventListener('unhandledrejection',e=>{console.error('Admin dashboard rejection',e.reason);notice(`Ошибка загрузки: ${e.reason?.message||e.reason||'неизвестно'}`,'error')});
+    renderMessageTemplates();
+    renderBroadcastResult(null);
     refreshAll().catch(e=>notice(e.message,'error'));
   </script>
 </body>
