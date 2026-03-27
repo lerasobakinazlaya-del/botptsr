@@ -212,17 +212,33 @@ class UserService:
                 WHERE CAST(id AS TEXT) LIKE ?
                    OR COALESCE(username, '') LIKE ?
                    OR COALESCE(first_name, '') LIKE ?
-                ORDER BY is_admin DESC, is_premium DESC, created_at DESC, id DESC
+                ORDER BY
+                    CASE
+                        WHEN CAST(id AS TEXT) = ? THEN 0
+                        WHEN LOWER(COALESCE(username, '')) = LOWER(?) THEN 1
+                        WHEN LOWER(COALESCE(first_name, '')) = LOWER(?) THEN 2
+                        ELSE 3
+                    END,
+                    created_at DESC,
+                    id DESC
                 LIMIT ?
                 """,
-                (like_query, like_query, like_query, safe_limit),
+                (
+                    like_query,
+                    like_query,
+                    like_query,
+                    normalized_query,
+                    normalized_query,
+                    normalized_query,
+                    safe_limit,
+                ),
             )
         else:
             cursor = await self.db.connection.execute(
                 """
                 SELECT id, username, first_name, active_mode, is_premium, is_admin, created_at
                 FROM users
-                ORDER BY is_admin DESC, is_premium DESC, created_at DESC, id DESC
+                ORDER BY created_at DESC, id DESC
                 LIMIT ?
                 """,
                 (safe_limit,),
