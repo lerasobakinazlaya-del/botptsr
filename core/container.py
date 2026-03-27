@@ -17,14 +17,17 @@ from services.access_engine import AccessEngine
 from services.ai_service import AIService
 from services.admin_settings_service import AdminSettingsService
 from services.conversation_summary_service import ConversationSummaryService
+from services.human_memory_service import HumanMemoryService
 from services.keyword_memory_service import KeywordMemoryService
 from services.long_term_memory_service import LongTermMemoryService
 from services.memory_engine import MemoryEngine
+from services.mode_access_service import ModeAccessService
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
 from services.proactive_message_service import ProactiveMessageService
 from services.prompt_builder import PromptBuilder
 from services.referral_service import ReferralService
+from services.reengagement_service import ReengagementService
 from services.state_engine import StateEngine
 from services.user_service import UserService
 
@@ -60,6 +63,8 @@ class Container:
             keyword_memory_service=self.keyword_memory_service,
             settings_service=self.admin_settings_service,
         )
+        self.human_memory_service = HumanMemoryService()
+        self.mode_access_service = ModeAccessService()
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
         self.access_engine = AccessEngine(self.admin_settings_service)
 
@@ -70,6 +75,7 @@ class Container:
             memory_engine=self.memory_engine,
             keyword_memory_service=self.keyword_memory_service,
             long_term_memory_service=self.long_term_memory_service,
+            human_memory_service=self.human_memory_service,
             prompt_builder=self.prompt_builder,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
@@ -112,6 +118,14 @@ class Container:
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
             user_service=self.user_service,
+        )
+        self.reengagement_service = ReengagementService(
+            ai_service=self.ai_service,
+            message_repository=self.message_repository,
+            state_repository=self.state_repository,
+            user_service=self.user_service,
+            settings_service=self.admin_settings_service,
+            db=self.db,
         )
 
     def _create_redis_client(self) -> Redis | None:

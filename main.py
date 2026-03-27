@@ -35,10 +35,14 @@ async def lifespan(container: Container, bot: Bot):
     await container.ai_service.start()
     logging.info("Starting proactive messaging...")
     await container.proactive_message_service.start(bot)
+    logging.info("Starting reengagement worker...")
+    await container.reengagement_service.start(bot)
 
     try:
         yield
     finally:
+        logging.info("Stopping reengagement worker...")
+        await container.reengagement_service.stop()
         logging.info("Stopping proactive messaging...")
         await container.proactive_message_service.close()
 
@@ -76,6 +80,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["redis"] = container.redis
     dp["admin_settings_service"] = container.admin_settings_service
     dp["conversation_summary_service"] = container.conversation_summary_service
+    dp["mode_access_service"] = container.mode_access_service
 
     dp.message.middleware(LoggingMiddleware())
     dp.message.middleware(

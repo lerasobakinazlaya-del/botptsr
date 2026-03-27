@@ -13,6 +13,7 @@ class PromptBuilder:
         active_mode: str = "base",
         memory_context: str = "",
         user_message: str = "",
+        extra_instruction: str = "",
     ) -> str:
         templates = self.settings_service.get_prompt_templates()
         runtime_settings = self.settings_service.get_runtime_settings()
@@ -57,6 +58,8 @@ class PromptBuilder:
         parts.append(f"{templates['state_intro']}\n{state_summary}")
         parts.append(response_contract)
         parts.append(language_instruction)
+        if extra_instruction.strip():
+            parts.append(extra_instruction.strip())
         parts.append(templates["final_instruction"])
 
         return "\n\n".join(part.strip() for part in parts if part and part.strip())
@@ -83,6 +86,11 @@ class PromptBuilder:
             f"- Closeness budget: {self._describe_access_budget(access_level, control)}.",
             f"- Active mode texture: keep '{active_mode}' present in tone, not as a gimmick.",
         ]
+        adaptive_mode = str(state.get("adaptive_mode") or "").strip()
+        if adaptive_mode and adaptive_mode != active_mode:
+            lines.append(f"- Adaptive mode suggestion right now: '{adaptive_mode}'.")
+        if "interaction_count" in state:
+            lines.append(f"- Interaction count so far: {state.get('interaction_count')}.")
 
         return "\n".join(lines)
 

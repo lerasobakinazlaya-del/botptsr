@@ -45,6 +45,7 @@ class AdminSettingsService:
             "log_full_prompt": False,
             "debug_prompt_user_id": None,
             "response_language": "ru",
+            "mode_overrides": {},
         },
         "chat": {
             "typing_action_enabled": True,
@@ -144,6 +145,23 @@ class AdminSettingsService:
             "premium_daily_messages_limit": 150,
             "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
             "admins_bypass_daily_limits": True,
+            "mode_preview_enabled": False,
+            "mode_daily_limits": {
+                "passion": 5,
+                "mentor": 5,
+                "night": 5,
+                "dominant": 5,
+            },
+            "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium.",
+        },
+        "engagement": {
+            "adaptive_mode_enabled": True,
+            "reengagement_enabled": True,
+            "reengagement_idle_hours": 24,
+            "reengagement_min_hours_between": 72,
+            "reengagement_recent_window_days": 30,
+            "reengagement_poll_seconds": 300,
+            "reengagement_batch_size": 5,
         },
         "referral": {
             "enabled": True,
@@ -271,6 +289,7 @@ class AdminSettingsService:
         self.mode_catalog_path = self.config_dir / "mode_catalog.json"
         self.log_path = self.logs_dir / "bot.log"
         self._json_cache: dict[Path, tuple[int | None, dict[str, Any]]] = {}
+        self._logs_cache: dict[tuple[int, int, int], dict[str, Any]] = {}
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.ensure_defaults()
@@ -366,11 +385,27 @@ class AdminSettingsService:
 
     def get_logs(self, lines: int = 200) -> dict[str, Any]:
         if not self.log_path.exists():
+            self._logs_cache.clear()
             return {"exists": False, "path": str(self.log_path), "size_bytes": 0, "updated_at": None, "lines": []}
-        raw_lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-        tail = raw_lines[-max(1, min(lines, 1000)):]
+
+        lines = max(1, min(lines, 1000))
         stat = self.log_path.stat()
-        return {"exists": True, "path": str(self.log_path), "size_bytes": stat.st_size, "updated_at": stat.st_mtime, "lines": tail}
+        cache_key = (lines, stat.st_mtime_ns, stat.st_size)
+        cached = self._logs_cache.get(cache_key)
+        if cached is not None:
+            return deepcopy(cached)
+
+        raw_lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        tail = raw_lines[-lines:]
+        payload = {
+            "exists": True,
+            "path": str(self.log_path),
+            "size_bytes": stat.st_size,
+            "updated_at": stat.st_mtime,
+            "lines": tail,
+        }
+        self._logs_cache = {cache_key: deepcopy(payload)}
+        return payload
 
     def export_all(self) -> dict[str, Any]:
         return {
@@ -383,7 +418,22 @@ class AdminSettingsService:
     def _migrate_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, dict):
             return deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
-        if any(key in payload for key in ("ai", "chat", "proactive", "safety", "state_engine", "access", "limits", "referral", "payment", "ui")):
+        if any(
+            key in payload
+            for key in (
+                "ai",
+                "chat",
+                "proactive",
+                "safety",
+                "state_engine",
+                "access",
+                "limits",
+                "engagement",
+                "referral",
+                "payment",
+                "ui",
+            )
+        ):
             return payload
 
         migrated = deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
@@ -454,6 +504,7 @@ class AdminSettingsService:
         ai["log_full_prompt"] = bool(ai["log_full_prompt"])
         ai["debug_prompt_user_id"] = self._normalize_optional_int(ai.get("debug_prompt_user_id"))
         ai["response_language"] = str(ai.get("response_language") or "ru").strip() or "ru"
+        ai["mode_overrides"] = self._normalize_mode_overrides(ai.get("mode_overrides"))
 
         chat = current["chat"]
         chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
@@ -530,6 +581,21 @@ class AdminSettingsService:
             multiline=True,
         )
         limits["admins_bypass_daily_limits"] = bool(limits.get("admins_bypass_daily_limits", True))
+        limits["mode_preview_enabled"] = bool(limits.get("mode_preview_enabled"))
+        limits["mode_daily_limits"] = self._normalize_int_map(limits.get("mode_daily_limits"), minimum=0)
+        limits["mode_preview_exhausted_message"] = self._normalize_text(
+            limits.get("mode_preview_exhausted_message", ""),
+            multiline=True,
+        )
+
+        engagement = current["engagement"]
+        engagement["adaptive_mode_enabled"] = bool(engagement.get("adaptive_mode_enabled"))
+        engagement["reengagement_enabled"] = bool(engagement.get("reengagement_enabled"))
+        engagement["reengagement_idle_hours"] = max(1, int(engagement.get("reengagement_idle_hours", 24)))
+        engagement["reengagement_min_hours_between"] = max(1, int(engagement.get("reengagement_min_hours_between", 72)))
+        engagement["reengagement_recent_window_days"] = max(1, int(engagement.get("reengagement_recent_window_days", 30)))
+        engagement["reengagement_poll_seconds"] = max(30, int(engagement.get("reengagement_poll_seconds", 300)))
+        engagement["reengagement_batch_size"] = max(1, int(engagement.get("reengagement_batch_size", 5)))
 
         referral = current["referral"]
         referral["enabled"] = bool(referral["enabled"])
@@ -623,6 +689,59 @@ class AdminSettingsService:
             key: max(minimum, min(maximum, float(value)))
             for key, value in payload.items()
         }
+
+    def _normalize_int_map(self, payload: Any, minimum: int) -> dict[str, int]:
+        if not isinstance(payload, dict):
+            return {}
+
+        normalized: dict[str, int] = {}
+        for key, value in payload.items():
+            try:
+                normalized[str(key)] = max(minimum, int(value))
+            except (TypeError, ValueError):
+                continue
+        return normalized
+
+    def _normalize_mode_overrides(self, payload: Any) -> dict[str, dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return {}
+
+        normalized: dict[str, dict[str, Any]] = {}
+        for mode_key, raw_override in payload.items():
+            if not isinstance(raw_override, dict):
+                continue
+
+            override: dict[str, Any] = {}
+            model = str(raw_override.get("model") or "").strip()
+            if model:
+                override["model"] = model
+
+            if "temperature" in raw_override and raw_override.get("temperature") not in ("", None):
+                try:
+                    override["temperature"] = max(0.0, min(2.0, float(raw_override["temperature"])))
+                except (TypeError, ValueError):
+                    pass
+
+            for key, minimum in (
+                ("memory_max_tokens", 100),
+                ("history_message_limit", 1),
+                ("timeout_seconds", 1),
+                ("max_retries", 0),
+            ):
+                if raw_override.get(key) in ("", None):
+                    continue
+                try:
+                    override[key] = max(minimum, int(raw_override[key]))
+                except (TypeError, ValueError):
+                    continue
+
+            prompt_suffix = self._normalize_text(raw_override.get("prompt_suffix", ""), multiline=True)
+            if prompt_suffix:
+                override["prompt_suffix"] = prompt_suffix
+
+            normalized[str(mode_key)] = override
+
+        return normalized
 
     def _ensure_json_file(self, path: Path, default: dict[str, Any]) -> None:
         if not path.exists():
