@@ -2,13 +2,32 @@
   "ai": {
     "openai_model": "gpt-4o-mini",
     "temperature": 0.9,
+    "top_p": 1.0,
+    "frequency_penalty": 0.15,
+    "presence_penalty": 0.05,
+    "max_completion_tokens": 420,
+    "reasoning_effort": "",
+    "verbosity": "medium",
     "timeout_seconds": 20,
     "max_retries": 2,
     "memory_max_tokens": 1500,
     "history_message_limit": 20,
+    "long_term_memory_enabled": true,
+    "long_term_memory_max_items": 12,
+    "long_term_memory_auto_prune_enabled": true,
+    "long_term_memory_soft_limit": 60,
+    "episodic_summary_enabled": true,
+    "episodic_summary_interval": 6,
+    "episodic_summary_min_interactions": 4,
+    "episodic_summary_history_limit": 18,
+    "episodic_summary_model": "",
+    "episodic_summary_temperature": 0.2,
+    "episodic_summary_max_tokens": 220,
+    "episodic_summary_reasoning_effort": "",
     "log_full_prompt": false,
     "debug_prompt_user_id": null,
-    "response_language": "ru"
+    "response_language": "ru",
+    "mode_overrides": {}
   },
   "chat": {
     "typing_action_enabled": true,
@@ -16,6 +35,30 @@
     "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
     "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
     "write_prompt_message": "Я рядом. Напиши, что у тебя на уме."
+  },
+  "proactive": {
+    "enabled": true,
+    "scan_interval_seconds": 180,
+    "min_inactive_hours": 12,
+    "max_inactive_days": 60,
+    "cooldown_hours": 72,
+    "min_user_messages": 4,
+    "min_interaction_count": 1,
+    "candidate_batch_size": 25,
+    "max_messages_per_cycle": 3,
+    "history_limit": 8,
+    "per_message_delay_seconds": 1.0,
+    "temperature": 0.85,
+    "max_completion_tokens": 160,
+    "reasoning_effort": "",
+    "model": "",
+    "min_interest": 0.0,
+    "max_irritation": 0.35,
+    "max_fatigue": 0.65,
+    "quiet_hours_enabled": true,
+    "quiet_hours_start": 0,
+    "quiet_hours_end": 8,
+    "timezone": "Europe/Moscow"
   },
   "safety": {
     "throttle_rate_limit_seconds": 1.5,
@@ -104,7 +147,24 @@
     "premium_daily_messages_enabled": false,
     "premium_daily_messages_limit": 150,
     "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
-    "admins_bypass_daily_limits": true
+    "admins_bypass_daily_limits": true,
+    "mode_preview_enabled": false,
+    "mode_daily_limits": {
+      "passion": 5,
+      "mentor": 5,
+      "night": 5,
+      "dominant": 5
+    },
+    "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium."
+  },
+  "engagement": {
+    "adaptive_mode_enabled": true,
+    "reengagement_enabled": true,
+    "reengagement_idle_hours": 24,
+    "reengagement_min_hours_between": 72,
+    "reengagement_recent_window_days": 30,
+    "reengagement_poll_seconds": 300,
+    "reengagement_batch_size": 5
   },
   "referral": {
     "enabled": true,

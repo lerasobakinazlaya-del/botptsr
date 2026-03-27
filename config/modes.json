@@ -6,7 +6,9 @@
     "structure": 5,
     "dominance": 3,
     "initiative": 3,
-    "emoji_level": 1
+    "emoji_level": 1,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "comfort": {
     "warmth": 9,
@@ -15,7 +17,9 @@
     "structure": 3,
     "dominance": 1,
     "initiative": 4,
-    "emoji_level": 2
+    "emoji_level": 2,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "passion": {
     "warmth": 8,
@@ -24,7 +28,9 @@
     "structure": 2,
     "dominance": 4,
     "initiative": 6,
-    "emoji_level": 3
+    "emoji_level": 3,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "mentor": {
     "warmth": 5,
@@ -33,7 +39,9 @@
     "structure": 9,
     "dominance": 5,
     "initiative": 5,
-    "emoji_level": 0
+    "emoji_level": 0,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "night": {
     "warmth": 8,
@@ -42,7 +50,9 @@
     "structure": 2,
     "dominance": 5,
     "initiative": 6,
-    "emoji_level": 1
+    "emoji_level": 1,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "free_talk": {
     "warmth": 6,
@@ -51,7 +61,9 @@
     "structure": 4,
     "dominance": 3,
     "initiative": 5,
-    "emoji_level": 0
+    "emoji_level": 0,
+    "allow_bold": false,
+    "allow_italic": false
   },
   "dominant": {
     "warmth": 4,
@@ -60,6 +72,8 @@
     "structure": 7,
     "dominance": 9,
     "initiative": 7,
-    "emoji_level": 0
+    "emoji_level": 0,
+    "allow_bold": false,
+    "allow_italic": false
   }
 }
