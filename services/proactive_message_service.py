@@ -95,8 +95,10 @@ class ProactiveMessageService:
             limit=settings["candidate_batch_size"],
         )
         if not candidates:
+            logger.debug("[PROACTIVE] No inactive candidates found")
             return
 
+        logger.info("[PROACTIVE] Found %s inactive candidates", len(candidates))
         sent_count = 0
         for candidate in candidates:
             if sent_count >= settings["max_messages_per_cycle"]:
@@ -125,15 +127,18 @@ class ProactiveMessageService:
         user_id = int(candidate["user_id"])
         user = await self.user_service.get_user(user_id)
         if user is None or bool(user.get("is_admin")):
+            logger.info("[PROACTIVE] Skip user_id=%s reason=user_missing_or_admin", user_id)
             return False
 
         state = await self.state_repository.get(user_id)
         candidate["state_snapshot"] = state
         if candidate.get("last_message_role") != "assistant":
+            logger.info("[PROACTIVE] Skip user_id=%s reason=last_message_not_assistant", user_id)
             return False
 
         last_user_message_at = candidate.get("last_user_message_at")
         if not last_user_message_at:
+            logger.info("[PROACTIVE] Skip user_id=%s reason=no_last_user_message_at", user_id)
             return False
 
         proactive_preferences = await self.user_preference_repository.get_preferences(
@@ -142,39 +147,74 @@ class ProactiveMessageService:
         )
 
         if not bool(proactive_preferences.get("proactive_enabled", True)):
+            logger.info("[PROACTIVE] Skip user_id=%s reason=opted_out", user_id)
             return False
 
         if self._is_in_quiet_hours(
             settings,
             timezone_name=str(proactive_preferences.get("timezone") or "").strip() or None,
         ):
+            logger.info("[PROACTIVE] Skip user_id=%s reason=quiet_hours", user_id)
             return False
 
-        if int(state.get("interaction_count", 0) or 0) < int(settings["min_interaction_count"]):
+        interaction_count = self._effective_interaction_count(state, candidate)
+        if interaction_count < int(settings["min_interaction_count"]):
+            logger.info(
+                "[PROACTIVE] Skip user_id=%s reason=low_interaction_count interaction_count=%s min_required=%s",
+                user_id,
+                interaction_count,
+                int(settings["min_interaction_count"]),
+            )
             return False
 
-        if float(state.get("interest", 0.0) or 0.0) < float(settings["min_interest"]):
+        interest = self._effective_interest(state)
+        if interest < float(settings["min_interest"]):
+            logger.info(
+                "[PROACTIVE] Skip user_id=%s reason=low_interest interest=%.3f min_required=%.3f",
+                user_id,
+                interest,
+                float(settings["min_interest"]),
+            )
             return False
 
         if float(state.get("irritation", 0.0) or 0.0) > float(settings["max_irritation"]):
+            logger.info(
+                "[PROACTIVE] Skip user_id=%s reason=high_irritation irritation=%.3f max_allowed=%.3f",
+                user_id,
+                float(state.get("irritation", 0.0) or 0.0),
+                float(settings["max_irritation"]),
+            )
             return False
 
         if float(state.get("fatigue", 0.0) or 0.0) > float(settings["max_fatigue"]):
+            logger.info(
+                "[PROACTIVE] Skip user_id=%s reason=high_fatigue fatigue=%.3f max_allowed=%.3f",
+                user_id,
+                float(state.get("fatigue", 0.0) or 0.0),
+                float(settings["max_fatigue"]),
+            )
             return False
 
         if str(state.get("emotional_tone") or "").strip() in {"overwhelmed", "anxious", "guarded"}:
+            logger.info(
+                "[PROACTIVE] Skip user_id=%s reason=blocked_emotional_tone tone=%s",
+                user_id,
+                str(state.get("emotional_tone") or "").strip(),
+            )
             return False
 
         if await self.proactive_repository.has_event_for_silence(
             user_id=user_id,
             source_last_user_message_at=last_user_message_at,
         ):
+            logger.info("[PROACTIVE] Skip user_id=%s reason=already_contacted_for_same_silence", user_id)
             return False
 
         if await self.proactive_repository.has_recent_event(
             user_id=user_id,
             cooldown_hours=settings["cooldown_hours"],
         ):
+            logger.info("[PROACTIVE] Skip user_id=%s reason=recent_cooldown", user_id)
             return False
 
         return True
@@ -237,7 +277,7 @@ class ProactiveMessageService:
             temperature=float(settings["temperature"]),
             max_completion_tokens=int(settings["max_completion_tokens"]),
             reasoning_effort=str(settings.get("reasoning_effort") or "").strip() or None,
-            verbosity="low",
+            verbosity=str(self._get_ai_settings().get("verbosity") or "").strip() or None,
             user=f"{user_id}:proactive",
         )
         return self._clean_generated_text(text)
@@ -323,6 +363,31 @@ class ProactiveMessageService:
     def _clean_generated_text(self, text: str) -> str:
         cleaned = " ".join((text or "").split()).strip()
         return cleaned[:320]
+
+    def _effective_interaction_count(
+        self,
+        state: dict[str, Any],
+        candidate: dict[str, Any],
+    ) -> int:
+        state_count = int(state.get("interaction_count", 0) or 0)
+        if state_count > 0:
+            return state_count
+
+        user_messages = int(candidate.get("user_messages", 0) or 0)
+        assistant_messages = int(candidate.get("assistant_messages", 0) or 0)
+        return max(0, user_messages + assistant_messages)
+
+    def _effective_interest(self, state: dict[str, Any]) -> float:
+        raw_interest = state.get("interest")
+        if raw_interest not in (None, ""):
+            return float(raw_interest or 0.0)
+
+        if self.settings_service is None:
+            return 0.4
+
+        runtime = self.settings_service.get_runtime_settings()
+        defaults = runtime.get("state_engine", {}).get("defaults", {})
+        return float(defaults.get("interest", 0.4) or 0.4)
 
     def _is_in_quiet_hours(
         self,

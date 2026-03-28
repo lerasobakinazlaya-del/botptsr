@@ -142,6 +142,40 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(eligible)
         self.assertIn("state_snapshot", candidate)
 
+    async def test_is_eligible_uses_message_history_when_state_is_old(self):
+        service = self._build_service(
+            {
+                "interaction_count": 0,
+                "interest": None,
+                "irritation": 0.1,
+                "fatigue": 0.1,
+                "emotional_tone": "warm",
+                "proactive_preferences": {
+                    "enabled": True,
+                    "timezone": None,
+                },
+            }
+        )
+        candidate = {
+            "user_id": 1,
+            "user_messages": 5,
+            "assistant_messages": 5,
+            "last_message_role": "assistant",
+            "last_user_message_at": "2026-01-01 00:00:00",
+        }
+        settings = {
+            "cooldown_hours": 72,
+            "min_interaction_count": 1,
+            "min_interest": 0.0,
+            "max_irritation": 0.35,
+            "max_fatigue": 0.65,
+            "quiet_hours_enabled": False,
+        }
+
+        eligible = await service._is_eligible(candidate, settings)
+
+        self.assertTrue(eligible)
+
     def test_quiet_hours_respects_timezone_window(self):
         service = self._build_service({})
         settings = {
