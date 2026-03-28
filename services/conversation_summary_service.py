@@ -126,7 +126,7 @@ class ConversationSummaryService:
             temperature=float(ai_settings.get("episodic_summary_temperature", 0.2)),
             max_completion_tokens=int(ai_settings.get("episodic_summary_max_tokens", 220)),
             reasoning_effort=str(ai_settings.get("episodic_summary_reasoning_effort") or "").strip() or None,
-            verbosity="low",
+            verbosity=str(ai_settings.get("verbosity") or "").strip() or None,
             user=f"{user_id}:summary",
         )
 

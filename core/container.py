@@ -123,6 +123,7 @@ class Container:
             ai_service=self.ai_service,
             message_repository=self.message_repository,
             state_repository=self.state_repository,
+            user_preference_repository=self.user_preference_repository,
             user_service=self.user_service,
             settings_service=self.admin_settings_service,
             db=self.db,

@@ -2,6 +2,15 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
+
+from aiogram.exceptions import TelegramBadRequest
+
+from services.telegram_formatting import (
+    TelegramFormattingOptions,
+    escape_plain_text_for_telegram,
+    format_model_response_for_telegram,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -14,6 +23,7 @@ class ReengagementService:
         ai_service,
         message_repository,
         state_repository,
+        user_preference_repository,
         user_service,
         settings_service,
         db,
@@ -21,6 +31,7 @@ class ReengagementService:
         self.ai_service = ai_service
         self.message_repository = message_repository
         self.state_repository = state_repository
+        self.user_preference_repository = user_preference_repository
         self.user_service = user_service
         self.settings_service = settings_service
         self.db = db
@@ -76,10 +87,27 @@ class ReengagementService:
     async def _process_candidate(self, candidate: dict[str, Any], settings: dict[str, Any]) -> None:
         user_id = int(candidate["user_id"])
         user = await self.user_service.get_user(user_id)
-        if user is None:
+        if user is None or bool(user.get("is_admin")):
             return
 
+        runtime_settings = self.settings_service.get_runtime_settings()
+        proactive_settings = runtime_settings["proactive"]
+        ai_settings = runtime_settings["ai"]
         state = await self.state_repository.get(user_id)
+        proactive_preferences = await self.user_preference_repository.get_preferences(
+            user_id,
+            fallback=state.get("proactive_preferences"),
+        )
+        if not bool(proactive_preferences.get("proactive_enabled", True)):
+            logger.info("[REENGAGE] Skip user_id=%s reason=opted_out", user_id)
+            return
+        if self._is_in_quiet_hours(
+            proactive_settings,
+            timezone_name=str(proactive_preferences.get("timezone") or "").strip() or None,
+        ):
+            logger.info("[REENGAGE] Skip user_id=%s reason=quiet_hours", user_id)
+            return
+
         relationship = dict(state.get("relationship_state") or {})
         last_user_message_at = relationship.get("last_user_message_at") or self._sqlite_to_iso(
             candidate.get("last_user_message_at")
@@ -93,7 +121,7 @@ class ReengagementService:
         ):
             return
 
-        history_limit = self.settings_service.get_runtime_settings()["ai"]["history_message_limit"]
+        history_limit = ai_settings["history_message_limit"]
         history = await self.message_repository.get_last_messages(user_id=user_id, limit=history_limit)
 
         result = await self.ai_service.generate_reengagement(
@@ -102,8 +130,30 @@ class ReengagementService:
             state=state,
         )
 
+        response_mode = str(
+            result.new_state.get("adaptive_mode")
+            or result.new_state.get("active_mode")
+            or state.get("active_mode")
+            or "base"
+        )
+        mode_config = self.settings_service.get_modes().get(response_mode, {})
+        formatting_options = TelegramFormattingOptions(
+            allow_bold=bool(mode_config.get("allow_bold", False)),
+            allow_italic=bool(mode_config.get("allow_italic", False)),
+        )
+        outbound_text = (
+            format_model_response_for_telegram(result.response, formatting_options)
+            or escape_plain_text_for_telegram(result.response)
+        )
+
         try:
-            await self._bot.send_message(user_id, result.response)
+            try:
+                await self._bot.send_message(user_id, outbound_text)
+            except TelegramBadRequest:
+                await self._bot.send_message(
+                    user_id,
+                    escape_plain_text_for_telegram(result.response),
+                )
         except Exception:
             logger.exception("Failed to send reengagement message to user %s", user_id)
             return
@@ -117,6 +167,35 @@ class ReengagementService:
             return
 
         logger.info("[REENGAGE] sent proactive message to user_id=%s", user_id)
+
+    def _is_in_quiet_hours(
+        self,
+        settings: dict[str, Any],
+        *,
+        timezone_name: str | None = None,
+    ) -> bool:
+        if not bool(settings.get("quiet_hours_enabled", True)):
+            return False
+
+        timezone_name = str(
+            timezone_name
+            or settings.get("timezone")
+            or "Europe/Moscow"
+        ).strip() or "Europe/Moscow"
+        try:
+            now_local = datetime.now(ZoneInfo(timezone_name))
+        except Exception:
+            now_local = datetime.now()
+
+        start_hour = int(settings.get("quiet_hours_start", 0))
+        end_hour = int(settings.get("quiet_hours_end", 8))
+        current_hour = int(now_local.hour)
+
+        if start_hour == end_hour:
+            return False
+        if start_hour < end_hour:
+            return start_hour <= current_hour < end_hour
+        return current_hour >= start_hour or current_hour < end_hour
 
     def _sqlite_to_iso(self, value: str | None) -> str | None:
         if not value:

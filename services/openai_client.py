@@ -1,6 +1,10 @@
-from typing import Dict, List, Tuple
+import logging
+from typing import Any, Dict, List, Tuple
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, BadRequestError
+
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIClient:
@@ -50,12 +54,69 @@ class OpenAIClient:
         if user:
             payload["user"] = user
 
-        response = await self.client.chat.completions.create(**payload)
+        response = await self._create_completion_with_fallback(payload)
 
         text = response.choices[0].message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else None
 
         return text.strip(), tokens_used
+
+    async def _create_completion_with_fallback(self, payload: Dict[str, Any]):
+        request_payload = dict(payload)
+
+        while True:
+            try:
+                return await self.client.chat.completions.create(**request_payload)
+            except BadRequestError as exc:
+                if not self._relax_unsupported_request_options(request_payload, exc):
+                    raise
+
+    def _relax_unsupported_request_options(
+        self,
+        payload: Dict[str, Any],
+        exc: BadRequestError,
+    ) -> bool:
+        error_text = str(exc).lower()
+        changed = False
+
+        if "verbosity" in error_text:
+            changed = self._relax_named_option(
+                payload,
+                key="verbosity",
+                error_text=error_text,
+            ) or changed
+
+        if "reasoning_effort" in error_text:
+            changed = self._relax_named_option(
+                payload,
+                key="reasoning_effort",
+                error_text=error_text,
+            ) or changed
+
+        if changed:
+            logger.warning(
+                "Retrying OpenAI request with relaxed options after bad request: %s",
+                str(exc),
+            )
+        return changed
+
+    def _relax_named_option(
+        self,
+        payload: Dict[str, Any],
+        *,
+        key: str,
+        error_text: str,
+    ) -> bool:
+        if key not in payload:
+            return False
+
+        current_value = str(payload.get(key) or "").strip().lower()
+        if "supported values" in error_text and current_value and current_value != "medium":
+            payload[key] = "medium"
+            return True
+
+        payload.pop(key, None)
+        return True
 
     async def close(self) -> None:
         await self.client.close()
