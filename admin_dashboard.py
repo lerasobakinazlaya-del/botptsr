@@ -287,7 +287,7 @@ async def _prepare_test_context(payload: dict[str, Any]) -> dict[str, Any]:
     user_message = str(payload.get("user_message") or "").strip()
     state = _parse_json_field(payload.get("state"), default={})
     if not isinstance(state, dict):
-        raise HTTPException(status_code=400, detail="Поле state должно быть объектом JSON")
+        raise HTTPException(status_code=400, detail="Поле состояния должно быть объектом JSON")
 
     active_mode = str(payload.get("active_mode") or state.get("active_mode") or "base").strip()
     state.setdefault("active_mode", active_mode)
@@ -805,7 +805,7 @@ def _dashboard_html() -> str:
         <button class="active" data-view="overview">Обзор</button>
         <button data-view="users">Пользователи</button>
         <button data-view="conversations">Диалоги</button>
-        <button data-view="runtime">AI и UI</button>
+        <button data-view="runtime">ИИ и интерфейс</button>
         <button data-view="safety">Безопасность</button>
         <button data-view="prompts">Промпты</button>
         <button data-view="modes">Режимы</button>
@@ -843,18 +843,18 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="users">
-        <div><h2>Пользователи и права</h2><p class="muted">Добавляй администраторов, меняй Premium и назначай активный режим для конкретного пользователя.</p></div>
+        <div><h2>Пользователи и права</h2><p class="muted">Добавляй администраторов, меняй премиум-статус и назначай активный режим для конкретного пользователя.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Карточка пользователя</h3>
             <div class="two">
               <label>ID пользователя<input id="user_user_id" type="number" min="1" placeholder="Например, 123456789"></label>
               <label>Активный режим<select id="user_active_mode"></select></label>
-              <label>Username<input id="user_username" readonly></label>
+              <label>Имя пользователя<input id="user_username" readonly></label>
               <label>Имя<input id="user_first_name" readonly></label>
             </div>
             <label class="checkbox"><input id="user_is_admin" type="checkbox">Администратор</label>
-            <label class="checkbox"><input id="user_is_premium" type="checkbox">Premium</label>
+            <label class="checkbox"><input id="user_is_premium" type="checkbox">Премиум-доступ</label>
             <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <div class="actions">
               <button id="load-user">Загрузить</button>
@@ -863,14 +863,15 @@ def _dashboard_html() -> str:
             </div>
           </div>
           <div class="panel">
-            <h3>Поиск и список</h3>
+            <h3>Поиск, рассылка и список</h3>
             <div class="toolbar">
-              <input id="user-search" placeholder="ID, username или имя">
+              <input id="user-search" placeholder="ID, имя пользователя или имя">
               <button class="primary" id="search-users">Найти</button>
               <button id="reset-users">Сбросить</button>
             </div>
             <div class="composer">
-              <label>Групповое сообщение
+              <h4>Рассылка выбранным пользователям</h4>
+              <label>Текст рассылки
                 <textarea id="bulk_message_text" placeholder="Сообщение уйдет только выбранным пользователям"></textarea>
               </label>
               <div id="bulk-message-templates" class="template-list"></div>
@@ -899,7 +900,7 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="conversations">
-        <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, долговременной памяти и текущего state пользователя.</p></div>
+        <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, долговременной памяти и текущего состояния пользователя.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Пользователь</h3>
@@ -914,24 +915,24 @@ def _dashboard_html() -> str:
               <h3>Память в промпте</h3>
               <div id="conversation-memory-preview-summary" class="memory-preview-panel"><div class="muted">Пока нет данных.</div></div>
               <details class="state-raw">
-                <summary>Показать raw memory preview</summary>
+                <summary>Показать исходный предпросмотр памяти</summary>
                 <pre id="conversation-memory-preview" class="memory-box">Пока нет данных.</pre>
               </details>
             </div>
             <div style="margin-top:16px">
-              <h3>Долговременные memories</h3>
+              <h3>Долговременная память</h3>
               <div id="conversation-long-term-memories" class="memory-box"><div class="muted">Пока нет данных.</div></div>
             </div>
             <div style="margin-top:16px">
-              <h3>Редактор memory</h3>
+              <h3>Редактор памяти</h3>
               <div class="memory-editor-form">
                 <input id="memory_editor_id" type="hidden">
                 <div class="two">
                   <label>Категория<select id="memory_editor_category"></select></label>
                   <label>Вес<input id="memory_editor_weight" type="number" min="0.1" max="25" step="0.1" value="1.0"></label>
                 </div>
-                <label>Текст memory<textarea id="memory_editor_value" style="min-height:100px"></textarea></label>
-                <label class="checkbox"><input id="memory_editor_pinned" type="checkbox">Закрепить memory</label>
+                <label>Текст памяти<textarea id="memory_editor_value" style="min-height:100px"></textarea></label>
+                <label class="checkbox"><input id="memory_editor_pinned" type="checkbox">Закрепить в памяти</label>
                 <div class="memory-actions">
                   <button id="memory-editor-new">Новая</button>
                   <button class="primary" id="memory-editor-save">Сохранить</button>
@@ -944,19 +945,20 @@ def _dashboard_html() -> str:
               <h3>Состояние пользователя</h3>
               <div id="conversation-state-summary" class="state-panel"><div class="muted">Пока нет данных.</div></div>
               <details class="state-raw">
-                <summary>Показать raw JSON</summary>
+                <summary>Показать исходный JSON</summary>
                 <pre id="conversation-state" class="memory-box">Пока нет данных.</pre>
               </details>
             </div>
           </div>
           <div class="panel">
-            <h3>История сообщений</h3>
+            <h3>История сообщений и отправка</h3>
             <div class="composer">
-              <label>Сообщение пользователю<textarea id="conversation_outbound_text" placeholder="Написать пользователю от имени бота"></textarea></label>
+              <h4>Личное сообщение пользователю</h4>
+              <label>Текст сообщения<textarea id="conversation_outbound_text" placeholder="Написать пользователю от имени бота"></textarea></label>
               <div id="conversation-message-templates" class="template-list"></div>
               <div class="composer-meta">
                 <div class="muted">Сообщение уйдет в Telegram и сохранится в историю как ответ бота.</div>
-                <button class="primary" id="send-conversation-message">Отправить</button>
+                <button class="primary" id="send-conversation-message">Отправить сообщение</button>
               </div>
             </div>
             <div id="conversation-messages" class="conversation-feed"><div class="muted">Пока нет данных.</div></div>
@@ -965,33 +967,33 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="runtime">
-        <div><h2>AI и интерфейс</h2><p class="muted">Модель, память, сообщения ошибок и тексты Telegram-интерфейса.</p></div>
+        <div><h2>ИИ и интерфейс</h2><p class="muted">Модель, память, сообщения ошибок и тексты Telegram-интерфейса.</p></div>
         <div class="cols">
           <div class="panel">
-            <h3>AI</h3>
+            <h3>ИИ</h3>
             <div class="two">
               <label>Модель<input id="ai_openai_model"></label>
               <label>Язык ответа<input id="ai_response_language"></label>
               <label>Температура<input id="ai_temperature" type="number" step="0.1"></label>
               <label>Top P<input id="ai_top_p" type="number" step="0.05" min="0" max="1"></label>
-              <label>Freq penalty<input id="ai_frequency_penalty" type="number" step="0.05" min="-2" max="2"></label>
-              <label>Presence penalty<input id="ai_presence_penalty" type="number" step="0.05" min="-2" max="2"></label>
-              <label>Max output tokens<input id="ai_max_completion_tokens" type="number"></label>
-              <label>Reasoning effort<input id="ai_reasoning_effort"></label>
-              <label>Verbosity<input id="ai_verbosity"></label>
+              <label>Штраф за повторы<input id="ai_frequency_penalty" type="number" step="0.05" min="-2" max="2"></label>
+              <label>Штраф за новые темы<input id="ai_presence_penalty" type="number" step="0.05" min="-2" max="2"></label>
+              <label>Макс. токенов ответа<input id="ai_max_completion_tokens" type="number"></label>
+              <label>Глубина рассуждения<input id="ai_reasoning_effort"></label>
+              <label>Подробность ответа<input id="ai_verbosity"></label>
               <label>Таймаут<input id="ai_timeout_seconds" type="number"></label>
               <label>Повторы<input id="ai_max_retries" type="number"></label>
               <label>Память, токены<input id="ai_memory_max_tokens" type="number"></label>
               <label>История сообщений<input id="ai_history_message_limit" type="number"></label>
-              <label>Long-term items<input id="ai_long_term_memory_max_items" type="number" min="4"></label>
-              <label>Long-term soft limit<input id="ai_long_term_memory_soft_limit" type="number" min="12"></label>
-              <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
+              <label>Элементов долгой памяти<input id="ai_long_term_memory_max_items" type="number" min="4"></label>
+              <label>Мягкий лимит долгой памяти<input id="ai_long_term_memory_soft_limit" type="number" min="12"></label>
+              <label>ID пользователя для отладки<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
-            <label class="checkbox"><input id="ai_long_term_memory_enabled" type="checkbox">Включить long-term memory</label>
-            <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых memories</label>
-            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить episodic summary</label>
+            <label class="checkbox"><input id="ai_long_term_memory_enabled" type="checkbox">Включить долговременную память</label>
+            <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых записей памяти</label>
+            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить эпизодические сводки</label>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
-            <h3>AI по режимам</h3>
+            <h3>ИИ по режимам</h3>
             <p class="muted">Можно назначить отдельную модель, память, температуру и доп. инструкцию на каждый режим.</p>
             <div id="ai-mode-overrides"></div>
           </div>
@@ -1000,50 +1002,50 @@ def _dashboard_html() -> str:
             <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать индикатор набора</label>
             <label>Не-текстовое сообщение<textarea id="chat_non_text_message"></textarea></label>
             <label>Перегрузка<textarea id="chat_busy_message"></textarea></label>
-            <label>Ошибка AI<textarea id="chat_ai_error_message"></textarea></label>
+              <label>Ошибка ИИ<textarea id="chat_ai_error_message"></textarea></label>
             <label>Текст кнопки «Написать»<textarea id="chat_write_prompt_message"></textarea></label>
           </div>
         </div>
         <div class="panel">
-          <h3>Proactive follow-up</h3>
+          <h3>Инициативные сообщения бота</h3>
           <label class="checkbox"><input id="proactive_enabled" type="checkbox">Бот может иногда написать первым</label>
           <div class="three">
             <label>Скан, сек<input id="proactive_scan_interval_seconds" type="number" min="30"></label>
-            <label>Тишина перед follow-up, часов<input id="proactive_min_inactive_hours" type="number" min="1"></label>
+            <label>Тишина перед сообщением, часов<input id="proactive_min_inactive_hours" type="number" min="1"></label>
             <label>Макс. давность диалога, дней<input id="proactive_max_inactive_days" type="number" min="1"></label>
             <label>Cooldown, часов<input id="proactive_cooldown_hours" type="number" min="1"></label>
             <label>Мин. user-сообщений<input id="proactive_min_user_messages" type="number" min="1"></label>
-            <label>Мин. interaction count<input id="proactive_min_interaction_count" type="number" min="1"></label>
+            <label>Мин. число взаимодействий<input id="proactive_min_interaction_count" type="number" min="1"></label>
             <label>Кандидатов за цикл<input id="proactive_candidate_batch_size" type="number" min="1"></label>
             <label>Отправок за цикл<input id="proactive_max_messages_per_cycle" type="number" min="1"></label>
             <label>Лимит истории<input id="proactive_history_limit" type="number" min="2"></label>
             <label>Задержка между отправками, сек<input id="proactive_per_message_delay_seconds" type="number" min="0" step="0.1"></label>
             <label>Температура<input id="proactive_temperature" type="number" min="0" max="2" step="0.1"></label>
-            <label>Max output tokens<input id="proactive_max_completion_tokens" type="number" min="48"></label>
-            <label>Reasoning effort<input id="proactive_reasoning_effort"></label>
+            <label>Макс. токенов ответа<input id="proactive_max_completion_tokens" type="number" min="48"></label>
+            <label>Глубина рассуждения<input id="proactive_reasoning_effort"></label>
             <label>Мин. interest<input id="proactive_min_interest" type="number" min="0" max="1" step="0.05"></label>
             <label>Макс. irritation<input id="proactive_max_irritation" type="number" min="0" max="1" step="0.05"></label>
             <label>Макс. fatigue<input id="proactive_max_fatigue" type="number" min="0" max="1" step="0.05"></label>
-            <label>Quiet start hour<input id="proactive_quiet_hours_start" type="number" min="0" max="23"></label>
-            <label>Quiet end hour<input id="proactive_quiet_hours_end" type="number" min="0" max="23"></label>
+            <label>Начало тихих часов<input id="proactive_quiet_hours_start" type="number" min="0" max="23"></label>
+            <label>Конец тихих часов<input id="proactive_quiet_hours_end" type="number" min="0" max="23"></label>
           </div>
           <label class="checkbox"><input id="proactive_quiet_hours_enabled" type="checkbox">Не писать в quiet hours</label>
-          <label>Timezone для quiet hours<input id="proactive_timezone"></label>
+          <label>Часовой пояс для тихих часов<input id="proactive_timezone"></label>
           <label>Модель (пусто = основная)<input id="proactive_model"></label>
         </div>
         <div class="panel">
-          <h3>Telegram UI</h3>
+          <h3>Интерфейс Telegram</h3>
           <div class="three">
             <label>Кнопка написать<input id="ui_write_button_text"></label>
             <label>Кнопка режимов<input id="ui_modes_button_text"></label>
-            <label>Кнопка Premium<input id="ui_premium_button_text"></label>
+            <label>Кнопка Премиум<input id="ui_premium_button_text"></label>
           </div>
           <div class="two">
             <label>Плейсхолдер<input id="ui_input_placeholder"></label>
             <label>Заголовок режимов<input id="ui_modes_title"></label>
             <label>Пользователь не найден<textarea id="ui_user_not_found_text"></textarea></label>
             <label>Неизвестный режим<textarea id="ui_unknown_mode_text"></textarea></label>
-            <label>Текст блокировки Premium<textarea id="ui_mode_locked_text"></textarea></label>
+            <label>Текст блокировки премиум-режима<textarea id="ui_mode_locked_text"></textarea></label>
             <label>Всплывающее уведомление<input id="ui_mode_saved_toast"></label>
           </div>
           <label>Шаблон смены режима<textarea id="ui_mode_saved_template"></textarea></label>
@@ -1054,12 +1056,12 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="safety">
-        <div><h2>Безопасность и state engine</h2><p class="muted">Антиспам, лимиты и коэффициенты изменения состояния диалога.</p></div>
+        <div><h2>Безопасность и движок состояния</h2><p class="muted">Антиспам, лимиты и коэффициенты изменения состояния диалога.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Антиспам</h3>
             <div class="two">
-              <label>Rate limit, сек<input id="safety_throttle_rate_limit_seconds" type="number" step="0.1"></label>
+              <label>Лимит частоты, сек<input id="safety_throttle_rate_limit_seconds" type="number" step="0.1"></label>
               <label>Интервал предупреждений<input id="safety_throttle_warning_interval_seconds" type="number" step="0.1"></label>
               <label>Макс длина<input id="safety_max_message_length" type="number"></label>
             </div>
@@ -1086,30 +1088,30 @@ def _dashboard_html() -> str:
           <div class="two">
             <label>Принудительный уровень<input id="access_forced_level"></label>
             <label>Уровень по умолчанию<input id="access_default_level"></label>
-            <label>Порог observation по interest<input id="access_interest_observation_threshold" type="number" step="0.01"></label>
-            <label>Порог rare_layer по instability<input id="access_rare_layer_instability_threshold" type="number" step="0.01"></label>
-            <label>Порог rare_layer по attraction<input id="access_rare_layer_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог personal_focus по attraction<input id="access_personal_focus_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог personal_focus по interest<input id="access_personal_focus_interest_threshold" type="number" step="0.01"></label>
-            <label>Порог tension по attraction<input id="access_tension_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог tension по control<input id="access_tension_control_threshold" type="number" step="0.01"></label>
-            <label>Порог analysis по interest<input id="access_analysis_interest_threshold" type="number" step="0.01"></label>
-            <label>Порог analysis по control<input id="access_analysis_control_threshold" type="number" step="0.01"></label>
+            <label>Порог наблюдения по интересу<input id="access_interest_observation_threshold" type="number" step="0.01"></label>
+            <label>Порог редкого слоя по нестабильности<input id="access_rare_layer_instability_threshold" type="number" step="0.01"></label>
+            <label>Порог редкого слоя по притяжению<input id="access_rare_layer_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог личного фокуса по притяжению<input id="access_personal_focus_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог личного фокуса по интересу<input id="access_personal_focus_interest_threshold" type="number" step="0.01"></label>
+            <label>Порог напряжения по притяжению<input id="access_tension_attraction_threshold" type="number" step="0.01"></label>
+            <label>Порог напряжения по контролю<input id="access_tension_control_threshold" type="number" step="0.01"></label>
+            <label>Порог анализа по интересу<input id="access_analysis_interest_threshold" type="number" step="0.01"></label>
+            <label>Порог анализа по контролю<input id="access_analysis_control_threshold" type="number" step="0.01"></label>
           </div>
           <label class="checkbox"><input id="limits_free_daily_messages_enabled" type="checkbox">Включить дневной лимит для бесплатных пользователей</label>
-          <label class="checkbox"><input id="limits_premium_daily_messages_enabled" type="checkbox">Включить дневной лимит для Premium-пользователей</label>
+          <label class="checkbox"><input id="limits_premium_daily_messages_enabled" type="checkbox">Включить дневной лимит для премиум-пользователей</label>
           <label class="checkbox"><input id="limits_admins_bypass_daily_limits" type="checkbox">Админы обходят лимиты сообщений</label>
           <div class="two">
-            <label>Лимит free-сообщений в день<input id="limits_free_daily_messages_limit" type="number" min="1"></label>
-            <label>Лимит premium-сообщений в день<input id="limits_premium_daily_messages_limit" type="number" min="1"></label>
+            <label>Лимит бесплатных сообщений в день<input id="limits_free_daily_messages_limit" type="number" min="1"></label>
+            <label>Лимит премиум-сообщений в день<input id="limits_premium_daily_messages_limit" type="number" min="1"></label>
           </div>
-          <label>Текст при исчерпании free-лимита<textarea id="limits_free_daily_limit_message"></textarea></label>
-          <label>Текст при исчерпании premium-лимита<textarea id="limits_premium_daily_limit_message"></textarea></label>
-          <label class="checkbox"><input id="limits_mode_preview_enabled" type="checkbox">Разрешить бесплатный preview платных режимов</label>
+          <label>Текст при исчерпании бесплатного лимита<textarea id="limits_free_daily_limit_message"></textarea></label>
+          <label>Текст при исчерпании премиум-лимита<textarea id="limits_premium_daily_limit_message"></textarea></label>
+          <label class="checkbox"><input id="limits_mode_preview_enabled" type="checkbox">Разрешить бесплатный предпросмотр платных режимов</label>
           <label>Лимиты по режимам
             <textarea id="limits_mode_daily_limits" placeholder="passion=5&#10;mentor=3"></textarea>
           </label>
-          <label>Текст при исчерпании preview<textarea id="limits_mode_preview_exhausted_message"></textarea></label>
+          <label>Текст при исчерпании предпросмотра<textarea id="limits_mode_preview_exhausted_message"></textarea></label>
           <div class="two">
             <label class="checkbox"><input id="engagement_adaptive_mode_enabled" type="checkbox">Включить мягкую адаптацию режима</label>
             <label class="checkbox"><input id="engagement_reengagement_enabled" type="checkbox">Включить инициативные сообщения после паузы</label>
@@ -1152,7 +1154,7 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="modes">
-        <div><h2>Режимы</h2><p class="muted">Название, иконка, Premium, текст активации и шкалы поведения.</p></div>
+        <div><h2>Режимы</h2><p class="muted">Название, иконка, премиум-статус, текст активации и шкалы поведения.</p></div>
         <div class="panel">
           <div id="modes-container"></div>
           <div class="actions"><button class="primary" id="save-modes">Сохранить раздел</button></div>
@@ -1160,7 +1162,7 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="payments">
-        <div><h2>Оплата</h2><p class="muted">Управление токеном провайдера, ценой, валютой и сообщениями по Premium.</p></div>
+        <div><h2>Оплата</h2><p class="muted">Управление токеном провайдера, ценой, валютой и сообщениями по премиум-доступу.</p></div>
         <div class="panel">
           <div class="two">
             <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
@@ -1169,8 +1171,8 @@ def _dashboard_html() -> str:
             <label>Название<input id="payment_product_title"></label>
           </div>
           <label>Описание<textarea id="payment_product_description"></textarea></label>
-          <label>Преимущества Premium<textarea id="payment_premium_benefits_text"></textarea></label>
-          <label>CTA оплаты<input id="payment_buy_cta_text"></label>
+          <label>Преимущества премиум-доступа<textarea id="payment_premium_benefits_text"></textarea></label>
+          <label>Текст кнопки оплаты<input id="payment_buy_cta_text"></label>
           <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
           <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
           <label>Успешная оплата<textarea id="payment_success_message"></textarea></label>
@@ -1184,8 +1186,8 @@ def _dashboard_html() -> str:
           </div>
           <label class="checkbox"><input id="referral_allow_self_referral" type="checkbox">Разрешить приглашать самого себя</label>
           <label class="checkbox"><input id="referral_require_first_paid_invoice" type="checkbox">Засчитывать только после первой оплаты</label>
-          <label class="checkbox"><input id="referral_award_referrer_premium" type="checkbox">Выдавать Premium рефереру</label>
-          <label class="checkbox"><input id="referral_award_referred_user_premium" type="checkbox">Выдавать Premium приглашенному</label>
+          <label class="checkbox"><input id="referral_award_referrer_premium" type="checkbox">Выдавать премиум рефереру</label>
+          <label class="checkbox"><input id="referral_award_referred_user_premium" type="checkbox">Выдавать премиум приглашенному</label>
           <label>Описание<textarea id="referral_program_description"></textarea></label>
           <label>Шаблон ссылки (`{ref_link}`)<textarea id="referral_share_text_template"></textarea></label>
           <label>Текст для приглашенного<textarea id="referral_referred_welcome_message"></textarea></label>
@@ -1197,7 +1199,7 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="testing">
-        <div><h2>Тестирование</h2><p class="muted">Проверка промпта, state и live-ответа модели из текущих настроек.</p></div>
+        <div><h2>Тестирование</h2><p class="muted">Проверка промпта, состояния и реального ответа модели из текущих настроек.</p></div>
         <div class="cols">
           <div class="panel">
             <div class="two">
@@ -1206,11 +1208,11 @@ def _dashboard_html() -> str:
             </div>
             <label>Сообщение<textarea id="test_user_message"></textarea></label>
             <label>История (`user:` / `assistant:`)<textarea id="test_history"></textarea></label>
-            <label>State JSON<textarea id="test_state">{}</textarea></label>
+            <label>JSON состояния<textarea id="test_state">{}</textarea></label>
             <div class="actions">
               <button class="primary" id="test-prompt">Промпт</button>
-              <button id="test-state-btn">State</button>
-              <button id="test-live-reply">Live reply</button>
+              <button id="test-state-btn">Состояние</button>
+              <button id="test-live-reply">Ответ модели</button>
             </div>
           </div>
           <div class="panel"><h3>Результат</h3><pre id="test-result">Здесь появится результат.</pre></div>
@@ -1220,7 +1222,7 @@ def _dashboard_html() -> str:
       <section class="page" data-view="logs">
         <div><h2>Логи и сервисы</h2><p class="muted">Проверка файлов конфигурации, здоровья и хвоста логов.</p></div>
         <div class="cols">
-          <div class="panel"><h3>Health</h3><div id="full-health"></div></div>
+          <div class="panel"><h3>Состояние системы</h3><div id="full-health"></div></div>
           <div class="panel"><h3>Файлы</h3><div id="config-files"></div></div>
         </div>
         <div class="panel">
@@ -1262,13 +1264,14 @@ def _dashboard_html() -> str:
     function renderTemplateEditor(){const editor=$('#message_templates_editor');if(editor)editor.value=formatTemplateEditorText(currentMessageTemplates())}
     function applyTemplate(textareaSelector,index){const textarea=$(textareaSelector);if(!textarea)return;const template=currentMessageTemplates()[index];if(!template)return;textarea.value=template;textarea.focus()}
     function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится отчет по рассылке.';return}const lines=[`Запрошено: ${result.requested_count??0}`,`Отправлено: ${result.sent_count??0}`,`Ошибок: ${result.failed_count??0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
-    function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+    function prettyColumnLabel(key){return ({id:'ID',username:'Имя пользователя',first_name:'Имя',active_mode:'Активный режим',is_premium:'Премиум',is_admin:'Админ',created_at:'Создан',user_id:'ID пользователя',amount:'Сумма',currency:'Валюта',status:'Статус',event_time:'Время события',name:'Название',path:'Путь',exists:'Существует',size:'Размер'})[key]||key.replaceAll('_',' ')}
+    function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(prettyColumnLabel(c))}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
     function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
-    function healthSummary(ai){const queue=ai?.queue_size??0,capacity=ai?.queue_capacity??0,workers=ai?.workers??0,busy=ai?.busy_workers??0;return metricCards([['Очередь',`${queue}/${capacity}`,'AI задачи в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['Режимов',String(state.health?.modes_count??0),'Загружено в панели']])}
+    function healthSummary(ai){const queue=ai?.queue_size??0,capacity=ai?.queue_capacity??0,workers=ai?.workers??0,busy=ai?.busy_workers??0;return metricCards([['Очередь',`${queue}/${capacity}`,'Задачи ИИ в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['Режимов',String(state.health?.modes_count??0),'Загружено в панели']])}
     function fileTable(files){const rows=Object.entries(files||{}).map(([name,info])=>({name,path:info?.path||'',exists:info?.exists?'Да':'Нет',size:info?.exists?`${num(info?.size_bytes)} B`:'-'}));return table(['name','path','exists','size'],rows)}
-    function prettyStateLabel(key){return ({active_mode:'Активный режим',interaction_count:'Число взаимодействий',conversation_phase:'Фаза диалога',emotional_tone:'Эмоциональный тон',premium_features_used:'Premium использований',enabled:'Инициатива бота',updated_at:'Обновлено',timezone:'Часовой пояс',goals:'Цели',interests:'Интересы',personality_traits:'Черты'})[key]||key.replaceAll('_',' ')}
+    function prettyStateLabel(key){return ({active_mode:'Активный режим',interaction_count:'Число взаимодействий',conversation_phase:'Фаза диалога',emotional_tone:'Эмоциональный тон',premium_features_used:'Использований премиума',enabled:'Инициатива бота',updated_at:'Обновлено',timezone:'Часовой пояс',goals:'Цели',interests:'Интересы',personality_traits:'Черты'})[key]||key.replaceAll('_',' ')}
     function prettyStateValue(value){if(value===true)return 'Да';if(value===false)return 'Нет';if(value===null||value===undefined||value==='')return '—';if(Array.isArray(value))return value.length?value.map(item=>esc(String(item))).join('<br>'):'—';if(typeof value==='object')return `<pre style="margin:0;white-space:pre-wrap">${esc(JSON.stringify(value,null,2))}</pre>`;return esc(String(value))}
     function renderStateSection(title,items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined);if(!rows.length)return '';return `<div class="state-section"><h4>${esc(title)}</h4>${kvList(rows.map(([label,value])=>[prettyStateLabel(label),prettyStateValue(value)]))}</div>`}
     function renderStateSummary(statePayload){if(!statePayload||typeof statePayload!=='object')return '<div class="muted">Пока нет данных.</div>';const proactive=statePayload.proactive_preferences&&typeof statePayload.proactive_preferences==='object'?statePayload.proactive_preferences:{};const profile=statePayload.user_profile&&typeof statePayload.user_profile==='object'?statePayload.user_profile:{};const memoryFlags=statePayload.memory_flags&&typeof statePayload.memory_flags==='object'?statePayload.memory_flags:{};const mainRows=[['active_mode',statePayload.active_mode],['interaction_count',statePayload.interaction_count],['conversation_phase',statePayload.conversation_phase],['emotional_tone',statePayload.emotional_tone],['premium_features_used',statePayload.premium_features_used]];const sections=[renderStateSection('Основное состояние',mainRows),renderStateSection('Инициатива бота',Object.entries(proactive)),renderStateSection('Профиль пользователя',Object.entries(profile)),renderStateSection('Флаги памяти',Object.entries(memoryFlags))].filter(Boolean);return sections.length?sections.join(''):'<div class="muted">Пока нет данных.</div>'}
@@ -1277,18 +1280,18 @@ def _dashboard_html() -> str:
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     function renderModeOverrides(ai,catalog){const overrides=ai.mode_overrides||{};const keys=Object.keys(catalog||{}).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));$('#ai-mode-overrides').innerHTML=keys.map(key=>{const meta=catalog[key]||{};const value=overrides[key]||{};return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon||'')} ${esc(meta.name||key)}</strong><div class="muted">${esc(key)}</div></div></div><div class="three"><label>Модель<input data-ai-override="${key}.model" value="${esc(value.model||'')}"></label><label>Температура<input data-ai-override="${key}.temperature" type="number" step="0.1" value="${esc(value.temperature??'')}"></label><label>Память<input data-ai-override="${key}.memory_max_tokens" type="number" value="${esc(value.memory_max_tokens??'')}"></label><label>История<input data-ai-override="${key}.history_message_limit" type="number" value="${esc(value.history_message_limit??'')}"></label><label>Таймаут<input data-ai-override="${key}.timeout_seconds" type="number" value="${esc(value.timeout_seconds??'')}"></label><label>Повторы<input data-ai-override="${key}.max_retries" type="number" value="${esc(value.max_retries??'')}"></label></div><label>Доп. инструкция<textarea data-ai-override="${key}.prompt_suffix">${esc(value.prompt_suffix||'')}</textarea></label></div>`}).join('')}
-    function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},proactive=o.proactive||{},preferences=o.preferences||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[["Пользователи",users.total??0,`Всего в базе`],["Новые за 1 день",users.new_1d??0,`Регистрации за сутки`],["Новые за 7 дней",users.new_7d??0,`Регистрации за неделю`],["Premium",users.premium_total??0,`Активных: ${users.active_with_messages??0}`],["Админы",users.admins_total??0,`Через env и панель`],["Сообщения",content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],["Платежи",payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],["AI",`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Workers: ${runtime.workers??0}`],["Support",support.users_with_support_profile??0,`panic: ${episodes.panic??0}`],["Proactive",proactive.sent_1d??0,`reply rate: ${proactive.reply_after_proactive_rate??0}%`],["Prefs TZ",preferences.users_with_timezone??0,`opt-out now: ${preferences.proactive_disabled_users??0}`],["Рефералы",referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([["Профили поддержки",String(support.users_with_support_profile??0),"Пользователи с support profile"],["Рефералы",String(referrals.total??0),`Конверсий: ${referrals.converted??0}`],["Proactive users",String(proactive.users_contacted_7d??0),"Кому бот писал за 7 дней"]])}${kvList([["Panic эпизоды",esc(num(episodes.panic??0))],["Flashback эпизоды",esc(num(episodes.flashback??0))],["Insomnia эпизоды",esc(num(episodes.insomnia??0))],["Self-harm флаги",esc(num(support.self_harm_flags??0))],["Proactive sent",esc(num(proactive.sent_total??0))],["Proactive failed",esc(num(proactive.failed_total??0))],["Reply after proactive",esc(`${proactive.reply_after_proactive_total??0} (${proactive.reply_after_proactive_rate??0}%)`)],["Opt-out after proactive",esc(`${proactive.opt_out_after_proactive_total??0} (${proactive.opt_out_after_proactive_rate??0}%)`)],["Users with timezone",esc(num(preferences.users_with_timezone??0))],["Current opt-out users",esc(num(preferences.proactive_disabled_users??0))],["Последнее обновление",esc(support.last_updated_at||'Нет данных')]])}</div>`}
-    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'DB OK','DB error')} ${statusPill(redis.ok,'Redis OK','Redis error')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'OK',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["AI модель",esc(ai.model||ai.openai_model||'Не указана')],["Занято воркеров",esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь AI",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["DB статус",`${statusPill(db.ok,'OK','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis статус",`${statusPill(redis.ok,'OK','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
-    function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Premium)':' (Free)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
+    function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},proactive=o.proactive||{},preferences=o.preferences||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[["Пользователи",users.total??0,`Всего в базе`],["Новые за 1 день",users.new_1d??0,`Регистрации за сутки`],["Новые за 7 дней",users.new_7d??0,`Регистрации за неделю`],["Премиум",users.premium_total??0,`Активных: ${users.active_with_messages??0}`],["Админы",users.admins_total??0,`Через env и панель`],["Сообщения",content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],["Платежи",payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],["ИИ",`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Воркеров: ${runtime.workers??0}`],["Поддержка",support.users_with_support_profile??0,`паника: ${episodes.panic??0}`],["Инициативные",proactive.sent_1d??0,`доля ответов: ${proactive.reply_after_proactive_rate??0}%`],["Часовые пояса",preferences.users_with_timezone??0,`отказов сейчас: ${preferences.proactive_disabled_users??0}`],["Рефералы",referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([["Профили поддержки",String(support.users_with_support_profile??0),"Пользователи с профилем поддержки"],["Рефералы",String(referrals.total??0),`Конверсий: ${referrals.converted??0}`],["Инициативные пользователи",String(proactive.users_contacted_7d??0),"Кому бот писал за 7 дней"]])}${kvList([["Эпизоды паники",esc(num(episodes.panic??0))],["Эпизоды флэшбэков",esc(num(episodes.flashback??0))],["Эпизоды бессонницы",esc(num(episodes.insomnia??0))],["Флаги самоповреждения",esc(num(support.self_harm_flags??0))],["Отправлено инициативных",esc(num(proactive.sent_total??0))],["Ошибок инициативных",esc(num(proactive.failed_total??0))],["Ответы после инициативных",esc(`${proactive.reply_after_proactive_total??0} (${proactive.reply_after_proactive_rate??0}%)`)],["Отказы после инициативных",esc(`${proactive.opt_out_after_proactive_total??0} (${proactive.opt_out_after_proactive_rate??0}%)`)],["Пользователи с часовым поясом",esc(num(preferences.users_with_timezone??0))],["Пользователи с отказом",esc(num(preferences.proactive_disabled_users??0))],["Последнее обновление",esc(support.last_updated_at||'Нет данных')]])}</div>`}
+    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'БД в норме','БД недоступна')} ${statusPill(redis.ok,'Redis в норме','Redis недоступен')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'Норма',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Модель ИИ",esc(ai.model||ai.openai_model||'Не указана')],["Занято воркеров",esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь ИИ",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["Статус БД",`${statusPill(db.ok,'Норма','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Статус Redis",`${statusPill(redis.ok,'Норма','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
+    function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
-    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Username</th><th>Имя</th><th>Режим</th><th>Premium</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
+    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
     function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
     function memoryCategoryOptions(items){return (items||[]).map(item=>`<option value="${esc(item.key)}">${esc(item.label)}</option>`).join('')}
     function resetMemoryEditor(categories){const categorySelect=$('#memory_editor_category');const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];categorySelect.innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id','');setValue('#memory_editor_weight','1.0');setValue('#memory_editor_value','');setChecked('#memory_editor_pinned',false);if(categoryList.length){setValue('#memory_editor_category',categoryList[0].key)}state.currentMemoryId=null}
     function fillMemoryEditor(memory,categories){if(!memory){resetMemoryEditor(categories);return}const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];$('#memory_editor_category').innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id',memory.id);setValue('#memory_editor_category',memory.category||'');setValue('#memory_editor_weight',memory.weight??1.0);setValue('#memory_editor_value',memory.value||'');setChecked('#memory_editor_pinned',memory.pinned);state.currentMemoryId=memory.id}
     function formatLongTermMemories(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return items.map(item=>`<div class="kv-row"><div class="kv-key"><strong>${esc(item.category)}</strong><div class="muted">${esc(item.value)}</div><div class="muted">score=${esc(item.score)} | weight=${esc(item.weight)} | seen=${esc(item.times_seen)} | updated=${esc(item.updated_at||'-')}</div></div><div class="kv-value"><div class="memory-row-actions"><button data-memory-edit="${esc(item.id)}">Редактировать</button><button data-memory-pin="${esc(item.id)}" data-pinned="${item.pinned?0:1}">${item.pinned?'Открепить':'Закрепить'}</button></div></div></div>`).join('')}
-    function renderConversation(){const view=state.currentConversation,categories=view?.settings?.memory_categories||[];if(!view){$('#conversation-meta').textContent='Выберите пользователя, чтобы увидеть историю и память.';$('#conversation-stats').innerHTML='';$('#conversation-memory-preview-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-memory-preview').textContent='Пока нет данных.';$('#conversation-long-term-memories').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state').textContent='Пока нет данных.';$('#conversation-messages').innerHTML='<div class="muted">Пока нет данных.</div>';resetMemoryEditor([]);return}const user=view.user||{},stats=view.stats||{},cfg=view.settings||{};setValue('#conversation_user_id',user.id??'');$('#conversation-meta').textContent=`Пользователь: ${user.first_name||user.username||user.id||'неизвестно'} • ID ${user.id||'-'} • Сообщений: ${stats.total_messages??0}`;$('#conversation-stats').innerHTML=metricCards([['Всего сообщений',String(stats.total_messages??0),`user: ${stats.user_messages??0}, bot: ${stats.assistant_messages??0}`],['Первое сообщение',String(stats.first_message_at||'—'),'Начало истории'],['Последнее сообщение',String(stats.last_message_at||'—'),'Последняя активность'],['Long-term memory',cfg.long_term_memory_enabled?'on':'off',`Prompt items: ${cfg.long_term_memory_max_items??0}`],['Auto-prune',cfg.long_term_memory_auto_prune_enabled?'on':'off',`Soft limit: ${cfg.long_term_memory_soft_limit??0}`],['History limit',String(cfg.history_message_limit??0),`Memory tokens: ${cfg.memory_max_tokens??0}`],['Summary memory',cfg.episodic_summary_enabled?'on':'off','Summary layer']]);$('#conversation-memory-preview-summary').innerHTML=renderMemoryPreview(view.memory_preview||'');$('#conversation-memory-preview').textContent=view.memory_preview||'Память пока пустая.';$('#conversation-long-term-memories').innerHTML=formatLongTermMemories(view.long_term_memories||[]);$('#conversation-state-summary').innerHTML=renderStateSummary(view.state||{});$('#conversation-state').textContent=JSON.stringify(view.state||{},null,2);$('#conversation-messages').innerHTML=conversationMessages(view.messages||[]);const selected=(view.long_term_memories||[]).find(item=>String(item.id)===String(state.currentMemoryId));if(selected){fillMemoryEditor(selected,categories)}else{resetMemoryEditor(categories)}}
+    function renderConversation(){const view=state.currentConversation,categories=view?.settings?.memory_categories||[];if(!view){$('#conversation-meta').textContent='Выберите пользователя, чтобы увидеть историю и память.';$('#conversation-stats').innerHTML='';$('#conversation-memory-preview-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-memory-preview').textContent='Пока нет данных.';$('#conversation-long-term-memories').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state').textContent='Пока нет данных.';$('#conversation-messages').innerHTML='<div class="muted">Пока нет данных.</div>';resetMemoryEditor([]);return}const user=view.user||{},stats=view.stats||{},cfg=view.settings||{};setValue('#conversation_user_id',user.id??'');$('#conversation-meta').textContent=`Пользователь: ${user.first_name||user.username||user.id||'неизвестно'} • ID ${user.id||'-'} • Сообщений: ${stats.total_messages??0}`;$('#conversation-stats').innerHTML=metricCards([['Всего сообщений',String(stats.total_messages??0),`пользователь: ${stats.user_messages??0}, бот: ${stats.assistant_messages??0}`],['Первое сообщение',String(stats.first_message_at||'—'),'Начало истории'],['Последнее сообщение',String(stats.last_message_at||'—'),'Последняя активность'],['Долгая память',cfg.long_term_memory_enabled?'вкл':'выкл',`Элементов в контексте: ${cfg.long_term_memory_max_items??0}`],['Автоочистка',cfg.long_term_memory_auto_prune_enabled?'вкл':'выкл',`Мягкий лимит: ${cfg.long_term_memory_soft_limit??0}`],['Лимит истории',String(cfg.history_message_limit??0),`Токенов памяти: ${cfg.memory_max_tokens??0}`],['Сводная память',cfg.episodic_summary_enabled?'вкл':'выкл','Слой суммаризации']]);$('#conversation-memory-preview-summary').innerHTML=renderMemoryPreview(view.memory_preview||'');$('#conversation-memory-preview').textContent=view.memory_preview||'Память пока пустая.';$('#conversation-long-term-memories').innerHTML=formatLongTermMemories(view.long_term_memories||[]);$('#conversation-state-summary').innerHTML=renderStateSummary(view.state||{});$('#conversation-state').textContent=JSON.stringify(view.state||{},null,2);$('#conversation-messages').innerHTML=conversationMessages(view.messages||[]);const selected=(view.long_term_memories||[]).find(item=>String(item.id)===String(state.currentMemoryId));if(selected){fillMemoryEditor(selected,categories)}else{resetMemoryEditor(categories)}}
     function renderRuntime(){
       if(!state.settings||!state.settings.runtime)return;
       const r=state.settings.runtime,a=r.ai||{},c=r.chat||{},p=r.proactive||{},u=r.ui||{};
@@ -1399,7 +1402,7 @@ def _dashboard_html() -> str:
       $('#engagement_reengagement_batch_size').value=e.reengagement_batch_size??'';
     }
     function renderPrompts(){if(!state.settings||!state.settings.prompts)return;const p=state.settings.prompts,accessRules=p.access_rules||{};setValue('#prompt_personality_core',p.personality_core);setValue('#prompt_safety_block',p.safety_block);setValue('#prompt_response_style',p.response_style||'');setValue('#prompt_engagement_rules',p.engagement_rules||'');setValue('#prompt_ptsd_mode_prompt',p.ptsd_mode_prompt||'');setValue('#prompt_memory_intro',p.memory_intro);setValue('#prompt_state_intro',p.state_intro);setValue('#prompt_mode_intro',p.mode_intro);setValue('#prompt_access_intro',p.access_intro);setValue('#prompt_final_instruction',p.final_instruction);setValue('#access_observation',accessRules.observation);setValue('#access_analysis',accessRules.analysis);setValue('#access_tension',accessRules.tension);setValue('#access_personal_focus',accessRules.personal_focus);setValue('#access_rare_layer',accessRules.rare_layer)}
-    function renderModes(){if(!state.settings||!state.settings.modes||!state.settings.mode_catalog)return;const m=state.settings.modes,c=state.settings.mode_catalog;const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));const modeScaleLabel=k=>({allow_bold:'Жирный текст',allow_italic:'Курсив'}[k]||k);$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k]||{},scale=m[k]||{},numericEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='number'),booleanEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='boolean');return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)}</div></div><span class="badge">${meta.is_premium?'Premium':'Free'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order??0}"></label></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Premium</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${numericEntries.map(([mk,mv])=>`<label>${mk}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div>${booleanEntries.length?`<div class="two">${booleanEntries.map(([mk,mv])=>`<label class="checkbox"><input data-mode-scale="${k}.${mk}" type="checkbox" ${mv?'checked':''}>${esc(modeScaleLabel(mk))}</label>`).join('')}</div>`:''}</div>`}).join('')}
+    function renderModes(){if(!state.settings||!state.settings.modes||!state.settings.mode_catalog)return;const m=state.settings.modes,c=state.settings.mode_catalog;const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));const modeScaleLabel=k=>({allow_bold:'Жирный текст',allow_italic:'Курсив'}[k]||k);$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k]||{},scale=m[k]||{},numericEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='number'),booleanEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='boolean');return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)}</div></div><span class="badge">${meta.is_premium?'Премиум':'Бесплатно'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order??0}"></label></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Премиум</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${numericEntries.map(([mk,mv])=>`<label>${mk}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div>${booleanEntries.length?`<div class="two">${booleanEntries.map(([mk,mv])=>`<label class="checkbox"><input data-mode-scale="${k}.${mk}" type="checkbox" ${mv?'checked':''}>${esc(modeScaleLabel(mk))}</label>`).join('')}</div>`:''}</div>`}).join('')}
     function renderPayments(){if(!state.settings||!state.settings.runtime)return;const p=state.settings.runtime.payment,ref=state.settings.runtime.referral;$('#payment_provider_token').value=p.provider_token;$('#payment_currency').value=p.currency;$('#payment_price_minor_units').value=p.price_minor_units;$('#payment_product_title').value=p.product_title;$('#payment_product_description').value=p.product_description;$('#payment_premium_benefits_text').value=p.premium_benefits_text;$('#payment_buy_cta_text').value=p.buy_cta_text;$('#payment_unavailable_message').value=p.unavailable_message;$('#payment_invoice_error_message').value=p.invoice_error_message;$('#payment_success_message').value=p.success_message;$('#referral_enabled').checked=!!ref.enabled;$('#referral_start_parameter_prefix').value=ref.start_parameter_prefix;$('#referral_program_title').value=ref.program_title;$('#referral_allow_self_referral').checked=!!ref.allow_self_referral;$('#referral_require_first_paid_invoice').checked=!!ref.require_first_paid_invoice;$('#referral_award_referrer_premium').checked=!!ref.award_referrer_premium;$('#referral_award_referred_user_premium').checked=!!ref.award_referred_user_premium;$('#referral_program_description').value=ref.program_description;$('#referral_share_text_template').value=ref.share_text_template;$('#referral_referred_welcome_message').value=ref.referred_welcome_message;$('#referral_referrer_reward_message').value=ref.referrer_reward_message;$('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)}
     function renderLogs(){if(state.logs)$('#logs-output').textContent=(state.logs.lines||[]).join('\\n')||'Лог пуст.'}
     function runtimePayload(){
@@ -1470,14 +1473,14 @@ def _dashboard_html() -> str:
     on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines')?.value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
     on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
     on('#export-json','click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));
-    on('#save-runtime','click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки AI и UI сохранены.').catch(e=>notice(e.message,'error')));
+    on('#save-runtime','click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки ИИ и интерфейса сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-safety','click',()=>save('/api/settings/runtime',safetyPayload(),'Настройки безопасности сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-prompts','click',()=>save('/api/settings/prompts',promptsPayload(),'Промпты сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-modes','click',async()=>{try{const p=modesPayload();await api('/api/settings/modes',{method:'PUT',body:JSON.stringify(p.modes)});await api('/api/settings/mode-catalog',{method:'PUT',body:JSON.stringify(p.catalog)});await refreshAll();notice('Режимы сохранены.')}catch(e){notice(e.message,'error')}})
     on('#save-payments','click',()=>save('/api/settings/runtime',paymentsPayload(),'Платежные настройки сохранены.').catch(e=>notice(e.message,'error')));
     on('#test-prompt','click',()=>runTest('/api/test/prompt').then(()=>notice('Промпт готов.')).catch(e=>notice(e.message,'error')));
-    on('#test-state-btn','click',()=>runTest('/api/test/state').then(()=>notice('State пересчитан.')).catch(e=>notice(e.message,'error')));
-    on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Live-тест завершен.')).catch(e=>notice(e.message,'error'))});
+    on('#test-state-btn','click',()=>runTest('/api/test/state').then(()=>notice('Состояние пересчитано.')).catch(e=>notice(e.message,'error')));
+    on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Проверка ответа завершена.')).catch(e=>notice(e.message,'error'))});
     window.addEventListener('error',e=>{console.error('Admin dashboard error',e.error||e.message);notice(`Ошибка интерфейса: ${e.message||'см. консоль браузера'}`,'error')});
     window.addEventListener('unhandledrejection',e=>{console.error('Admin dashboard rejection',e.reason);notice(`Ошибка загрузки: ${e.reason?.message||e.reason||'неизвестно'}`,'error')});
     renderMessageTemplates();
