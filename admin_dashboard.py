@@ -976,11 +976,11 @@ def _dashboard_html() -> str:
               <label>Язык ответа<input id="ai_response_language"></label>
               <label>Температура<input id="ai_temperature" type="number" step="0.1"></label>
               <label>Top P<input id="ai_top_p" type="number" step="0.05" min="0" max="1"></label>
-              <label>Freq penalty<input id="ai_frequency_penalty" type="number" step="0.05" min="-2" max="2"></label>
-              <label>Presence penalty<input id="ai_presence_penalty" type="number" step="0.05" min="-2" max="2"></label>
-              <label>Max output tokens<input id="ai_max_completion_tokens" type="number"></label>
-              <label>Reasoning effort<input id="ai_reasoning_effort"></label>
-              <label>Verbosity<input id="ai_verbosity"></label>
+              <label>Штраф за повторы<input id="ai_frequency_penalty" type="number" step="0.05" min="-2" max="2"></label>
+              <label>Штраф за новые темы<input id="ai_presence_penalty" type="number" step="0.05" min="-2" max="2"></label>
+              <label>Макс. токенов ответа<input id="ai_max_completion_tokens" type="number"></label>
+              <label>Глубина рассуждения<input id="ai_reasoning_effort"></label>
+              <label>Подробность ответа<input id="ai_verbosity"></label>
               <label>Таймаут<input id="ai_timeout_seconds" type="number"></label>
               <label>Повторы<input id="ai_max_retries" type="number"></label>
               <label>Память, токены<input id="ai_memory_max_tokens" type="number"></label>
