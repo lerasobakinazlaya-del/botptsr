@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
+from services.response_guardrails import apply_ptsd_response_guardrails
 
 
 logger = logging.getLogger(__name__)
@@ -229,6 +230,15 @@ class AIService:
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
+
+        chat_settings = runtime_settings.get("chat", {})
+        response_text = apply_ptsd_response_guardrails(
+            response_text,
+            active_mode=active_mode,
+            emotional_tone=str(new_state.get("emotional_tone") or "neutral"),
+            enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
+            blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+        )
 
         new_state = self.human_memory_service.apply_assistant_message(
             new_state,

@@ -49,10 +49,16 @@ class AdminSettingsService:
         },
         "chat": {
             "typing_action_enabled": True,
+            "write_prompt_message": "Я рядом. Напиши, что у тебя на уме.",
             "non_text_message": "Я могу отвечать только на текстовые сообщения.",
             "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
             "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
-            "write_prompt_message": "Я рядом. Напиши, что у тебя на уме.",
+            "response_guardrails_enabled": True,
+            "response_guardrail_blocked_phrases": [
+                "я понимаю, что тебе тяжело",
+                "мне очень жаль, что ты через это проходишь",
+                "твои чувства валидны",
+            ],
         },
         "proactive": {
             "enabled": True,
@@ -553,6 +559,10 @@ class AdminSettingsService:
         chat["typing_action_enabled"] = bool(chat["typing_action_enabled"])
         for key in ("non_text_message", "busy_message", "ai_error_message", "write_prompt_message"):
             chat[key] = self._normalize_text(chat[key], multiline=True)
+        chat["response_guardrails_enabled"] = bool(chat.get("response_guardrails_enabled", True))
+        chat["response_guardrail_blocked_phrases"] = self._normalize_string_list(
+            chat.get("response_guardrail_blocked_phrases")
+        )
 
         proactive = current["proactive"]
         proactive["enabled"] = bool(proactive.get("enabled", False))

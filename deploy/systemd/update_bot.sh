@@ -34,7 +34,40 @@ fi
 ./venv/bin/pip install -r requirements.txt
 
 echo "==> Verifying Python files"
-./venv/bin/python -m py_compile main.py admin_dashboard.py
+./venv/bin/python -m compileall -q main.py admin_dashboard.py core handlers services tests
+
+echo "==> Validating JSON config files"
+./venv/bin/python - <<'PY'
+import json
+from pathlib import Path
+
+validated = []
+for path in sorted(Path("config").glob("*.json")):
+    json.loads(path.read_text(encoding="utf-8"))
+    validated.append(path.name)
+
+print("Validated:", ", ".join(validated))
+PY
+
+if [ "${RUN_TESTS:-1}" = "1" ]; then
+  echo "==> Running test suite"
+  ./venv/bin/python -m pytest -q
+else
+  echo "==> RUN_TESTS=0, skipping tests"
+fi
+
+echo "==> Writing release metadata"
+mkdir -p config
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+CURRENT_COMMIT="$(git rev-parse HEAD)"
+DEPLOYED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+cat > config/release.json <<EOF
+{
+  "branch": "${CURRENT_BRANCH}",
+  "commit": "${CURRENT_COMMIT}",
+  "deployed_at": "${DEPLOYED_AT}"
+}
+EOF
 
 echo "==> Updating systemd unit files"
 sudo cp deploy/systemd/bot.service /etc/systemd/system/bot.service

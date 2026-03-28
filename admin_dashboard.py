@@ -15,8 +15,19 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from config.settings import get_settings
 from core.container import Container
+from services.admin_guardrails import (
+    MAX_BROADCAST_RECIPIENTS,
+    build_broadcast_confirmation_token,
+    build_broadcast_preview,
+    normalize_broadcast_user_ids,
+)
 from services.ai_profile_service import resolve_ai_profile
 from services.admin_metrics_service import AdminMetricsService
+from services.release_service import build_health_warnings, load_release_info
+from services.response_guardrails import (
+    analyze_response_style,
+    apply_ptsd_response_guardrails,
+)
 from services.telegram_formatting import (
     TelegramFormattingOptions,
     escape_plain_text_for_telegram,
@@ -171,6 +182,28 @@ def _build_formatting_options(active_mode: str) -> TelegramFormattingOptions:
     )
 
 
+def _broadcast_secret() -> str:
+    return settings.bot_token or settings.admin_dashboard_password or "broadcast-secret"
+
+
+def _normalize_broadcast_targets(raw_user_ids: Any) -> list[int]:
+    if not isinstance(raw_user_ids, list):
+        raise HTTPException(status_code=400, detail="Передай список user_ids")
+
+    user_ids = normalize_broadcast_user_ids(
+        raw_user_ids,
+        max_recipients=MAX_BROADCAST_RECIPIENTS + 1,
+    )
+    if not user_ids:
+        raise HTTPException(status_code=400, detail="Не выбраны получатели")
+    if len(user_ids) > MAX_BROADCAST_RECIPIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"За один раз можно отправить максимум {MAX_BROADCAST_RECIPIENTS} сообщений",
+        )
+    return user_ids
+
+
 async def _deliver_dashboard_message(
     user_id: int,
     text: str,
@@ -274,12 +307,23 @@ async def _build_health() -> dict[str, Any]:
             "size_bytes": file_path.stat().st_size if file_path.exists() else 0,
         }
 
+    runtime_stats = container.ai_service.get_runtime_stats()
+    release_info = load_release_info(container.admin_settings_service.config_dir)
+    warnings = build_health_warnings(
+        admin_dashboard_password=settings.admin_dashboard_password,
+        redis_ok=bool(redis_status.get("ok")),
+        release_info=release_info,
+        runtime_stats=runtime_stats,
+    )
+
     return {
         "db": db_status,
         "redis": redis_status,
-        "ai_runtime": container.ai_service.get_runtime_stats(),
+        "ai_runtime": runtime_stats,
         "config_files": config_files,
         "modes_count": len(container.admin_settings_service.get_mode_catalog()),
+        "release": release_info,
+        "warnings": warnings,
     }
 
 
@@ -451,6 +495,24 @@ async def api_user_send_message(
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
+@app.post("/api/users/broadcast/preview")
+async def api_users_broadcast_preview(
+    request: Request,
+    _: str = Depends(require_auth),
+):
+    payload = await request.json()
+    text = str(payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Текст сообщения не может быть пустым")
+
+    user_ids = _normalize_broadcast_targets(payload.get("user_ids"))
+    return build_broadcast_preview(
+        user_ids,
+        text,
+        secret=_broadcast_secret(),
+    )
+
+
 @app.post("/api/users/broadcast")
 async def api_users_broadcast(
     request: Request,
@@ -458,28 +520,20 @@ async def api_users_broadcast(
 ):
     payload = await request.json()
     text = str(payload.get("text") or "").strip()
-    raw_user_ids = payload.get("user_ids")
+    confirmation_token = str(payload.get("confirmation_token") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Текст сообщения не может быть пустым")
-    if not isinstance(raw_user_ids, list):
-        raise HTTPException(status_code=400, detail="Передай список user_ids")
-
-    user_ids: list[int] = []
-    seen: set[int] = set()
-    for value in raw_user_ids:
-        try:
-            user_id = int(str(value).strip())
-        except (TypeError, ValueError):
-            continue
-        if user_id <= 0 or user_id in seen:
-            continue
-        seen.add(user_id)
-        user_ids.append(user_id)
-
-    if not user_ids:
-        raise HTTPException(status_code=400, detail="Не выбраны получатели")
-    if len(user_ids) > 100:
-        raise HTTPException(status_code=400, detail="За один раз можно отправить максимум 100 сообщений")
+    user_ids = _normalize_broadcast_targets(payload.get("user_ids"))
+    expected_token = build_broadcast_confirmation_token(
+        user_ids,
+        text,
+        secret=_broadcast_secret(),
+    )
+    if not confirmation_token or not secrets.compare_digest(confirmation_token, expected_token):
+        raise HTTPException(
+            status_code=400,
+            detail="Сначала запроси preview и подтверди рассылку этим же составом получателей.",
+        )
 
     sent: list[dict[str, Any]] = []
     failed: list[dict[str, Any]] = []
@@ -720,20 +774,34 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
     payload = await request.json()
     context = await _prepare_test_context(payload)
     history = _parse_history(payload.get("history"))
+    runtime_settings = container.admin_settings_service.get_runtime_settings()
+    chat_settings = runtime_settings.get("chat", {})
 
     if not context["user_message"]:
         raise HTTPException(status_code=400, detail="Для live-теста нужно сообщение пользователя")
 
     if context["grounding_kind"] is not None:
+        response_text = container.keyword_memory_service.build_grounding_response(context["grounding_kind"])
+        guarded_response = apply_ptsd_response_guardrails(
+            response_text,
+            active_mode=context["active_mode"],
+            emotional_tone=str(context["updated_state"].get("emotional_tone") or "neutral"),
+            enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
+            blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+        )
         return {
-            "response": container.keyword_memory_service.build_grounding_response(context["grounding_kind"]),
+            "response": guarded_response,
             "prompt": None,
             "grounding_kind": context["grounding_kind"],
             "tokens_used": None,
             "updated_state": context["updated_state"],
+            "response_audit": analyze_response_style(
+                guarded_response,
+                blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+            ),
         }
 
-    ai_settings = container.admin_settings_service.get_runtime_settings()["ai"]
+    ai_settings = runtime_settings["ai"]
     ai_profile = resolve_ai_profile(ai_settings, context["active_mode"])
     system_prompt = container.prompt_builder.build_system_prompt(
         state=context["updated_state"],
@@ -758,12 +826,23 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
         verbosity=ai_settings["verbosity"] or None,
         user="admin-live-test",
     )
+    guarded_response = apply_ptsd_response_guardrails(
+        response_text,
+        active_mode=context["active_mode"],
+        emotional_tone=str(context["updated_state"].get("emotional_tone") or "neutral"),
+        enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
+        blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+    )
     return {
-        "response": response_text,
+        "response": guarded_response,
         "prompt": system_prompt,
         "grounding_kind": None,
         "tokens_used": tokens_used,
         "updated_state": context["updated_state"],
+        "response_audit": analyze_response_style(
+            guarded_response,
+            blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+        ),
     }
 
 
@@ -1241,7 +1320,7 @@ def _dashboard_html() -> str:
       'Как ты сегодня? Можешь ответить в любом темпе.',
       'Если хочешь, можем спокойно вернуться к тому, на чем остановились.'
     ];
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastResult:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
     const escText=v=>esc(v).replaceAll('\\n','<br>');
@@ -1263,7 +1342,7 @@ def _dashboard_html() -> str:
     function renderMessageTemplates(){const html=currentMessageTemplates().map((text,index)=>`<button type="button" class="template-chip" data-template-index="${index}">Шаблон ${index+1}</button>`).join('');const bulk=$('#bulk-message-templates');if(bulk)bulk.innerHTML=html;const conversation=$('#conversation-message-templates');if(conversation)conversation.innerHTML=html}
     function renderTemplateEditor(){const editor=$('#message_templates_editor');if(editor)editor.value=formatTemplateEditorText(currentMessageTemplates())}
     function applyTemplate(textareaSelector,index){const textarea=$(textareaSelector);if(!textarea)return;const template=currentMessageTemplates()[index];if(!template)return;textarea.value=template;textarea.focus()}
-    function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится отчет по рассылке.';return}const lines=[`Запрошено: ${result.requested_count??0}`,`Отправлено: ${result.sent_count??0}`,`Ошибок: ${result.failed_count??0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
+    function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится preview и отчет по рассылке.';return}if(result.phase==='preview'){const lines=[`Preview: ${result.requested_count??0} получателей`,`Текст: ${result.preview_text||''}${result.truncated?'...':''}`];if((result.warnings||[]).length){lines.push('','Предупреждения:');(result.warnings||[]).forEach(item=>lines.push(`- ${item}`))}lines.push('','После подтверждения эта рассылка уйдет выбранным пользователям.');el.textContent=lines.join('\\n');return}const lines=[`Запрошено: ${result.requested_count??0}`,`Отправлено: ${result.sent_count??0}`,`Ошибок: ${result.failed_count??0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
@@ -1280,7 +1359,7 @@ def _dashboard_html() -> str:
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     function renderModeOverrides(ai,catalog){const overrides=ai.mode_overrides||{};const keys=Object.keys(catalog||{}).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));$('#ai-mode-overrides').innerHTML=keys.map(key=>{const meta=catalog[key]||{};const value=overrides[key]||{};return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon||'')} ${esc(meta.name||key)}</strong><div class="muted">${esc(key)}</div></div></div><div class="three"><label>Модель<input data-ai-override="${key}.model" value="${esc(value.model||'')}"></label><label>Температура<input data-ai-override="${key}.temperature" type="number" step="0.1" value="${esc(value.temperature??'')}"></label><label>Память<input data-ai-override="${key}.memory_max_tokens" type="number" value="${esc(value.memory_max_tokens??'')}"></label><label>История<input data-ai-override="${key}.history_message_limit" type="number" value="${esc(value.history_message_limit??'')}"></label><label>Таймаут<input data-ai-override="${key}.timeout_seconds" type="number" value="${esc(value.timeout_seconds??'')}"></label><label>Повторы<input data-ai-override="${key}.max_retries" type="number" value="${esc(value.max_retries??'')}"></label></div><label>Доп. инструкция<textarea data-ai-override="${key}.prompt_suffix">${esc(value.prompt_suffix||'')}</textarea></label></div>`}).join('')}
     function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},proactive=o.proactive||{},preferences=o.preferences||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[["Пользователи",users.total??0,`Всего в базе`],["Новые за 1 день",users.new_1d??0,`Регистрации за сутки`],["Новые за 7 дней",users.new_7d??0,`Регистрации за неделю`],["Премиум",users.premium_total??0,`Активных: ${users.active_with_messages??0}`],["Админы",users.admins_total??0,`Через env и панель`],["Сообщения",content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],["Платежи",payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],["ИИ",`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Воркеров: ${runtime.workers??0}`],["Поддержка",support.users_with_support_profile??0,`паника: ${episodes.panic??0}`],["Инициативные",proactive.sent_1d??0,`доля ответов: ${proactive.reply_after_proactive_rate??0}%`],["Часовые пояса",preferences.users_with_timezone??0,`отказов сейчас: ${preferences.proactive_disabled_users??0}`],["Рефералы",referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([["Профили поддержки",String(support.users_with_support_profile??0),"Пользователи с профилем поддержки"],["Рефералы",String(referrals.total??0),`Конверсий: ${referrals.converted??0}`],["Инициативные пользователи",String(proactive.users_contacted_7d??0),"Кому бот писал за 7 дней"]])}${kvList([["Эпизоды паники",esc(num(episodes.panic??0))],["Эпизоды флэшбэков",esc(num(episodes.flashback??0))],["Эпизоды бессонницы",esc(num(episodes.insomnia??0))],["Флаги самоповреждения",esc(num(support.self_harm_flags??0))],["Отправлено инициативных",esc(num(proactive.sent_total??0))],["Ошибок инициативных",esc(num(proactive.failed_total??0))],["Ответы после инициативных",esc(`${proactive.reply_after_proactive_total??0} (${proactive.reply_after_proactive_rate??0}%)`)],["Отказы после инициативных",esc(`${proactive.opt_out_after_proactive_total??0} (${proactive.opt_out_after_proactive_rate??0}%)`)],["Пользователи с часовым поясом",esc(num(preferences.users_with_timezone??0))],["Пользователи с отказом",esc(num(preferences.proactive_disabled_users??0))],["Последнее обновление",esc(support.last_updated_at||'Нет данных')]])}</div>`}
-    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{};$('#sidebar-health').innerHTML=`${statusPill(db.ok,'БД в норме','БД недоступна')} ${statusPill(redis.ok,'Redis в норме','Redis недоступен')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'Норма',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Модель ИИ",esc(ai.model||ai.openai_model||'Не указана')],["Занято воркеров",esc(String(ai.busy_workers??0))]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь ИИ",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["Статус БД",`${statusPill(db.ok,'Норма','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Статус Redis",`${statusPill(redis.ok,'Норма','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)]])}</div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
+    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{},release=state.health.release||{},warnings=state.health.warnings||[];const warningSummary=warnings.length?statusPill(false,`${warnings.length} предупреждений`,`${warnings.length} предупреждений`):statusPill(true,'Без предупреждений','');const warningList=warnings.length?`<div class="stack">${warnings.map(item=>`<div class="message-card"><div class="message-meta"><strong>${esc(item.severity||'info')}</strong><span>${esc(item.code||'warning')}</span></div><div>${esc(item.message||'')}</div></div>`).join('')}</div>`:'<div class="muted">Критичных предупреждений сейчас нет.</div>';$('#sidebar-health').innerHTML=`${statusPill(db.ok,'БД в норме','БД недоступна')} ${statusPill(redis.ok,'Redis в норме','Redis недоступен')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'Норма',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Модель ИИ",esc(ai.model||ai.openai_model||'Не указана')],["Релиз",release.available?`${esc(release.branch||'') || 'branch?'}<div class="muted">${esc((release.commit||'').slice(0,12)||'commit?')} • ${esc(release.deployed_at||'')}</div>`:`<span class="muted">release.json не найден</span>`],["Предупреждения",warningSummary]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь ИИ",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["Статус БД",`${statusPill(db.ok,'Норма','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Статус Redis",`${statusPill(redis.ok,'Норма','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)],["Ветка",esc(release.branch||'—')],["Коммит",esc((release.commit||'').slice(0,12)||'—')],["Задеплоено",esc(release.deployed_at||'—')]])}<div><div class="stat-label">Предупреждения</div>${warningList}</div></div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
@@ -1435,7 +1514,7 @@ def _dashboard_html() -> str:
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
     async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
     async function sendConversationMessage(){const rawUserId=String($('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||state.currentConversation?.user?.id||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const textarea=$('#conversation_outbound_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст сообщения');const button=$('#send-conversation-message');if(button)button.disabled=true;try{await api(`/api/users/${encodeURIComponent(rawUserId)}/message`,{method:'POST',body:JSON.stringify({text})});if(textarea)textarea.value='';await loadConversation(rawUserId);notice('Сообщение отправлено.')}finally{if(button)button.disabled=false}}
-    async function sendBulkMessage(){const ids=selectedUserIds();if(!ids.length)throw new Error('Выбери хотя бы одного пользователя');const textarea=$('#bulk_message_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст для рассылки');if(!window.confirm(`Отправить сообщение ${ids.length} пользователям?`))return;const button=$('#send-bulk-message');if(button)button.disabled=true;const results=$('#bulk-message-results');if(results)results.textContent='Отправляю сообщения...';try{const result=await api('/api/users/broadcast',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text})});state.lastBroadcastResult=result;renderBroadcastResult(result);await refreshUsers();notice(result.failed_count?`Рассылка завершена: ${result.sent_count} отправлено, ${result.failed_count} с ошибкой.`:`Рассылка завершена: отправлено ${result.sent_count}.`)}finally{if(button)button.disabled=false}}
+    async function sendBulkMessage(){const ids=selectedUserIds();if(!ids.length)throw new Error('Выбери хотя бы одного пользователя');const textarea=$('#bulk_message_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст для рассылки');const button=$('#send-bulk-message');if(button)button.disabled=true;const results=$('#bulk-message-results');if(results)results.textContent='Готовлю preview рассылки...';try{const preview=await api('/api/users/broadcast/preview',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text})});state.lastBroadcastPreview=preview;renderBroadcastResult(preview);const warningBlock=(preview.warnings||[]).length?`\\n\\nПредупреждения:\\n- ${(preview.warnings||[]).join('\\n- ')}`:'';if(!window.confirm(`Отправить сообщение ${preview.requested_count||ids.length} пользователям?${warningBlock}`)){notice('Рассылка отменена.','error');return}if(results)results.textContent='Отправляю сообщения...';const result=await api('/api/users/broadcast',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text,confirmation_token:preview.confirmation_token})});state.lastBroadcastResult=result;renderBroadcastResult(result);await refreshUsers();notice(result.failed_count?`Рассылка завершена: ${result.sent_count} отправлено, ${result.failed_count} с ошибкой.`:`Рассылка завершена: отправлено ${result.sent_count}.`)}finally{if(button)button.disabled=false}}
     async function toggleMemoryPin(memoryId,pinned){await api(`/api/memories/${encodeURIComponent(memoryId)}/pin`,{method:'POST',body:JSON.stringify({pinned:!!Number(pinned)})});await loadConversation();notice('Статус памяти обновлен.')}
     function memoryEditorPayload(){return {user_id:Number($('#conversation_user_id').value||0),category:$('#memory_editor_category').value.trim(),value:$('#memory_editor_value').value.trim(),weight:Number($('#memory_editor_weight').value||0),pinned:$('#memory_editor_pinned').checked}}
     async function saveMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const payload=memoryEditorPayload();if(!payload.category)throw new Error('Выбери категорию memory');if(!payload.value)throw new Error('Заполни текст memory');const memoryId=String($('#memory_editor_id').value||'').trim();const result=memoryId?await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'PUT',body:JSON.stringify(payload)}):await api(`/api/users/${encodeURIComponent(rawUserId)}/memories`,{method:'POST',body:JSON.stringify(payload)});state.currentMemoryId=result.memory?.id||null;await loadConversation(rawUserId);notice(memoryId?'Memory обновлена.':'Memory создана.')}
