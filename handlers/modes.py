@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery, Message
 
 from config.modes import get_mode, get_modes, get_premium_modes
 from keyboards.modes_keyboard import get_modes_keyboard
+from handlers.payments import send_premium_offer
 
 
 router = Router(name="modes-router")
@@ -53,6 +54,7 @@ async def change_mode_handler(
     state_repository,
     admin_settings_service,
     mode_access_service,
+    payment_service,
 ):
     ui_settings = admin_settings_service.get_runtime_settings()["ui"]
     runtime_settings = admin_settings_service.get_runtime_settings()
@@ -79,6 +81,8 @@ async def change_mode_handler(
 
     if mode_key in get_premium_modes() and not user.get("is_premium") and not can_select_mode:
         await callback.answer(ui_settings["mode_locked_text"], show_alert=True)
+        if callback.message is not None and hasattr(callback.message, "answer"):
+            await send_premium_offer(callback.message, payment_service, user_service)
         return
 
     await user_service.set_mode(callback.from_user.id, mode_key)

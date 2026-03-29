@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from math import ceil
 from zoneinfo import ZoneInfo
 
 from aiogram import Router
@@ -49,6 +50,128 @@ def _set_user_timezone(state: dict, timezone_name: str | None) -> dict:
     proactive_preferences["updated_at"] = datetime.now(timezone.utc).isoformat()
     updated["proactive_preferences"] = proactive_preferences
     return updated
+
+
+def _today_key() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def _normalize_int_list(raw: object) -> list[int]:
+    if isinstance(raw, str):
+        items = raw.replace(",", "\n").splitlines()
+    else:
+        items = list(raw or [])
+
+    normalized: list[int] = []
+    for item in items:
+        try:
+            normalized.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return normalized
+
+
+def _remember_notice(state: dict | None, bucket: str, marker: str | int) -> tuple[dict, bool]:
+    updated = dict(state or {})
+    notifications = dict(updated.get("monetization_notifications") or {})
+    day_key = _today_key()
+    day_notifications = dict(notifications.get(day_key) or {})
+    sent_markers = {str(item) for item in day_notifications.get(bucket, [])}
+    marker_key = str(marker)
+    if marker_key in sent_markers:
+        return updated, False
+
+    sent_markers.add(marker_key)
+    day_notifications[bucket] = sorted(sent_markers)
+    notifications[day_key] = day_notifications
+    updated["monetization_notifications"] = {
+        key: notifications[key]
+        for key in sorted(notifications.keys(), reverse=True)[:7]
+    }
+    return updated, True
+
+
+def _build_quota_notice(
+    state: dict | None,
+    user: dict[str, object],
+    today_count: int,
+    limits_settings: dict,
+) -> tuple[dict, str | None]:
+    is_premium = bool(user.get("is_premium"))
+    if is_premium:
+        if not limits_settings.get("premium_daily_messages_enabled"):
+            return dict(state or {}), None
+        limit = max(1, int(limits_settings.get("premium_daily_messages_limit", 150)))
+        remaining = max(0, limit - today_count)
+        thresholds = set(_normalize_int_list(limits_settings.get("premium_daily_warning_thresholds")))
+        if remaining not in thresholds:
+            return dict(state or {}), None
+        updated_state, should_send = _remember_notice(state, "premium_daily", remaining)
+        if not should_send:
+            return updated_state, None
+        if remaining == 0:
+            return updated_state, str(limits_settings.get("premium_daily_limit_message") or "").strip() or None
+        template = str(limits_settings.get("premium_daily_warning_template") or "").strip()
+        if not template:
+            return updated_state, None
+        return updated_state, template.format(remaining=remaining, limit=limit)
+
+    if not limits_settings.get("free_daily_messages_enabled"):
+        return dict(state or {}), None
+    limit = max(1, int(limits_settings.get("free_daily_messages_limit", 25)))
+    remaining = max(0, limit - today_count)
+    thresholds = set(_normalize_int_list(limits_settings.get("free_daily_warning_thresholds")))
+    if remaining not in thresholds:
+        return dict(state or {}), None
+    updated_state, should_send = _remember_notice(state, "free_daily", remaining)
+    if not should_send:
+        return updated_state, None
+    if remaining == 0:
+        return updated_state, str(limits_settings.get("free_daily_limit_message") or "").strip() or None
+    template = str(limits_settings.get("free_daily_warning_template") or "").strip()
+    if not template:
+        return updated_state, None
+    return updated_state, template.format(remaining=remaining, limit=limit)
+
+
+def _build_subscription_expiry_notice(
+    state: dict | None,
+    user: dict[str, object],
+    payment_service,
+) -> tuple[dict, str | None]:
+    if not user.get("is_premium"):
+        return dict(state or {}), None
+
+    premium_expires_at = str(user.get("premium_expires_at") or "").strip()
+    if not premium_expires_at:
+        return dict(state or {}), None
+
+    try:
+        expires_at = datetime.strptime(premium_expires_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return dict(state or {}), None
+
+    seconds_left = (expires_at - datetime.now(timezone.utc)).total_seconds()
+    if seconds_left <= 0:
+        return dict(state or {}), None
+
+    days_left = max(1, ceil(seconds_left / 86400))
+    payment_settings = payment_service.get_payment_settings()
+    reminder_days = set(_normalize_int_list(payment_settings.get("renewal_reminder_days")))
+    if days_left not in reminder_days:
+        return dict(state or {}), None
+
+    updated_state, should_send = _remember_notice(state, "premium_expiry", days_left)
+    if not should_send:
+        return updated_state, None
+
+    template = str(payment_settings.get("expiry_reminder_template") or "").strip()
+    if not template:
+        return updated_state, None
+    return updated_state, template.format(
+        days=days_left,
+        expires_at=payment_service.format_expiry_text(premium_expires_at),
+    )
 
 
 async def _handle_timezone_command(message: Message, user_preference_repository, state_repository) -> bool:
@@ -225,6 +348,7 @@ async def chat_handler(
         should_apply_limits = user is not None and (
             not user.get("is_admin") or not limits_bypass_for_admins
         )
+        today_count = 0
 
         if should_apply_limits:
             today_count = await message_repository.get_user_messages_count_today(user_id)
@@ -317,6 +441,7 @@ async def chat_handler(
             allow_italic=bool(mode_config.get("allow_italic", False)),
         )
         formatted_response = format_model_response_for_telegram(response, formatting_options)
+        post_response_notices: list[str] = []
 
         try:
             new_state = mode_access_service.register_successful_message(
@@ -326,6 +451,22 @@ async def chat_handler(
                 runtime_settings=runtime_settings,
                 mode_catalog=mode_catalog,
             )
+            if should_apply_limits:
+                new_state, quota_notice = _build_quota_notice(
+                    new_state,
+                    user or {},
+                    today_count + 1,
+                    limits_settings,
+                )
+                if quota_notice:
+                    post_response_notices.append(quota_notice)
+            new_state, expiry_notice = _build_subscription_expiry_notice(
+                new_state,
+                user or {},
+                payment_service,
+            )
+            if expiry_notice:
+                post_response_notices.append(expiry_notice)
             async with db.transaction():
                 await message_repository.save(user_id, "user", user_text, commit=False)
                 await state_repository.save(user_id, new_state, commit=False)
@@ -347,3 +488,5 @@ async def chat_handler(
         except TelegramBadRequest:
             logger.exception("TELEGRAM FORMAT ERROR")
             await message.answer(escape_plain_text_for_telegram(response))
+        for notice in post_response_notices:
+            await message.answer(notice)

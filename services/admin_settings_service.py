@@ -180,19 +180,23 @@ class AdminSettingsService:
             "analysis_control_threshold": 0.7,
         },
         "limits": {
-            "free_daily_messages_enabled": False,
-            "free_daily_messages_limit": 25,
+            "free_daily_messages_enabled": True,
+            "free_daily_messages_limit": 12,
+            "free_daily_warning_thresholds": [5, 3, 1, 0],
+            "free_daily_warning_template": "Р‘РµСЃРїР»Р°С‚РЅС‹С… СЃРѕРѕР±С‰РµРЅРёР№ РЅР° СЃРµРіРѕРґРЅСЏ РѕСЃС‚Р°Р»РѕСЃСЊ: {remaining} РёР· {limit}. Premium РґР°СЃС‚ Р±РѕР»СЊС€Рµ Р»РёРјРёС‚Р° Рё РґРѕСЃС‚СѓРї Рє Р·Р°РєСЂС‹С‚С‹Рј СЂРµР¶РёРјР°Рј.",
             "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
-            "premium_daily_messages_enabled": False,
-            "premium_daily_messages_limit": 150,
+            "premium_daily_messages_enabled": True,
+            "premium_daily_messages_limit": 120,
+            "premium_daily_warning_thresholds": [20, 10, 5, 1, 0],
+            "premium_daily_warning_template": "Premium-Р»РёРјРёС‚ РЅР° СЃРµРіРѕРґРЅСЏ РїРѕС‡С‚Рё РёСЃС‡РµСЂРїР°РЅ: РѕСЃС‚Р°Р»РѕСЃСЊ {remaining} РёР· {limit}.",
             "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
             "admins_bypass_daily_limits": True,
-            "mode_preview_enabled": False,
+            "mode_preview_enabled": True,
             "mode_daily_limits": {
-                "passion": 5,
-                "mentor": 5,
-                "night": 5,
-                "dominant": 5,
+                "passion": 2,
+                "mentor": 2,
+                "night": 2,
+                "dominant": 2,
             },
             "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium.",
         },
@@ -212,6 +216,7 @@ class AdminSettingsService:
             "require_first_paid_invoice": True,
             "award_referrer_premium": True,
             "award_referred_user_premium": False,
+            "reward_premium_days": 7,
             "program_title": "Реферальная программа",
             "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
             "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
@@ -222,13 +227,19 @@ class AdminSettingsService:
             "provider_token": "",
             "currency": "RUB",
             "price_minor_units": 49900,
+            "access_duration_days": 30,
+            "recurring_stars_enabled": True,
             "product_title": "Premium access",
             "product_description": "Unlock premium chat modes and paid features.",
+            "recurring_button_text": "РћС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ",
+            "already_premium_message": "Premium СѓР¶Рµ Р°РєС‚РёРІРµРЅ. РњРѕР¶РЅРѕ РїСЂРѕРґР»РёС‚СЊ РїРѕРґРїРёСЃРєСѓ Р·Р°СЂР°РЅРµРµ.",
             "premium_benefits_text": "Premium открывает дополнительные режимы, повышенные лимиты и приоритетное использование платных функций.",
             "buy_cta_text": "Оформить Premium",
             "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
             "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
             "success_message": "Оплата прошла успешно. Premium уже активирован.",
+            "renewal_reminder_days": [7, 3, 1],
+            "expiry_reminder_template": "Premium Р·Р°РєРѕРЅС‡РёС‚СЃСЏ С‡РµСЂРµР· {days} РґРЅ. РџСЂРѕРґР»Рё РґРѕСЃС‚СѓРї Р·Р°СЂР°РЅРµРµ, С‡С‚РѕР±С‹ РЅРµ РїРѕС‚РµСЂСЏС‚СЊ РґРёР°Р»РѕРі Рё СЂРµР¶РёРјС‹.",
         },
         "ui": {
             "write_button_text": "💬 Написать",
@@ -663,10 +674,26 @@ class AdminSettingsService:
         limits["free_daily_messages_enabled"] = bool(limits["free_daily_messages_enabled"])
         limits["free_daily_messages_limit"] = max(1, int(limits["free_daily_messages_limit"]))
         limits["free_daily_limit_message"] = self._normalize_text(limits["free_daily_limit_message"], multiline=True)
+        limits["free_daily_warning_thresholds"] = self._normalize_int_list(
+            limits.get("free_daily_warning_thresholds"),
+            minimum=0,
+        )
+        limits["free_daily_warning_template"] = self._normalize_text(
+            limits.get("free_daily_warning_template", ""),
+            multiline=True,
+        )
         limits["premium_daily_messages_enabled"] = bool(limits.get("premium_daily_messages_enabled"))
         limits["premium_daily_messages_limit"] = max(1, int(limits.get("premium_daily_messages_limit", 150)))
         limits["premium_daily_limit_message"] = self._normalize_text(
             limits.get("premium_daily_limit_message", ""),
+            multiline=True,
+        )
+        limits["premium_daily_warning_thresholds"] = self._normalize_int_list(
+            limits.get("premium_daily_warning_thresholds"),
+            minimum=0,
+        )
+        limits["premium_daily_warning_template"] = self._normalize_text(
+            limits.get("premium_daily_warning_template", ""),
             multiline=True,
         )
         limits["admins_bypass_daily_limits"] = bool(limits.get("admins_bypass_daily_limits", True))
@@ -693,6 +720,7 @@ class AdminSettingsService:
         referral["require_first_paid_invoice"] = bool(referral["require_first_paid_invoice"])
         referral["award_referrer_premium"] = bool(referral["award_referrer_premium"])
         referral["award_referred_user_premium"] = bool(referral["award_referred_user_premium"])
+        referral["reward_premium_days"] = max(0, int(referral.get("reward_premium_days", 7)))
         for key in ("program_title", "program_description", "share_text_template", "referred_welcome_message", "referrer_reward_message"):
             referral[key] = self._normalize_text(referral[key], multiline=True)
 
@@ -700,7 +728,24 @@ class AdminSettingsService:
         payment["provider_token"] = str(payment["provider_token"]).strip()
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["price_minor_units"] = max(1, int(payment["price_minor_units"]))
-        for key in ("product_title", "product_description", "premium_benefits_text", "buy_cta_text", "unavailable_message", "invoice_error_message", "success_message"):
+        payment["access_duration_days"] = max(1, int(payment.get("access_duration_days", 30)))
+        payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
+        payment["renewal_reminder_days"] = self._normalize_int_list(
+            payment.get("renewal_reminder_days"),
+            minimum=1,
+        )
+        for key in (
+            "product_title",
+            "product_description",
+            "premium_benefits_text",
+            "buy_cta_text",
+            "recurring_button_text",
+            "already_premium_message",
+            "unavailable_message",
+            "invoice_error_message",
+            "success_message",
+            "expiry_reminder_template",
+        ):
             payment[key] = self._normalize_text(payment[key], multiline=True)
 
         ui = current["ui"]
@@ -775,6 +820,20 @@ class AdminSettingsService:
         else:
             items = [str(item).strip() for item in (value or [])]
         return [item for item in items if item]
+
+    def _normalize_int_list(self, value: Any, minimum: int = 0) -> list[int]:
+        if isinstance(value, str):
+            raw_items = [item.strip() for item in value.replace(",", "\n").splitlines()]
+        else:
+            raw_items = list(value or [])
+
+        normalized: list[int] = []
+        for item in raw_items:
+            try:
+                normalized.append(max(minimum, int(item)))
+            except (TypeError, ValueError):
+                continue
+        return normalized
 
     def _normalize_float_map(self, payload: dict[str, Any], minimum: float, maximum: float) -> dict[str, float]:
         return {

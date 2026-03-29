@@ -1,7 +1,13 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from handlers.chat import _handle_proactive_command, _handle_timezone_command
+from handlers.chat import (
+    _build_quota_notice,
+    _build_subscription_expiry_notice,
+    _handle_proactive_command,
+    _handle_timezone_command,
+)
 
 
 class FakeUserPreferenceRepository:
@@ -141,3 +147,72 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(repo.state["proactive_preferences"]["timezone"])
         self.assertIsNone(pref_repo.preferences["timezone"])
         self.assertTrue(message.answers)
+
+    def test_quota_notice_warns_when_free_messages_are_low(self):
+        state, notice = _build_quota_notice(
+            {},
+            {"is_premium": False},
+            11,
+            {
+                "free_daily_messages_enabled": True,
+                "free_daily_messages_limit": 12,
+                "free_daily_warning_thresholds": [5, 3, 1],
+                "free_daily_warning_template": "Осталось {remaining} из {limit}",
+            },
+        )
+
+        self.assertIn("Осталось 1 из 12", notice)
+        repeated_state, repeated_notice = _build_quota_notice(
+            state,
+            {"is_premium": False},
+            11,
+            {
+                "free_daily_messages_enabled": True,
+                "free_daily_messages_limit": 12,
+                "free_daily_warning_thresholds": [5, 3, 1],
+                "free_daily_warning_template": "Осталось {remaining} из {limit}",
+            },
+        )
+        self.assertIsNone(repeated_notice)
+        self.assertEqual(state, repeated_state)
+
+    def test_subscription_expiry_notice_warns_once_per_day(self):
+        far_from_expiry = (datetime.now(timezone.utc) + timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+        near_expiry = (datetime.now(timezone.utc) + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M:%S")
+        payment_service = SimpleNamespace(
+            get_payment_settings=lambda: {
+                "renewal_reminder_days": [7, 3, 1],
+                "expiry_reminder_template": "Подписка закончится через {days} дн.",
+            },
+            format_expiry_text=lambda _: "01.04.2026 12:00 UTC",
+        )
+
+        state, notice = _build_subscription_expiry_notice(
+            {},
+            {
+                "is_premium": True,
+                "premium_expires_at": far_from_expiry,
+            },
+            payment_service,
+        )
+
+        self.assertIsNone(notice)
+        state, notice = _build_subscription_expiry_notice(
+            {},
+            {
+                "is_premium": True,
+                "premium_expires_at": near_expiry,
+            },
+            payment_service,
+        )
+        self.assertIn("Подписка закончится через 1 дн.", notice)
+        repeated_state, repeated_notice = _build_subscription_expiry_notice(
+            state,
+            {
+                "is_premium": True,
+                "premium_expires_at": near_expiry,
+            },
+            payment_service,
+        )
+        self.assertIsNone(repeated_notice)
+        self.assertEqual(state, repeated_state)

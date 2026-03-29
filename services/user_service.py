@@ -1,4 +1,18 @@
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+
+def _parse_db_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def _format_db_timestamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class UserService:
@@ -15,11 +29,13 @@ class UserService:
                 first_name TEXT,
                 active_mode TEXT DEFAULT 'base',
                 is_premium INTEGER DEFAULT 0,
+                premium_expires_at TIMESTAMP NULL,
                 is_admin INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        await self._ensure_column("premium_expires_at", "TIMESTAMP NULL")
         await self._ensure_column("is_admin", "INTEGER DEFAULT 0")
         await self.db.connection.execute(
             """
@@ -29,6 +45,7 @@ class UserService:
                 first_name,
                 active_mode,
                 is_premium,
+                premium_expires_at,
                 is_admin,
                 created_at
             )
@@ -38,6 +55,7 @@ class UserService:
                 '',
                 'base',
                 0,
+                NULL,
                 0,
                 MIN(m.created_at)
             FROM messages m
@@ -53,8 +71,8 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             INSERT OR IGNORE INTO users
-            (id, username, first_name, active_mode, is_premium, is_admin)
-            VALUES (?, ?, ?, 'base', 0, ?)
+            (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
+            VALUES (?, ?, ?, 'base', 0, NULL, ?)
             """,
             (
                 telegram_user.id,
@@ -92,17 +110,15 @@ class UserService:
     async def get_user(self, user_id: int) -> dict[str, Any] | None:
         cursor = await self.db.connection.execute(
             """
-            SELECT id, username, first_name, active_mode, is_premium, is_admin, created_at
+            SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
             FROM users
             WHERE id = ?
             """,
             (user_id,),
         )
         row = await cursor.fetchone()
-
         if not row:
             return None
-
         return self._row_to_user(row)
 
     async def get_bot_username(self, user_id: int) -> str | None:
@@ -133,6 +149,7 @@ class UserService:
             SELECT COUNT(*)
             FROM users
             WHERE is_premium = 1
+              AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)
             """
         )
         row = await cursor.fetchone()
@@ -189,7 +206,7 @@ class UserService:
     async def get_recent_users(self, limit: int = 20) -> list[dict[str, Any]]:
         cursor = await self.db.connection.execute(
             """
-            SELECT id, username, first_name, active_mode, is_premium, is_admin, created_at
+            SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
             FROM users
             ORDER BY created_at DESC, id DESC
             LIMIT ?
@@ -207,7 +224,7 @@ class UserService:
             like_query = f"%{normalized_query}%"
             cursor = await self.db.connection.execute(
                 """
-                SELECT id, username, first_name, active_mode, is_premium, is_admin, created_at
+                SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
                 WHERE CAST(id AS TEXT) LIKE ?
                    OR COALESCE(username, '') LIKE ?
@@ -236,7 +253,7 @@ class UserService:
         else:
             cursor = await self.db.connection.execute(
                 """
-                SELECT id, username, first_name, active_mode, is_premium, is_admin, created_at
+                SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?
@@ -282,25 +299,49 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             UPDATE users
-            SET is_premium = ?
+            SET is_premium = ?,
+                premium_expires_at = CASE
+                    WHEN ? = 1 THEN premium_expires_at
+                    ELSE NULL
+                END
             WHERE id = ?
             """,
-            (1 if value else 0, user_id),
+            (1 if value else 0, 1 if value else 0, user_id),
         )
         await self.db.connection.commit()
         return cursor.rowcount > 0
 
-    async def is_premium(self, user_id: int) -> bool:
+    async def set_premium_until(self, user_id: int, expires_at: datetime | None) -> bool:
         cursor = await self.db.connection.execute(
             """
-            SELECT is_premium
-            FROM users
+            UPDATE users
+            SET is_premium = ?,
+                premium_expires_at = ?
             WHERE id = ?
             """,
-            (user_id,),
+            (
+                1 if expires_at is not None else 0,
+                _format_db_timestamp(expires_at) if expires_at is not None else None,
+                user_id,
+            ),
         )
-        row = await cursor.fetchone()
-        return bool(row[0]) if row else False
+        await self.db.connection.commit()
+        return cursor.rowcount > 0
+
+    async def grant_premium_days(self, user_id: int, days: int) -> str | None:
+        safe_days = max(1, int(days))
+        current_user = await self.get_user(user_id)
+        current_expiry = _parse_db_timestamp(
+            current_user.get("premium_expires_at") if current_user else None
+        )
+        start_at = current_expiry if current_expiry and current_expiry > datetime.now(timezone.utc) else datetime.now(timezone.utc)
+        new_expiry = start_at + timedelta(days=safe_days)
+        await self.set_premium_until(user_id, new_expiry)
+        return _format_db_timestamp(new_expiry)
+
+    async def is_premium(self, user_id: int) -> bool:
+        user = await self.get_user(user_id)
+        return bool(user and user.get("is_premium"))
 
     async def set_admin(self, user_id: int, value: bool) -> bool:
         if self._is_static_admin(user_id):
@@ -353,6 +394,9 @@ class UserService:
             if is_admin is not None
             else (existing["is_admin"] if existing else False)
         )
+        premium_expires_at = existing.get("premium_expires_at") if existing else None
+        if not premium_value:
+            premium_expires_at = None
 
         if self._is_static_admin(user_id):
             admin_value = True
@@ -360,13 +404,14 @@ class UserService:
         await self.db.connection.execute(
             """
             INSERT OR IGNORE INTO users
-            (id, username, first_name, active_mode, is_premium, is_admin)
-            VALUES (?, NULL, '', ?, ?, ?)
+            (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
+            VALUES (?, NULL, '', ?, ?, ?, ?)
             """,
             (
                 user_id,
                 mode_value,
                 1 if premium_value else 0,
+                premium_expires_at,
                 1 if admin_value else 0,
             ),
         )
@@ -375,12 +420,14 @@ class UserService:
             UPDATE users
             SET active_mode = ?,
                 is_premium = ?,
+                premium_expires_at = ?,
                 is_admin = ?
             WHERE id = ?
             """,
             (
                 mode_value,
                 1 if premium_value else 0,
+                premium_expires_at,
                 1 if admin_value else 0,
                 user_id,
             ),
@@ -407,8 +454,8 @@ class UserService:
             await self.db.connection.execute(
                 """
                 INSERT OR IGNORE INTO users
-                (id, username, first_name, active_mode, is_premium, is_admin)
-                VALUES (?, NULL, '', 'base', 0, 1)
+                (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
+                VALUES (?, NULL, '', 'base', 0, NULL, 1)
                 """,
                 (admin_id,),
             )
@@ -433,12 +480,22 @@ class UserService:
         return user_id in self._configured_admin_ids()
 
     def _row_to_user(self, row) -> dict[str, Any]:
+        premium_expires_at = row[5]
         return {
             "id": row[0],
             "username": row[1],
             "first_name": row[2],
             "active_mode": row[3],
-            "is_premium": bool(row[4]),
-            "is_admin": bool(row[5]) or self._is_static_admin(int(row[0])),
-            "created_at": row[6],
+            "is_premium": self._is_premium_active(bool(row[4]), premium_expires_at),
+            "premium_expires_at": premium_expires_at,
+            "is_admin": bool(row[6]) or self._is_static_admin(int(row[0])),
+            "created_at": row[7],
         }
+
+    def _is_premium_active(self, is_premium_flag: bool, premium_expires_at: str | None) -> bool:
+        if not is_premium_flag:
+            return False
+        expires_at = _parse_db_timestamp(premium_expires_at)
+        if expires_at is None:
+            return True
+        return expires_at > datetime.now(timezone.utc)

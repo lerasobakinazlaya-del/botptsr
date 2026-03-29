@@ -7,9 +7,10 @@ from aiogram.types import Message, PreCheckoutQuery
 
 router = Router(name="payments-router")
 logger = logging.getLogger(__name__)
+CALLBACK_BUY_PREMIUM = "buy_premium"
 
 
-async def send_premium_offer(message: Message, payment_service) -> bool:
+async def send_premium_offer(message: Message, payment_service, user_service=None) -> bool:
     payment_settings = payment_service.get_payment_settings()
     if not payment_service.is_enabled():
         await message.answer(payment_settings["unavailable_message"])
@@ -17,8 +18,15 @@ async def send_premium_offer(message: Message, payment_service) -> bool:
 
     benefits_text = str(payment_settings.get("premium_benefits_text") or "").strip()
     buy_cta_text = str(payment_settings.get("buy_cta_text") or "").strip()
-    if benefits_text or buy_cta_text:
+    status_text = ""
+    if user_service is not None:
+        user = await user_service.get_user(message.from_user.id)
+        status_text = payment_service.build_subscription_status_text(user)
+
+    if benefits_text or buy_cta_text or status_text:
         intro_parts = []
+        if status_text:
+            intro_parts.append(status_text)
         if buy_cta_text:
             intro_parts.append(buy_cta_text)
         if benefits_text:
@@ -36,7 +44,18 @@ async def send_premium_offer(message: Message, payment_service) -> bool:
 @router.message(Command("buy"))
 async def buy_premium(message: Message, payment_service, user_service):
     await user_service.ensure_user(message.from_user)
-    await send_premium_offer(message, payment_service)
+    await send_premium_offer(message, payment_service, user_service)
+
+
+@router.callback_query(F.data == CALLBACK_BUY_PREMIUM)
+async def buy_premium_callback(callback, payment_service, user_service):
+    await user_service.ensure_user(callback.from_user)
+    await callback.answer()
+
+    if callback.message is None or not hasattr(callback.message, "answer"):
+        return
+
+    await send_premium_offer(callback.message, payment_service, user_service)
 
 
 @router.pre_checkout_query()
@@ -61,8 +80,7 @@ async def successful_payment_handler(message: Message, payment_service, user_ser
         logger.warning("Rejected successful_payment with invalid payload for user %s", message.from_user.id)
         return
 
-    payment_settings = payment_service.get_payment_settings()
-    await message.answer(payment_settings["success_message"])
+    await message.answer(payment_service.build_success_message(result))
     if result and result.get("referral"):
         referral_settings = payment_service.referral_service.get_settings()
         referrer_id = result["referral"]["referrer_user_id"]

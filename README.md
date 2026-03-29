@@ -350,3 +350,21 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 - оба сервиса в состоянии `active (running)`
 - `http://127.0.0.1:8080/api/health` отдает `200`, показывает актуальный `release.json` и `redis.mode=connected`
 - в `Health` админки видны актуальные метрики `AI queue`, `OpenAI pool` и `Chat sessions`
+## Monetization model
+
+- Free users get a daily quota with warning messages before exhaustion.
+- Premium access is sold for a fixed duration instead of lifetime access.
+- The default plan grants `30 days` of premium access.
+- Premium also has a daily quota, which keeps usage economically predictable.
+- Paid modes support a limited free preview to improve upgrade conversion.
+- Users receive renewal reminders before premium expires.
+- Telegram Stars (`XTR`) can use recurring billing for the 30-day plan.
+- Referral rewards are granted in premium days, not lifetime premium.
+
+Current defaults in this repo:
+
+- Free quota: `12` messages/day
+- Free warnings: `5`, `3`, `1`, `0`
+- Premium quota: `120` messages/day
+- Renewal reminders: `7`, `3`, `1` day before expiration
+- Referral reward: `7 premium days`

@@ -94,15 +94,19 @@ class ReferralService:
         )
         await self.db.connection.commit()
 
+        reward_days = max(0, int(settings.get("reward_premium_days", 0)))
         if settings["award_referrer_premium"]:
-            await self.user_service.set_premium(referrer_user_id, True)
+            if reward_days > 0:
+                await self.user_service.grant_premium_days(referrer_user_id, reward_days)
         if settings["award_referred_user_premium"]:
-            await self.user_service.set_premium(referred_user_id, True)
+            if reward_days > 0:
+                await self.user_service.grant_premium_days(referred_user_id, reward_days)
 
         return {
             "referrer_user_id": referrer_user_id,
             "referred_user_id": referred_user_id,
             "reward_amount_minor_units": amount_minor_units,
+            "reward_premium_days": reward_days,
             "awarded_referrer_premium": bool(settings["award_referrer_premium"]),
             "awarded_referred_user_premium": bool(settings["award_referred_user_premium"]),
         }
