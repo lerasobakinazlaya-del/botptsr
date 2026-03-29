@@ -1088,9 +1088,10 @@ def _dashboard_html() -> str:
             <div id="conversation-stats"></div>
             <div style="margin-top:16px">
               <h3>Память в промпте</h3>
+              <p class="muted">Здесь показан уже безопасный preview памяти, который реально может попасть в модель. Инструкции, role-like строки и лишний шум отфильтровываются.</p>
               <div id="conversation-memory-preview-summary" class="memory-preview-panel"><div class="muted">Пока нет данных.</div></div>
               <details class="state-raw">
-                <summary>Показать исходный предпросмотр памяти</summary>
+                <summary>Показать полный безопасный preview</summary>
                 <pre id="conversation-memory-preview" class="memory-box">Пока нет данных.</pre>
               </details>
             </div>
@@ -1107,6 +1108,7 @@ def _dashboard_html() -> str:
                   <label>Вес<input id="memory_editor_weight" type="number" min="0.1" max="25" step="0.1" value="1.0"></label>
                 </div>
                 <label>Текст памяти<textarea id="memory_editor_value" style="min-height:100px"></textarea></label>
+                <div class="muted">Сохраняйте краткие факты и наблюдения. Инструкции вроде system/developer prompt в памяти всё равно будут отфильтрованы перед использованием в ИИ.</div>
                 <label class="checkbox"><input id="memory_editor_pinned" type="checkbox">Закрепить в памяти</label>
                 <div class="memory-actions">
                   <button id="memory-editor-new">Новая</button>
@@ -1168,6 +1170,7 @@ def _dashboard_html() -> str:
             <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых записей памяти</label>
             <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить episodic summary</label>
             <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
+            <div class="muted">Даже при включении логирования чувствительные блоки памяти и state summary в логах редактируются, но на проде этот режим лучше держать выключенным.</div>
             <h3>ИИ по режимам</h3>
             <p class="muted">Можно назначить отдельную модель, память, температуру и доп. инструкцию на каждый режим.</p>
             <div id="ai-mode-overrides"></div>
@@ -1175,10 +1178,13 @@ def _dashboard_html() -> str:
           <div class="panel">
             <h3>Чат</h3>
             <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать индикатор набора</label>
+            <label class="checkbox"><input id="chat_response_guardrails_enabled" type="checkbox">Включить PTSD/anti-canned response guardrails</label>
             <label>Не-текстовое сообщение<textarea id="chat_non_text_message"></textarea></label>
             <label>Перегрузка<textarea id="chat_busy_message"></textarea></label>
             <label>Ошибка ИИ<textarea id="chat_ai_error_message"></textarea></label>
             <label>Текст кнопки «Написать»<textarea id="chat_write_prompt_message"></textarea></label>
+            <label>Фразы, которые лучше переписывать<textarea id="chat_response_guardrail_blocked_phrases"></textarea></label>
+            <div class="muted">По одной фразе на строку. Эти фразы автоматически смягчаются в уязвимых состояниях вместо шаблонной терапевтичной подачи.</div>
           </div>
         </div>
         <div class="panel">
@@ -1656,10 +1662,12 @@ def _dashboard_html() -> str:
       setChecked('#ai_log_full_prompt',a.log_full_prompt);
       renderModeOverrides(a,state.settings.mode_catalog||{});
       setChecked('#chat_typing_action_enabled',c.typing_action_enabled);
+      setChecked('#chat_response_guardrails_enabled',c.response_guardrails_enabled);
       setValue('#chat_non_text_message',c.non_text_message);
       setValue('#chat_busy_message',c.busy_message);
       setValue('#chat_ai_error_message',c.ai_error_message);
       setValue('#chat_write_prompt_message',c.write_prompt_message);
+      setValue('#chat_response_guardrail_blocked_phrases',(c.response_guardrail_blocked_phrases||[]).join('\n'));
       setChecked('#proactive_enabled',p.enabled);
       setValue('#proactive_scan_interval_seconds',p.scan_interval_seconds);
       setValue('#proactive_min_inactive_hours',p.min_inactive_hours);
@@ -1801,7 +1809,7 @@ def _dashboard_html() -> str:
         modeOverrides[mode]??={};
         modeOverrides[mode][key]=value;
       });
-      return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),long_term_memory_enabled:$('#ai_long_term_memory_enabled').checked,long_term_memory_max_items:Number($('#ai_long_term_memory_max_items').value),long_term_memory_auto_prune_enabled:$('#ai_long_term_memory_auto_prune_enabled').checked,long_term_memory_soft_limit:Number($('#ai_long_term_memory_soft_limit').value),episodic_summary_enabled:$('#ai_episodic_summary_enabled').checked,debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked,mode_overrides:modeOverrides},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value},proactive:{enabled:$('#proactive_enabled').checked,scan_interval_seconds:Number($('#proactive_scan_interval_seconds').value),min_inactive_hours:Number($('#proactive_min_inactive_hours').value),max_inactive_days:Number($('#proactive_max_inactive_days').value),cooldown_hours:Number($('#proactive_cooldown_hours').value),min_user_messages:Number($('#proactive_min_user_messages').value),min_interaction_count:Number($('#proactive_min_interaction_count').value),candidate_batch_size:Number($('#proactive_candidate_batch_size').value),max_messages_per_cycle:Number($('#proactive_max_messages_per_cycle').value),history_limit:Number($('#proactive_history_limit').value),per_message_delay_seconds:Number($('#proactive_per_message_delay_seconds').value),temperature:Number($('#proactive_temperature').value),max_completion_tokens:Number($('#proactive_max_completion_tokens').value),reasoning_effort:$('#proactive_reasoning_effort').value.trim(),min_interest:Number($('#proactive_min_interest').value),max_irritation:Number($('#proactive_max_irritation').value),max_fatigue:Number($('#proactive_max_fatigue').value),quiet_hours_enabled:$('#proactive_quiet_hours_enabled').checked,quiet_hours_start:Number($('#proactive_quiet_hours_start').value),quiet_hours_end:Number($('#proactive_quiet_hours_end').value),timezone:$('#proactive_timezone').value.trim(),model:$('#proactive_model').value.trim()},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,modes_premium_marker:$('#ui_modes_premium_marker').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value,message_templates:parseTemplateEditorText($('#message_templates_editor')?.value||'')}}}
+      return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),long_term_memory_enabled:$('#ai_long_term_memory_enabled').checked,long_term_memory_max_items:Number($('#ai_long_term_memory_max_items').value),long_term_memory_auto_prune_enabled:$('#ai_long_term_memory_auto_prune_enabled').checked,long_term_memory_soft_limit:Number($('#ai_long_term_memory_soft_limit').value),episodic_summary_enabled:$('#ai_episodic_summary_enabled').checked,debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked,mode_overrides:modeOverrides},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,response_guardrails_enabled:$('#chat_response_guardrails_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value,response_guardrail_blocked_phrases:$('#chat_response_guardrail_blocked_phrases').value},proactive:{enabled:$('#proactive_enabled').checked,scan_interval_seconds:Number($('#proactive_scan_interval_seconds').value),min_inactive_hours:Number($('#proactive_min_inactive_hours').value),max_inactive_days:Number($('#proactive_max_inactive_days').value),cooldown_hours:Number($('#proactive_cooldown_hours').value),min_user_messages:Number($('#proactive_min_user_messages').value),min_interaction_count:Number($('#proactive_min_interaction_count').value),candidate_batch_size:Number($('#proactive_candidate_batch_size').value),max_messages_per_cycle:Number($('#proactive_max_messages_per_cycle').value),history_limit:Number($('#proactive_history_limit').value),per_message_delay_seconds:Number($('#proactive_per_message_delay_seconds').value),temperature:Number($('#proactive_temperature').value),max_completion_tokens:Number($('#proactive_max_completion_tokens').value),reasoning_effort:$('#proactive_reasoning_effort').value.trim(),min_interest:Number($('#proactive_min_interest').value),max_irritation:Number($('#proactive_max_irritation').value),max_fatigue:Number($('#proactive_max_fatigue').value),quiet_hours_enabled:$('#proactive_quiet_hours_enabled').checked,quiet_hours_start:Number($('#proactive_quiet_hours_start').value),quiet_hours_end:Number($('#proactive_quiet_hours_end').value),timezone:$('#proactive_timezone').value.trim(),model:$('#proactive_model').value.trim()},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,modes_premium_marker:$('#ui_modes_premium_marker').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value,message_templates:parseTemplateEditorText($('#message_templates_editor')?.value||'')}}}
     function safetyPayload(){
       const defaults={},effects={};
       document.querySelectorAll('[data-state-default]').forEach(i=>defaults[i.dataset.stateDefault]=Number(i.value));

@@ -21,6 +21,7 @@ class ReengagementService:
         "тревога или внутреннее напряжение",
         "усталость или перегруз",
     }
+    BLOCKED_EMOTIONAL_TONES = {"overwhelmed", "anxious", "guarded"}
 
     def __init__(
         self,
@@ -102,6 +103,9 @@ class ReengagementService:
         proactive_settings = runtime_settings["proactive"]
         ai_settings = runtime_settings["ai"]
         state = await self.state_repository.get(user_id)
+        if str(state.get("emotional_tone") or "").strip() in self.BLOCKED_EMOTIONAL_TONES:
+            logger.info("[REENGAGE] Skip user_id=%s reason=blocked_emotional_tone", user_id)
+            return
         proactive_preferences = await self.user_preference_repository.get_preferences(
             user_id,
             fallback=state.get("proactive_preferences"),

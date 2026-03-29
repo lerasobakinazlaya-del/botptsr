@@ -220,3 +220,21 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(service.ai_service.calls, [])
         self.assertEqual(service._bot.messages, [])
+
+    async def test_process_candidate_skips_when_emotional_tone_is_heavy(self):
+        service = self._build_service()
+        service.state_repository = FakeStateRepository(
+            {
+                "active_mode": "base",
+                "emotional_tone": "anxious",
+                "relationship_state": {},
+            }
+        )
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls, [])
+        self.assertEqual(service._bot.messages, [])

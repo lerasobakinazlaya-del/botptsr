@@ -2,10 +2,25 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+from services.prompt_safety import sanitize_memory_value
+
 
 class KeywordMemoryService:
     MAX_ITEMS_PER_CATEGORY = 5
     MAX_PROFILE_ITEMS = 6
+    PROMPT_ITEM_LIMITS = {
+        "traits": 2,
+        "goals": 2,
+        "interests": 3,
+        "current_focus": 2,
+        "open_loops": 2,
+        "recent_topics": 2,
+        "support_preferences": 2,
+        "coping_tools": 2,
+        "triggers": 2,
+        "symptoms": 2,
+        "important_context": 2,
+    }
 
     def extract_memory_candidates(self, message_text: str) -> dict[str, list[str]]:
         extracted = self._extract(message_text)
@@ -80,16 +95,16 @@ class KeywordMemoryService:
 
         lines: list[str] = []
 
-        traits = self._collect_profile_values(user_profile, "personality_traits")
-        goals = self._collect_profile_values(user_profile, "goals")
-        interests = self._collect_profile_values(user_profile, "interests")
-        current_focus = self._collect_memory_values(memory_flags, "current_focus")
-        open_loops = self._collect_memory_values(memory_flags, "open_loops")
+        traits = self._collect_profile_values(user_profile, "personality_traits")[: self.PROMPT_ITEM_LIMITS["traits"]]
+        goals = self._collect_profile_values(user_profile, "goals")[: self.PROMPT_ITEM_LIMITS["goals"]]
+        interests = self._collect_profile_values(user_profile, "interests")[: self.PROMPT_ITEM_LIMITS["interests"]]
+        current_focus = self._collect_memory_values(memory_flags, "current_focus")[: self.PROMPT_ITEM_LIMITS["current_focus"]]
+        open_loops = self._collect_memory_values(memory_flags, "open_loops")[: self.PROMPT_ITEM_LIMITS["open_loops"]]
         recent_topics = [
             value
             for value in self._collect_memory_values(memory_flags, "recent_topics")
             if value not in current_focus
-        ]
+        ][: self.PROMPT_ITEM_LIMITS["recent_topics"]]
         episodic_summary = memory_flags.get("episodic_summary") or {}
 
         if isinstance(episodic_summary, dict):
@@ -98,33 +113,33 @@ class KeywordMemoryService:
             open_loop_summary = self._clean_summary_value(episodic_summary.get("open_loops"))
             response_hint = self._clean_summary_value(episodic_summary.get("response_hint"))
             if recent_arc:
-                lines.append("- Recent arc between user and Lira: " + recent_arc)
+                lines.append("- Недавняя дуга между пользователем и Лирой: " + recent_arc)
             if emotional_direction:
-                lines.append("- Emotional direction lately: " + emotional_direction)
+                lines.append("- Куда эмоционально движется диалог: " + emotional_direction)
             if open_loop_summary:
-                lines.append("- Unresolved thread from the dialogue: " + open_loop_summary)
+                lines.append("- Незавершенная нить разговора: " + open_loop_summary)
             if response_hint:
-                lines.append("- What kind of reply may fit next: " + response_hint)
+                lines.append("- Какой ответ может подойти следующим: " + response_hint)
 
         if traits:
-            lines.append("- Stable traits or patterns: " + "; ".join(traits))
+            lines.append("- Устойчивые черты и паттерны: " + "; ".join(traits))
         if goals:
-            lines.append("- Ongoing wishes or goals: " + "; ".join(goals))
+            lines.append("- Актуальные желания и цели: " + "; ".join(goals))
         if interests:
-            lines.append("- Interests and energizing topics: " + "; ".join(interests))
+            lines.append("- Интересы и темы, которые оживляют: " + "; ".join(interests))
         if current_focus:
-            lines.append("- What feels alive lately: " + "; ".join(current_focus))
+            lines.append("- Что сейчас особенно живо: " + "; ".join(current_focus))
         if open_loops:
-            lines.append("- Open loops worth remembering: " + "; ".join(open_loops))
+            lines.append("- Незавершенные темы, которые стоит помнить: " + "; ".join(open_loops))
         if recent_topics:
-            lines.append("- Recent recurring topics: " + "; ".join(recent_topics))
+            lines.append("- Повторяющиеся недавние темы: " + "; ".join(recent_topics))
 
         support_labels = {
-            "support_preferences": "How they prefer to be responded to",
-            "coping_tools": "What tends to help",
-            "triggers": "Known triggers",
-            "symptoms": "Recurring symptoms or strain patterns",
-            "important_context": "Important background context",
+            "support_preferences": "Как лучше откликаться пользователю",
+            "coping_tools": "Что обычно помогает",
+            "triggers": "Известные триггеры",
+            "symptoms": "Повторяющиеся симптомы или паттерны перегруза",
+            "important_context": "Важный жизненный контекст",
         }
         for key in (
             "support_preferences",
@@ -134,13 +149,17 @@ class KeywordMemoryService:
             "important_context",
         ):
             items = support_profile.get(key) or []
-            values = [item["value"] for item in items if isinstance(item, dict) and item.get("value")]
+            values = [
+                item["value"]
+                for item in items
+                if isinstance(item, dict) and item.get("value")
+            ][: self.PROMPT_ITEM_LIMITS[key]]
             if values:
                 lines.append(f"- {support_labels[key]}: " + "; ".join(values))
 
         recent_thread = self._build_recent_thread(history or [])
         if recent_thread:
-            lines.append("- Recent thread still in the air: " + recent_thread)
+            lines.append("- Последняя живая нить разговора: " + recent_thread)
 
         return "\n".join(lines)
 
@@ -390,19 +409,15 @@ class KeywordMemoryService:
         if not match:
             return None
 
-        value = match.group(1).strip(" ,.;:!-")
-        if not value:
-            return None
-        return value[:160]
+        return sanitize_memory_value(match.group(1), max_chars=160) or None
 
     def _clip_phrase(self, text: str) -> str | None:
-        cleaned = text.strip(" ,.;:!-")
-        if not cleaned:
-            return None
-        return cleaned[:160]
+        return sanitize_memory_value(text, max_chars=160) or None
 
     def _upsert(self, items: list[dict[str, str]], value: str) -> list[dict[str, str]]:
-        normalized_value = value.strip()
+        normalized_value = sanitize_memory_value(value, max_chars=160)
+        if not normalized_value:
+            return list(items or [])
         now = datetime.now(timezone.utc).isoformat()
 
         filtered = [item for item in items if item.get("value") != normalized_value]
@@ -416,7 +431,7 @@ class KeywordMemoryService:
         return filtered
 
     def _upsert_text(self, items: list[str], value: str) -> list[str]:
-        normalized_value = value.strip()
+        normalized_value = sanitize_memory_value(value, max_chars=160)
         if not normalized_value:
             return items
         filtered = [item for item in items if item != normalized_value]
@@ -469,4 +484,4 @@ class KeywordMemoryService:
         return " | ".join(snippets)
 
     def _clean_summary_value(self, value: Any) -> str:
-        return " ".join(str(value or "").split()).strip()[:180]
+        return sanitize_memory_value(value, max_chars=180)

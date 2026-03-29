@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
+from services.prompt_safety import redact_prompt_for_log
 from services.response_guardrails import (
     apply_ptsd_response_guardrails,
     build_crisis_support_response,
@@ -298,7 +299,11 @@ class AIService:
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
-            logger.debug("[AI PROMPT] user_id=%s\n%s", user_id, system_prompt)
+            logger.debug(
+                "[AI PROMPT] user_id=%s\n%s",
+                user_id,
+                redact_prompt_for_log(system_prompt),
+            )
 
         if grounding_kind is not None:
             logger.info("[AI] user_id=%s grounding=%s", user_id, grounding_kind)
@@ -405,7 +410,11 @@ class AIService:
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
-            logger.debug("[AI REENGAGE PROMPT] user_id=%s\n%s", user_id, system_prompt)
+            logger.debug(
+                "[AI REENGAGE PROMPT] user_id=%s\n%s",
+                user_id,
+                redact_prompt_for_log(system_prompt),
+            )
 
         messages = (
             [{"role": "system", "content": system_prompt}]
@@ -420,6 +429,14 @@ class AIService:
         )
         if not response_text.strip():
             response_text = self.EMPTY_RESPONSE_FALLBACK
+        chat_settings = runtime_settings.get("chat", {})
+        response_text = apply_ptsd_response_guardrails(
+            response_text,
+            active_mode=active_mode,
+            emotional_tone=str(state.get("emotional_tone") or "neutral"),
+            enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
+            blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+        )
 
         new_state = self.human_memory_service.apply_assistant_message(
             state.copy(),

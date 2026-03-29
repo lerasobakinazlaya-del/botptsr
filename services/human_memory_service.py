@@ -2,10 +2,13 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+from services.prompt_safety import sanitize_memory_value
+
 
 class HumanMemoryService:
     MAX_ITEMS_PER_LIST = 6
     MAX_CALLBACK_CANDIDATES = 3
+    MAX_PROMPT_CALLBACK_CANDIDATES = 2
     INACTIVITY_DECAY_GRACE_HOURS = 72
 
     INTEREST_PATTERNS = [
@@ -139,7 +142,10 @@ class HumanMemoryService:
         if relationship["shared_threads"]:
             lines.append("- Нити прошлых разговоров: " + "; ".join(relationship["shared_threads"]))
         if relationship["callback_candidates"]:
-            lines.append("- Что можно мягко вспомнить позже: " + "; ".join(relationship["callback_candidates"][:3]))
+            lines.append(
+                "- Что можно мягко вспомнить позже: "
+                + "; ".join(relationship["callback_candidates"][: self.MAX_PROMPT_CALLBACK_CANDIDATES])
+            )
         if relationship.get("last_user_mood"):
             lines.append(f"- Последний заметный эмоциональный фон: {relationship['last_user_mood']}")
 
@@ -370,13 +376,13 @@ class HumanMemoryService:
             match = re.search(pattern, text, re.IGNORECASE)
             if not match:
                 continue
-            value = match.group(1).strip(" ,.;:!?-")
+            value = sanitize_memory_value(match.group(1), max_chars=160)
             if value:
-                found.append(value[:160])
+                found.append(value)
         return found
 
     def _remember(self, items: list[str], value: str) -> list[str]:
-        normalized = value.strip()
+        normalized = sanitize_memory_value(value, max_chars=160)
         if not normalized:
             return items
         updated = [item for item in items if item != normalized]
@@ -384,7 +390,7 @@ class HumanMemoryService:
         return updated[: self.MAX_ITEMS_PER_LIST]
 
     def _remember_callback(self, items: list[str], value: str) -> list[str]:
-        normalized = value.strip()
+        normalized = sanitize_memory_value(value, max_chars=160)
         if not normalized:
             return list(items or [])
         updated = [item for item in (items or []) if item != normalized]

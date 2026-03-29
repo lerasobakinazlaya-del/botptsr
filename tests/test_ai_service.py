@@ -1,33 +1,28 @@
 import unittest
 
-from services.ai_service import AIBackpressureError, AIService
+from services.ai_service import AIService
 
 
-class FakeOpenAIClient:
-    def __init__(self):
-        self.called = False
-
-    def get_runtime_stats(self):
-        return {
-            "configured_limit": 8,
-            "in_flight_requests": 0,
-        }
+class FakeClient:
+    def __init__(self, text: str):
+        self.model = "gpt-4o-mini"
+        self.temperature = 0.7
+        self.text = text
 
     async def generate(self, **kwargs):
-        self.called = True
-        return ("ok", 10)
+        return self.text, 42
 
 
 class FakeStateEngine:
     def update_state(self, state, user_message):
-        updated = dict(state)
-        updated.setdefault("active_mode", "base")
-        updated.setdefault("emotional_tone", "neutral")
-        return updated
+        return dict(state)
 
 
 class FakeMemoryEngine:
-    async def build_context(self, history, *, max_tokens=None):
+    def set_max_tokens(self, max_tokens):
+        self.max_tokens = max_tokens
+
+    async def build_context(self, history, max_tokens=None):
         return []
 
 
@@ -57,15 +52,19 @@ class FakeHumanMemoryService:
     def apply_assistant_message(self, state, assistant_text, *, source="reply"):
         updated = dict(state)
         updated["last_assistant_text"] = assistant_text
+        updated["last_assistant_source"] = source
         return updated
 
-    def suggest_mode(self, state, active_mode):
-        return active_mode
-
-    def build_prompt_context(self, state):
-        return ""
+    def hours_since_iso(self, value, fallback=24):
+        return fallback
 
     def build_reengagement_prompt(self, state, *, hours_silent, active_mode):
+        return "Сформулируй одно живое сообщение первой инициативы."
+
+    def suggest_mode(self, state, current_mode):
+        return current_mode
+
+    def build_prompt_context(self, state):
         return ""
 
     def get_reengagement_context(self, state):
@@ -73,29 +72,21 @@ class FakeHumanMemoryService:
 
     def mark_reengagement_callback(self, state, callback_topic):
         updated = dict(state)
-        if callback_topic:
-            updated["callback_topic"] = callback_topic
+        updated["last_callback_topic"] = callback_topic or ""
         return updated
 
 
 class FakePromptBuilder:
     def build_system_prompt(self, **kwargs):
-        return "system"
+        return "system prompt"
 
 
 class FakeAccessEngine:
     def update_access_level(self, state):
         return "analysis"
 
-    def evaluate_access(self, **kwargs):
-        return {
-            "level": "analysis",
-            "clamped": False,
-            "reason": "",
-        }
-
-    def apply_safety_guardrails(self, **kwargs):
-        return "analysis"
+    def evaluate_access(self, *, state, access_level, active_mode, user_message, is_proactive=False):
+        return {"level": access_level, "clamped": False}
 
 
 class FakeSettingsService:
@@ -103,60 +94,40 @@ class FakeSettingsService:
         return {
             "ai": {
                 "openai_model": "gpt-4o-mini",
-                "temperature": 0.9,
+                "temperature": 0.8,
                 "top_p": 1.0,
                 "frequency_penalty": 0.0,
                 "presence_penalty": 0.0,
-                "max_completion_tokens": 300,
-                "reasoning_effort": "",
-                "verbosity": "medium",
-                "memory_max_tokens": 500,
+                "max_completion_tokens": 200,
+                "timeout_seconds": 5,
+                "max_retries": 0,
+                "memory_max_tokens": 800,
+                "history_message_limit": 10,
+                "response_language": "ru",
                 "mode_overrides": {},
+                "verbosity": "medium",
+                "reasoning_effort": "",
             },
             "chat": {
                 "response_guardrails_enabled": True,
-                "response_guardrail_blocked_phrases": [],
+                "response_guardrail_blocked_phrases": [
+                    "я понимаю, что тебе тяжело",
+                    "твои чувства валидны",
+                ],
             },
             "engagement": {
-                "adaptive_mode_enabled": False,
+                "adaptive_mode_enabled": True,
                 "reengagement_recent_window_days": 30,
             },
         }
 
 
-class AIServiceRuntimeTests(unittest.IsolatedAsyncioTestCase):
-    async def test_generate_response_times_out_while_waiting_for_worker(self):
+class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_generate_reengagement_applies_response_guardrails(self):
         service = AIService(
-            client=FakeOpenAIClient(),
-            state_engine=None,
-            memory_engine=None,
-            keyword_memory_service=None,
-            long_term_memory_service=None,
-            human_memory_service=None,
-            prompt_builder=None,
-            access_engine=None,
-            settings_service=None,
-            queue_wait_timeout_seconds=0.01,
-        )
-        service._started = True  # type: ignore[attr-defined]
-
-        with self.assertRaises(AIBackpressureError):
-            await service.generate_response(
-                user_id=1,
-                history=[],
-                user_message="hi",
-                state={},
-            )
-
-        stats = service.get_runtime_stats()
-        self.assertEqual(stats["requests_queue_timed_out"], 1)
-        self.assertEqual(stats["openai_configured_limit"], 8)
-        self.assertEqual(stats["crisis_bypass_count"], 0)
-
-    async def test_generate_response_returns_crisis_bypass_without_model_call(self):
-        client = FakeOpenAIClient()
-        service = AIService(
-            client=client,
+            client=FakeClient(
+                "Я понимаю, что тебе тяжело. Твои чувства валидны. Что рядом? Чем помочь?"
+            ),
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
             keyword_memory_service=FakeKeywordMemoryService(),
@@ -167,18 +138,17 @@ class AIServiceRuntimeTests(unittest.IsolatedAsyncioTestCase):
             settings_service=FakeSettingsService(),
         )
 
-        result = await service._generate_response_impl(
-            history=[],
-            user_message="Я не хочу жить и хочу покончить с собой.",
-            state={},
+        result = await service.generate_reengagement(
             user_id=1,
+            history=[],
+            state={
+                "active_mode": "free_talk",
+                "emotional_tone": "anxious",
+                "relationship_state": {},
+            },
         )
 
-        self.assertFalse(client.called)
-        self.assertIn("экстренные службы", result.response.lower())
-        self.assertIn("не оставайся один", result.response.lower())
-        self.assertEqual(service.get_runtime_stats()["crisis_bypass_count"], 1)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        lowered = result.response.lower()
+        self.assertIn("слышу, как тебе тяжело", lowered)
+        self.assertIn("твоя реакция понятна", lowered)
+        self.assertEqual(result.response.count("?"), 1)

@@ -2,6 +2,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
+from services.prompt_safety import sanitize_memory_value
+
 
 class LongTermMemoryService:
     CATEGORY_WEIGHTS = {
@@ -59,21 +61,39 @@ class LongTermMemoryService:
     }
 
     CATEGORY_LABELS = {
-        "goals": "Long-term goals",
-        "interests": "Stable interests",
-        "personality_traits": "Stable traits",
-        "support_preferences": "How they prefer to be supported",
-        "coping_tools": "What tends to help",
-        "triggers": "Known triggers",
-        "symptoms": "Recurring symptoms or strain patterns",
-        "important_context": "Important background context",
-        "current_focus": "Current focus lately",
-        "open_loops": "Open loops worth remembering",
-        "recent_topics": "Recurring recent topics",
-        "summary_recent_arc": "Longer emotional arc",
-        "summary_emotional_direction": "Emotional direction",
-        "summary_open_loops": "Unresolved thread from summaries",
-        "summary_response_hint": "Reply style that often fits",
+        "goals": "Долгосрочные цели",
+        "interests": "Устойчивые интересы",
+        "personality_traits": "Устойчивые черты",
+        "support_preferences": "Как лучше откликаться пользователю",
+        "coping_tools": "Что обычно помогает",
+        "triggers": "Известные триггеры",
+        "symptoms": "Повторяющиеся симптомы или паттерны перегруза",
+        "important_context": "Важный жизненный контекст",
+        "current_focus": "Что сейчас особенно живо",
+        "open_loops": "Открытые петли и незавершенные темы",
+        "recent_topics": "Повторяющиеся недавние темы",
+        "summary_recent_arc": "Длиннее эмоциональная дуга",
+        "summary_emotional_direction": "Эмоциональное направление",
+        "summary_open_loops": "Незавершенная нить из сводок",
+        "summary_response_hint": "Какой ответ обычно подходит дальше",
+    }
+
+    PROMPT_CATEGORY_LIMITS = {
+        "goals": 2,
+        "interests": 3,
+        "personality_traits": 2,
+        "support_preferences": 2,
+        "coping_tools": 2,
+        "triggers": 2,
+        "symptoms": 2,
+        "important_context": 2,
+        "current_focus": 2,
+        "open_loops": 2,
+        "recent_topics": 2,
+        "summary_recent_arc": 1,
+        "summary_emotional_direction": 1,
+        "summary_open_loops": 1,
+        "summary_response_hint": 1,
     }
 
     CATEGORY_PRUNE_AFTER_DAYS = {
@@ -191,9 +211,9 @@ class LongTermMemoryService:
 
         for memory in memories:
             category = str(memory.get("category") or "")
-            if category not in self.CATEGORY_LIMITS:
+            if category not in self.PROMPT_CATEGORY_LIMITS:
                 continue
-            if len(grouped[category]) >= self.CATEGORY_LIMITS[category]:
+            if len(grouped[category]) >= self.PROMPT_CATEGORY_LIMITS[category]:
                 continue
             grouped[category].append(memory)
             selected_ids.append(int(memory["id"]))
@@ -339,7 +359,7 @@ class LongTermMemoryService:
 
             seen_values: set[str] = set()
             for value in values or []:
-                cleaned_value = " ".join(str(value or "").split()).strip()[:220]
+                cleaned_value = sanitize_memory_value(value, max_chars=220)
                 if not cleaned_value:
                     continue
 

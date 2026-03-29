@@ -128,19 +128,19 @@ class ConversationSummaryService:
         ai_settings: dict[str, Any],
     ) -> dict[str, str] | None:
         system_prompt = (
-            "You compress a dialogue into short memory for a humanlike companion.\n"
-            "Keep only context that should influence future replies for the next few turns.\n"
-            "Preserve emotional continuity, unresolved topics, and what kind of response would fit next.\n"
-            "Do not include generic advice, policy talk, or anything irrelevant.\n"
-            "Return strict JSON with exactly these keys: recent_arc, emotional_direction, open_loops, response_hint.\n"
-            "Each value must be in Russian, concise, and no longer than 180 characters."
+            "Сожми диалог в короткую память для живого русскоязычного собеседника.\n"
+            "Оставь только тот контекст, который должен повлиять на ответы в ближайших нескольких ходах.\n"
+            "Сохрани эмоциональную непрерывность, незавершенные темы и подсказку, какой ответ уместен дальше.\n"
+            "Не добавляй общие советы, разговор о политиках/правилах или нерелевантные детали.\n"
+            "Верни строгий JSON ровно с ключами: recent_arc, emotional_direction, open_loops, response_hint.\n"
+            "Значения должны быть на русском языке, краткими и не длиннее 180 символов."
         )
         user_prompt = (
-            "Current summary:\n"
+            "Текущая сводка:\n"
             f"{json.dumps(existing_summary, ensure_ascii=False)}\n\n"
-            "Recent dialogue transcript:\n"
+            "Недавний диалог:\n"
             f"{transcript}\n\n"
-            "Update the summary."
+            "Обнови сводку."
         )
 
         text, _tokens_used = await self.client.generate(
@@ -170,7 +170,7 @@ class ConversationSummaryService:
             if not content:
                 continue
 
-            role_label = "user" if role == "user" else "lira"
+            role_label = "пользователь" if role == "user" else "лира"
             lines.append(f"{role_label}: {content[:500]}")
 
         return "\n".join(lines[-18:])
