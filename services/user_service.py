@@ -221,10 +221,12 @@ class UserService:
         query: str = "",
         limit: int = 50,
         sort_by: str = "created_desc",
+        filter_by: str = "all",
     ) -> list[dict[str, Any]]:
         normalized_query = str(query or "").strip()
         safe_limit = max(1, min(limit, 200))
         order_clause = self._build_user_search_order_clause(sort_by)
+        where_filter_clause = self._build_user_search_filter_clause(filter_by)
 
         if normalized_query:
             like_query = f"%{normalized_query}%"
@@ -232,9 +234,12 @@ class UserService:
                 f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
-                WHERE CAST(id AS TEXT) LIKE ?
-                   OR COALESCE(username, '') LIKE ?
-                   OR COALESCE(first_name, '') LIKE ?
+                WHERE (
+                    CAST(id AS TEXT) LIKE ?
+                    OR COALESCE(username, '') LIKE ?
+                    OR COALESCE(first_name, '') LIKE ?
+                )
+                  AND {where_filter_clause}
                 ORDER BY
                     CASE
                         WHEN CAST(id AS TEXT) = ? THEN 0
@@ -260,6 +265,7 @@ class UserService:
                 f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
+                WHERE {where_filter_clause}
                 ORDER BY {order_clause}
                 LIMIT ?
                 """,
@@ -306,6 +312,30 @@ class UserService:
             ),
         }
         return clauses.get(normalized, clauses["created_desc"])
+
+    def _build_user_search_filter_clause(self, filter_by: str) -> str:
+        normalized = str(filter_by or "").strip().lower() or "all"
+        clauses = {
+            "all": "1 = 1",
+            "premium_active": (
+                "is_premium = 1 AND "
+                "(premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+            ),
+            "premium_expiring_3d": (
+                "is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at > CURRENT_TIMESTAMP "
+                "AND premium_expires_at <= datetime('now', '+3 days')"
+            ),
+            "premium_expired": (
+                "is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at <= CURRENT_TIMESTAMP"
+            ),
+            "without_premium": (
+                "is_premium = 0 OR premium_expires_at IS NULL "
+                "OR premium_expires_at <= CURRENT_TIMESTAMP"
+            ),
+        }
+        return clauses.get(normalized, clauses["all"])
 
     async def user_exists(self, user_id: int) -> bool:
         cursor = await self.db.connection.execute(
