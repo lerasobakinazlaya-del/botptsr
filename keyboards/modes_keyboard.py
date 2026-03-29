@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from config.modes import get_ordered_modes
 from handlers.payments import CALLBACK_BUY_PREMIUM
+from services.payment_formatting import format_access_days_label, format_price_label
 
 
 def _ordered_modes(mode_catalog: dict | None = None) -> list[dict]:
@@ -32,16 +33,23 @@ def _ordered_modes(mode_catalog: dict | None = None) -> list[dict]:
     ]
 
 
-def _premium_mode_suffix(mode_key: str, user: dict, limits: dict) -> str:
-    if user.get("is_premium"):
-        return ""
+def _build_premium_button_text(runtime_settings: dict) -> str:
+    ui_settings = runtime_settings.get("ui", {}) if isinstance(runtime_settings, dict) else {}
+    payment_settings = runtime_settings.get("payment", {}) if isinstance(runtime_settings, dict) else {}
+    fallback = str(ui_settings.get("premium_button_text") or "Premium").strip() or "Premium"
+    template = str(ui_settings.get("premium_button_text_template") or "").strip()
+    if not template:
+        return fallback
 
-    mode_daily_limits = limits.get("mode_daily_limits", {}) if isinstance(limits, dict) else {}
-    preview_enabled = bool(limits.get("mode_preview_enabled"))
-    preview_limit = int(mode_daily_limits.get(mode_key, 0) or 0)
-    if preview_enabled and preview_limit > 0:
-        return f" • Премиум ({preview_limit}/день)"
-    return " • Премиум"
+    access_days = max(1, int(payment_settings.get("access_duration_days", 30)))
+    try:
+        return template.format(
+            price_label=format_price_label(payment_settings),
+            access_days=access_days,
+            access_days_label=format_access_days_label(access_days),
+        ).strip() or fallback
+    except (KeyError, ValueError):
+        return fallback
 
 
 def get_modes_keyboard(
@@ -49,14 +57,15 @@ def get_modes_keyboard(
     runtime_settings: dict | None = None,
     mode_catalog: dict | None = None,
 ) -> InlineKeyboardMarkup:
-    limits = (runtime_settings or {}).get("limits", {})
-    ui_settings = (runtime_settings or {}).get("ui", {})
+    settings = runtime_settings or {}
+    ui_settings = settings.get("ui", {}) if isinstance(settings, dict) else {}
+    premium_marker = str(ui_settings.get("modes_premium_marker") or "🔒").strip() or "🔒"
     buttons = []
 
     for mode in _ordered_modes(mode_catalog):
         button_title = f"{mode['icon']} {mode['name']}"
-        if mode["is_premium"]:
-            button_title += _premium_mode_suffix(mode["key"], user, limits)
+        if mode["is_premium"] and not user.get("is_premium"):
+            button_title = f"{button_title} {premium_marker}".strip()
 
         buttons.append(
             [
@@ -68,11 +77,10 @@ def get_modes_keyboard(
         )
 
     if not user.get("is_premium"):
-        premium_button_text = str(ui_settings.get("premium_button_text") or "Premium").strip() or "Premium"
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=premium_button_text,
+                    text=_build_premium_button_text(settings),
                     callback_data=CALLBACK_BUY_PREMIUM,
                 )
             ]

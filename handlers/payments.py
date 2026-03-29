@@ -4,6 +4,8 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message, PreCheckoutQuery
 
+from services.payment_formatting import format_price_label
+
 
 router = Router(name="payments-router")
 logger = logging.getLogger(__name__)
@@ -17,14 +19,6 @@ def _pick_offer_variant(user_id: int) -> str:
     return "a" if user_id % 2 == 0 else "b"
 
 
-def _format_price_label(payment_settings: dict) -> str:
-    currency = str(payment_settings.get("currency") or "RUB").upper()
-    amount_minor_units = int(payment_settings.get("price_minor_units", 0))
-    if currency == "XTR":
-        return f"{amount_minor_units} {currency}"
-    return f"{amount_minor_units / 100:.2f} {currency}"
-
-
 def _build_offer_intro(
     payment_settings: dict,
     *,
@@ -35,7 +29,7 @@ def _build_offer_intro(
 ) -> list[str]:
     variant = _pick_offer_variant(user_id)
     access_days = max(1, int(payment_settings.get("access_duration_days", 30)))
-    price_label = _format_price_label(payment_settings)
+    price_label = format_price_label(payment_settings)
 
     cta_text = str(
         payment_settings.get(f"offer_cta_text_{variant}")

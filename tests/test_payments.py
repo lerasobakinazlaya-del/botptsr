@@ -8,6 +8,7 @@ from handlers.payments import (
     OFFER_TRIGGER_MODE_LOCKED,
     send_premium_offer,
 )
+from handlers.modes import build_modes_menu_text
 from keyboards.modes_keyboard import get_modes_keyboard
 from services.payment_service import PaymentService
 
@@ -401,7 +402,7 @@ class ModesKeyboardTests(unittest.TestCase):
     def test_modes_keyboard_adds_buy_button_for_non_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": False},
-            {"ui": {"premium_button_text": "Premium"}, "limits": {}},
+            {"ui": {"premium_button_text": "Premium"}, "limits": {}, "payment": {}},
         )
 
         self.assertEqual(keyboard.inline_keyboard[-1][0].callback_data, CALLBACK_BUY_PREMIUM)
@@ -410,20 +411,29 @@ class ModesKeyboardTests(unittest.TestCase):
     def test_modes_keyboard_hides_buy_button_for_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": True},
-            {"ui": {"premium_button_text": "Premium"}, "limits": {}},
+            {"ui": {"premium_button_text": "Premium"}, "limits": {}, "payment": {}},
         )
 
         callback_data = [button.callback_data for row in keyboard.inline_keyboard for button in row]
         self.assertNotIn(CALLBACK_BUY_PREMIUM, callback_data)
 
-    def test_modes_keyboard_marks_all_premium_modes_explicitly(self):
+    def test_modes_keyboard_uses_dynamic_premium_button_text_from_admin_settings(self):
         keyboard = get_modes_keyboard(
             {"is_premium": False},
             {
-                "ui": {"premium_button_text": "Premium"},
+                "ui": {
+                    "premium_button_text": "Premium",
+                    "premium_button_text_template": "💎 Premium • {price_label} / {access_days_label}",
+                    "modes_premium_marker": "🔒",
+                },
                 "limits": {
                     "mode_preview_enabled": True,
                     "mode_daily_limits": {"passion": 2},
+                },
+                "payment": {
+                    "currency": "RUB",
+                    "price_minor_units": 49900,
+                    "access_duration_days": 30,
                 },
             },
             {
@@ -452,5 +462,37 @@ class ModesKeyboardTests(unittest.TestCase):
         )
 
         texts = [button.text for row in keyboard.inline_keyboard for button in row]
-        self.assertIn("🔥 Близость • Премиум (2/день)", texts)
-        self.assertIn("🧠 Наставник • Премиум", texts)
+        self.assertIn("🔥 Близость 🔒", texts)
+        self.assertIn("🧠 Наставник 🔒", texts)
+        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium • 499.00 RUB / 30 дней")
+
+    def test_build_modes_menu_text_uses_catalog_and_payment_settings(self):
+        text = build_modes_menu_text(
+            {"is_premium": False},
+            {
+                "ui": {
+                    "modes_title": "Выбери режим",
+                    "modes_menu_premium_text": "Premium: {price_label} на {access_days_label}. Открывает {premium_modes_list}.",
+                    "modes_menu_preview_text": "Пробно: {preview_modes_list}.",
+                    "modes_menu_active_premium_text": "Premium уже активен.",
+                },
+                "limits": {
+                    "mode_preview_enabled": True,
+                    "mode_daily_limits": {"passion": 2, "mentor": 1},
+                },
+                "payment": {
+                    "currency": "RUB",
+                    "price_minor_units": 49900,
+                    "access_duration_days": 30,
+                },
+            },
+            {
+                "base": {"name": "Базовый", "icon": "💬", "is_premium": False, "sort_order": 10},
+                "passion": {"name": "Близость", "icon": "🔥", "is_premium": True, "sort_order": 20},
+                "mentor": {"name": "Наставник", "icon": "🧠", "is_premium": True, "sort_order": 30},
+            },
+        )
+
+        self.assertIn("Premium: 499.00 RUB на 30 дней.", text)
+        self.assertIn("🔥 Близость, 🧠 Наставник", text)
+        self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день.", text)
