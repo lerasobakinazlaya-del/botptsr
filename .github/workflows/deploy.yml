@@ -165,10 +165,22 @@ jobs:
           fi
 
           echo "==> Fetching admin health"
-          curl --fail --silent --show-error \
-            --user "${ADMIN_USER}:${ADMIN_PASSWORD}" \
-            "http://127.0.0.1:8080/api/health" \
-            > "$HEALTH_JSON"
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error \
+              --user "${ADMIN_USER}:${ADMIN_PASSWORD}" \
+              "http://127.0.0.1:8080/api/health" \
+              > "$HEALTH_JSON"; then
+              break
+            fi
+
+            if [ "$attempt" -eq 20 ]; then
+              echo "Admin health endpoint did not become ready in time" >&2
+              exit 1
+            fi
+
+            echo "Admin health is not ready yet (attempt ${attempt}/20), waiting..."
+            sleep 2
+          done
 
           echo "==> Validating health payload"
           /usr/bin/env python3 - "$HEALTH_JSON" "$EXPECTED_COMMIT" <<'PY'
