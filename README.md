@@ -4,21 +4,25 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 
 ## Что умеет проект
 
-- ????????? ??????? ??????? ? ?????????????? ??????? ? ??????????? ?????????
-- ????????? AI-??????? ?? ???????: ??????, ???????????, ??????, ???????? ? ?????????????? ??????????
-- "??????????" ??????: ??????? ????????????, ????, ???????? ????????? ? ???????? ????????? ????????
-- ??????? re-engagement ????????? ????? ?????? ????? ? ?????? ?? ??????????? ??????
+- живые режимы общения с разной интонацией, глубиной, инициативой и степенью близости
+- per-mode AI-профили: отдельные temperature, длина ответа и prompt suffix для каждого режима
+- humanized memory: профиль пользователя, recurring topics, relationship state и живой memory context
+- proactive и re-engagement сообщения с учетом quiet hours, opt-out и состояния пользователя
 - Premium-режимы и Telegram Payments
 - preview-доступ к premium-режимам с лимитами для бесплатных пользователей
 - веб-админка для runtime-настроек, промптов, режимов и UI
+- ручная отправка сообщений пользователю из админки
+- массовая рассылка из админки с server-side preview и подтверждением
+- сохраняемые шаблоны сообщений в админке
 - безопасное форматирование AI-ответов для Telegram с конвертацией Markdown-подобного текста в HTML
 - отдельные флаги `allow_bold` и `allow_italic` для каждого режима
 - реферальная программа
-- health-метрики, просмотр логов и тестирование промптов из админки
+- health-метрики, release metadata, предупреждения, просмотр логов и тестирование промптов из админки
 
 ## Что изменено в этой версии
 
 - добавлены per-mode AI-профили и runtime-настройка AI отдельно для каждого режима
+- режимы реально разведены по prompt-архитектуре, mode scales и runtime overrides, а не только по названиям
 - добавлена humanized memory: профиль пользователя, relationship state и сбор живого memory context для промпта
 - добавлен фоновый re-engagement worker для инициативных сообщений после периода тишины
 - добавлен adaptive mode switch: бот может мягко менять effective mode по контексту общения
@@ -31,11 +35,14 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - полные промпты логируются только при `DEBUG=true`
 - входящие сообщения больше не пишутся в лог с текстовым preview
 - рассылка из Telegram-админки отправляется батчами
+- рассылка из веб-админки теперь проходит через preview и `confirmation_token`, чтобы избежать случайной массовой отправки
+- в health добавлены `release.json`, предупреждения по окружению и отображение текущего релиза в админке
 - платеж подтверждается только при корректном `invoice_payload`
 - при старте бот больше не сбрасывает pending updates
 - AI-ответы с `**жирным**`, `*курсивом*`, кодом, списками и ссылками теперь безопасно конвертируются для Telegram
 - для каждого режима появились отдельные переключатели `allow_bold` и `allow_italic` в админке
 - если форматирование для режима выключено, сырые Markdown-маркеры не показываются пользователю
+- добавлены PTSD response guardrails и regression-тесты на различимость режимов
 
 ## Стек
 
@@ -62,16 +69,19 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 ## Память и AI по режимам
 
 - `services/ai_profile_service.py` собирает effective AI-профиль для конкретного режима
+- AI-профиль режима может включать `model`, `temperature`, `max_completion_tokens`, `memory_max_tokens`, `history_message_limit`, `timeout_seconds`, `max_retries` и `prompt_suffix`
 - `services/human_memory_service.py` поддерживает пользовательский профиль, recurring topics и relationship state
 - `services/ai_service.py` объединяет short-term историю, старую память и human memory context перед генерацией ответа
+- `services/prompt_builder.py` собирает system prompt из personality, response style, engagement rules, mode signature, access rules и runtime-состояния
 - `services/reengagement_service.py` фоном ищет пользователей с паузой в диалоге и отправляет инициативные сообщения
 - `services/mode_access_service.py` управляет preview-доступом к premium-режимам
 
 Через админку можно отдельно настраивать:
 
-- AI-параметры по режимам
+- AI-параметры по режимам, включая `mode_overrides`
 - preview-лимиты для premium-режимов
 - re-engagement и adaptive mode switching
+- шаблоны сообщений, ручную отправку и массовую рассылку
 
 ## Быстрый старт
 
@@ -204,7 +214,10 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 Скрипт `deploy/systemd/update_bot.sh`:
 
 - обновляет зависимости
-- проверяет Python-файлы через `py_compile`
+- проверяет Python-файлы через `compileall`
+- валидирует `config/*.json`
+- запускает тесты через `pytest -q` если `RUN_TESTS != 0`
+- записывает `config/release.json` с branch, commit и временем деплоя
 - обновляет systemd-юниты
 - перезапускает `bot.service` и `admin-dashboard.service`
 
@@ -238,6 +251,7 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 - workflow деплоит содержимое ветки из GitHub, а не локальные незакоммиченные изменения
 - если вы правили проект локально, перед деплоем нужно как минимум закоммитить и отправить изменения в нужную ветку
 - альтернативный путь — прямой SSH-деплой на сервер с запуском `deploy/systemd/update_bot.sh`
+- на практике сервер может быть развернут не как полноценный git checkout; в таком случае возможен ручной SSH-выкат файлов с последующим `systemctl restart`
 
 Пример ручного запуска workflow:
 
@@ -250,7 +264,7 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 CLI-запуск из PowerShell:
 
 ```powershell
-.\deploy\run_github_deploy.ps1 -Branch codex/proactive-gta6 -AppDir /opt/bot -Wait
+.\deploy\run_github_deploy.ps1 -Branch master -AppDir /opt/bot -Wait
 ```
 
 Что важно про авторизацию:
@@ -290,3 +304,4 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 
 - `redis-cli ping` отвечает `PONG`
 - оба сервиса в состоянии `active (running)`
+- `http://127.0.0.1:8080/api/health` отдает `200` и показывает актуальный `release.json`
