@@ -484,6 +484,11 @@ async def api_users(
     _: str = Depends(require_auth),
 ):
     return {
+        "matched_count": await container.user_service.count_users(
+            query=query,
+            filter_by=filter_by,
+        ),
+        "segments": await container.user_service.get_subscription_segments_overview(),
         "items": await container.user_service.search_users(
             query=query,
             limit=limit,
@@ -1021,6 +1026,8 @@ def _dashboard_html() -> str:
               <button type="button" class="template-chip" data-user-filter="premium_expired">Истекли</button>
               <button type="button" class="template-chip" data-user-filter="without_premium">Без Premium</button>
             </div>
+            <div id="user-segment-summary"></div>
+            <p class="muted" id="users-result-meta">Здесь появится сводка по списку пользователей.</p>
             <div class="composer">
               <h4>Рассылка выбранным пользователям</h4>
               <label>Текст рассылки
@@ -1519,7 +1526,10 @@ def _dashboard_html() -> str:
     function renderPremiumExpiryInline(user){const meta=premiumExpiryMeta(user);return `<span class="status-pill ${meta.tone}">${esc(meta.label)}</span> <span class="muted">${esc(meta.dateText)}</span>`}
     function recentUsersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Создан</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td>${esc(user.created_at||'—')}</td></tr>`).join('')}</tbody></table>`}
     function currentUserFilter(){return $('#user-filter-buttons .template-chip.active')?.dataset.userFilter||'all'}
-    function setUserFilterButtons(filterBy='all'){$$('#user-filter-buttons .template-chip').forEach(button=>button.classList.toggle('active',(button.dataset.userFilter||'all')===filterBy))}
+    function userFilterLabel(filterBy){return ({all:'Все пользователи',premium_active:'Активные Premium',premium_expiring_3d:'Истекают за 3 дня',premium_expired:'Истекли',without_premium:'Без Premium'})[filterBy]||'Все пользователи'}
+    function userSortLabel(sortBy){return ({created_desc:'новые сначала',premium_active_first:'premium наверху',premium_expiry_asc:'срок истекает раньше',premium_expiry_desc:'срок истекает позже',premium_expiring_soon:'скоро истекают наверху',premium_expired:'истекшие наверху'})[sortBy]||'новые сначала'}
+    function setUserFilterButtons(filterBy='all'){const segments=state.users?.segments||{};$$('#user-filter-buttons .template-chip').forEach(button=>{const key=button.dataset.userFilter||'all';const baseLabel=button.dataset.baseLabel||button.textContent.replace(/\\s+\\(\\d+\\)$/,'');button.dataset.baseLabel=baseLabel;const count=segments[key];button.textContent=typeof count==='number'?`${baseLabel} (${count})`:baseLabel;button.classList.toggle('active',key===filterBy)})}
+    function renderUserSegments(){const segments=state.users?.segments||{};const items=[['Всего',segments.all??0,'Все пользователи в базе'],['Активные Premium',segments.premium_active??0,'Сейчас имеют доступ'],['Истекают 3 дня',segments.premium_expiring_3d??0,'Нуждаются в продлении'],['Истекли',segments.premium_expired??0,'Можно возвращать оффером'],['Без Premium',segments.without_premium??0,'Потенциал на первую продажу']];const summary=$('#user-segment-summary');if(summary)summary.innerHTML=metricCards(items);const meta=$('#users-result-meta');if(meta){const matched=state.users?.matched_count??0;const query=String(state.users?.query||'').trim();const queryText=query?` • поиск: ${query}`:'';meta.textContent=`Найдено: ${matched} • фильтр: ${userFilterLabel(state.users?.filter_by||currentUserFilter())} • сортировка: ${userSortLabel(state.users?.sort_by||currentUserSort())}${queryText}`}}
     function openView(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===name))}
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
@@ -1591,7 +1601,7 @@ def _dashboard_html() -> str:
       $('#config-files').innerHTML=fileTable(state.health.config_files)
     }
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
-    function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
+    function renderUsers(){renderUserModeOptions();if(!state.users)return;renderUserSegments();$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
@@ -1857,6 +1867,7 @@ def _dashboard_html() -> str:
     on('#save-user','click',()=>saveCurrentUser().catch(e=>notice(e.message,'error')));
     on('#conversation-long-term-memories','click',event=>{const editButton=event.target.closest('[data-memory-edit]');if(editButton){const memory=(state.currentConversation?.long_term_memories||[]).find(item=>String(item.id)===String(editButton.dataset.memoryEdit));if(memory)fillMemoryEditor(memory);return}const pinButton=event.target.closest('[data-memory-pin]');if(!pinButton)return;toggleMemoryPin(pinButton.dataset.memoryPin,pinButton.dataset.pinned).catch(e=>notice(e.message,'error'))});
     on('#search-users','click',()=>refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error')));
+    on('#user-search','keydown',event=>{if(event.key!=='Enter')return;event.preventDefault();refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error'))});
     on('#user-sort','change',()=>refreshUsers().then(()=>notice('Сортировка пользователей обновлена.')).catch(e=>notice(e.message,'error')));
     on('#user-filter-buttons','click',event=>{const button=event.target.closest('[data-user-filter]');if(!button)return;setUserFilterButtons(button.dataset.userFilter||'all');refreshUsers().then(()=>notice('Фильтр пользователей обновлен.')).catch(e=>notice(e.message,'error'))});
     on('#reset-users','click',()=>{$('#user-search').value='';if($('#user-sort'))$('#user-sort').value='created_desc';setUserFilterButtons('all');refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});

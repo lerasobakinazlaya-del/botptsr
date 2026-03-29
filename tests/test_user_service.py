@@ -61,3 +61,22 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
         items = await self.user_service.search_users(filter_by="without_premium", limit=10)
 
         self.assertEqual([item["id"] for item in items], [1, 4])
+
+    async def test_count_users_respects_filter(self):
+        count = await self.user_service.count_users(filter_by="premium_active")
+
+        self.assertEqual(count, 2)
+
+    async def test_get_subscription_segments_overview(self):
+        segments = await self.user_service.get_subscription_segments_overview()
+
+        self.assertEqual(
+            segments,
+            {
+                "all": 4,
+                "premium_active": 2,
+                "premium_expiring_3d": 1,
+                "premium_expired": 1,
+                "without_premium": 2,
+            },
+        )

@@ -275,6 +275,71 @@ class UserService:
         rows = await cursor.fetchall()
         return [self._row_to_user(row) for row in rows]
 
+    async def count_users(self, query: str = "", filter_by: str = "all") -> int:
+        normalized_query = str(query or "").strip()
+        where_filter_clause = self._build_user_search_filter_clause(filter_by)
+
+        if normalized_query:
+            like_query = f"%{normalized_query}%"
+            cursor = await self.db.connection.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM users
+                WHERE (
+                    CAST(id AS TEXT) LIKE ?
+                    OR COALESCE(username, '') LIKE ?
+                    OR COALESCE(first_name, '') LIKE ?
+                )
+                  AND {where_filter_clause}
+                """,
+                (like_query, like_query, like_query),
+            )
+        else:
+            cursor = await self.db.connection.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM users
+                WHERE {where_filter_clause}
+                """
+            )
+
+        row = await cursor.fetchone()
+        return row[0] if row else 0
+
+    async def get_subscription_segments_overview(self) -> dict[str, int]:
+        queries = {
+            "all": "SELECT COUNT(*) FROM users",
+            "premium_active": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE is_premium = 1 "
+                "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+            ),
+            "premium_expiring_3d": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE is_premium = 1 "
+                "AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at > CURRENT_TIMESTAMP "
+                "AND premium_expires_at <= datetime('now', '+3 days')"
+            ),
+            "premium_expired": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE is_premium = 1 "
+                "AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at <= CURRENT_TIMESTAMP"
+            ),
+            "without_premium": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE is_premium = 0 OR premium_expires_at IS NULL "
+                "OR premium_expires_at <= CURRENT_TIMESTAMP"
+            ),
+        }
+        result: dict[str, int] = {}
+        for key, query in queries.items():
+            cursor = await self.db.connection.execute(query)
+            row = await cursor.fetchone()
+            result[key] = row[0] if row else 0
+        return result
+
     def _build_user_search_order_clause(self, sort_by: str) -> str:
         normalized = str(sort_by or "").strip().lower() or "created_desc"
         clauses = {
