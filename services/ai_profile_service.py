@@ -16,6 +16,11 @@ def resolve_ai_profile(ai_settings: dict[str, Any], active_mode: str) -> dict[st
             maximum=2.0,
             fallback=0.9,
         ),
+        "max_completion_tokens": _normalize_int(
+            override.get("max_completion_tokens", ai_settings.get("max_completion_tokens", 420)),
+            minimum=32,
+            fallback=420,
+        ),
         "memory_max_tokens": _normalize_int(
             override.get("memory_max_tokens", ai_settings.get("memory_max_tokens", 1500)),
             minimum=100,

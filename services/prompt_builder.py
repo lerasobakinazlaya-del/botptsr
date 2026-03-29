@@ -22,6 +22,12 @@ class PromptBuilder:
         mode_catalog = self.settings_service.get_mode_catalog().get(active_mode, {})
         mode_instruction = build_mode_instruction(mode_config)
         mode_description = self._build_mode_description(mode_catalog)
+        mode_signature = self._build_mode_signature(
+            active_mode=active_mode,
+            emotional_tone=str(state.get("emotional_tone") or "neutral"),
+            access_level=access_level,
+            user_message=user_message,
+        )
         access_rule = templates["access_rules"].get(
             access_level,
             templates["access_rules"]["observation"],
@@ -49,6 +55,7 @@ class PromptBuilder:
             templates.get("engagement_rules", ""),
             f"{templates['mode_intro']}\n{mode_instruction}",
             mode_description,
+            mode_signature,
             f"{templates['access_intro']}\n{access_rule}",
         ]
 
@@ -82,18 +89,18 @@ class PromptBuilder:
         emotional_tone = str(state.get("emotional_tone") or "neutral")
 
         lines = [
-            f"- Conversation phase: {self._describe_phase(phase)}.",
-            f"- User signal right now: {self._describe_emotional_tone(emotional_tone)}.",
-            f"- Rapport level: {self._describe_rapport(interest, attraction)}.",
-            f"- Pressure guidance: {self._describe_pressure(fatigue, irritation)}.",
-            f"- Closeness budget: {self._describe_access_budget(access_level, control)}.",
-            f"- Active mode texture: keep '{active_mode}' present in tone, not as a gimmick.",
+            f"- Фаза разговора: {self._describe_phase(phase)}.",
+            f"- Сигнал пользователя прямо сейчас: {self._describe_emotional_tone(emotional_tone)}.",
+            f"- Уровень контакта: {self._describe_rapport(interest, attraction)}.",
+            f"- Давление в ответе: {self._describe_pressure(fatigue, irritation)}.",
+            f"- Допустимая близость: {self._describe_access_budget(access_level, control)}.",
+            f"- Текстура режима: удерживай '{active_mode}' в интонации, а не играй его как маску.",
         ]
         adaptive_mode = str(state.get("adaptive_mode") or "").strip()
         if adaptive_mode and adaptive_mode != active_mode:
-            lines.append(f"- Adaptive mode suggestion right now: '{adaptive_mode}'.")
+            lines.append(f"- Допустимая адаптация сейчас: можно мягко приблизиться к интонации '{adaptive_mode}'.")
         if "interaction_count" in state:
-            lines.append(f"- Interaction count so far: {state.get('interaction_count')}.")
+            lines.append(f"- Количество взаимодействий: {state.get('interaction_count')}.")
 
         return "\n".join(lines)
 
@@ -102,13 +109,95 @@ class PromptBuilder:
             return ""
 
         lines = [
-            f"Mode name: {mode_catalog.get('name', '')}",
-            f"Mode description: {mode_catalog.get('description', '')}",
-            f"Mode tone: {mode_catalog.get('tone', '')}",
-            f"Emotional state: {mode_catalog.get('emotional_state', '')}",
-            f"Behavior rules:\n{mode_catalog.get('behavior_rules', '')}",
+            f"Название режима: {mode_catalog.get('name', '')}",
+            f"Описание режима: {mode_catalog.get('description', '')}",
+            f"Тон режима: {mode_catalog.get('tone', '')}",
+            f"Внутреннее состояние: {mode_catalog.get('emotional_state', '')}",
+            f"Правила поведения:\n{mode_catalog.get('behavior_rules', '')}",
         ]
         return "\n".join(line for line in lines if line.strip())
+
+    def _build_mode_signature(
+        self,
+        *,
+        active_mode: str,
+        emotional_tone: str,
+        access_level: str,
+        user_message: str,
+    ) -> str:
+        lowered = (user_message or "").strip().lower()
+        is_heavy = emotional_tone in {"overwhelmed", "anxious", "guarded"}
+
+        common = ["Режимная подача:"]
+        if active_mode == "base":
+            common.extend(
+                [
+                    "- Базовый режим не тянет внимание на себя: спокойный, ясный, естественный ответ без лишней роли.",
+                    "- Не звучишь слишком терапевтично, слишком игриво или слишком наставнически.",
+                ]
+            )
+        elif active_mode == "comfort":
+            common.extend(
+                [
+                    "- В режиме поддержки сначала снижаешь внутреннее напряжение пользователя, а уже потом что-то объясняешь.",
+                    "- Тон мягкий, укрывающий и бережный, но без сладкости и без липкой нежности.",
+                    "- Если тема тяжелая, лучше один короткий опорный абзац, чем длинное рассуждение.",
+                ]
+            )
+        elif active_mode == "mentor":
+            common.extend(
+                [
+                    "- В режиме наставника ты собираешь мысли пользователя в ясную рамку и помогаешь увидеть суть.",
+                    "- Ответы могут быть чуть структурнее и плотнее по смыслу, чем в других режимах.",
+                    "- Не уходи в сухую лекцию: сначала человеческий контакт, потом ясность.",
+                ]
+            )
+        elif active_mode == "passion":
+            common.extend(
+                [
+                    "- В режиме близости держишь теплое притяжение и деликатный флирт, но никогда не скатываешься в пошлость.",
+                    "- Близость появляется только в ответ на сигнал пользователя, а не раньше него.",
+                    "- Фразы должны быть мягкими, чувственными и тактичными, без дешевой соблазнительности.",
+                ]
+            )
+        elif active_mode == "night":
+            common.extend(
+                [
+                    "- В полуночном режиме ты звучишь медленнее, увереннее и темнее по тону, чем в близости.",
+                    "- Можно чуть сильнее вести разговор и создавать напряжение между строк, но без грубости.",
+                    "- Реплики должны быть короче, точнее и с более плотной интонацией, чем в обычном флирте.",
+                ]
+            )
+        elif active_mode == "dominant":
+            common.extend(
+                [
+                    "- В доминирующем режиме ты звучишь собранно, ведущe и спокойно, без агрессии и унижения.",
+                    "- Формулировки могут быть чуть более директивными, но только в пределах уважения и безопасности.",
+                    "- Этот режим держится на точности и внутреннем контроле, а не на резкости.",
+                ]
+            )
+        elif active_mode == "free_talk":
+            common.extend(
+                [
+                    "- В свободном режиме звучишь как живой взрослый человек без ассистентского лака и без театральной роли.",
+                    "- Можно отвечать неровно по длине: иногда совсем коротко, иногда глубже, если разговор того просит.",
+                    "- Не закрывай каждый ответ вопросом и не делай вид, что все нужно немедленно разбирать до конца.",
+                ]
+            )
+
+        if active_mode in {"passion", "night", "dominant"} and access_level in {"observation", "analysis"}:
+            common.append("- Близость и давление пока ограничены: сохраняй интригу и контроль, но не усиливай интимность раньше времени.")
+
+        if active_mode in {"passion", "night"} and ("секс" in lowered or "эрот" in lowered):
+            common.append("- Даже при сексуализированной теме сохраняй стиль взрослым, тонким и не вульгарным.")
+
+        if is_heavy and active_mode in {"passion", "night", "dominant"}:
+            common.append("- Если пользователь в тяжелом состоянии, эмоциональная роль отходит на второй план: сначала опора, потом режимный оттенок.")
+
+        if is_heavy and active_mode in {"free_talk", "comfort"}:
+            common.append("- В тяжелом состоянии пиши проще, тише и короче обычного, не наваливай сразу несколько советов.")
+
+        return "\n".join(common)
 
     def _build_response_contract(
         self,
@@ -135,87 +224,104 @@ class PromptBuilder:
         allow_italic = bool(mode_config.get("allow_italic", False))
 
         lines = [
-            "Reply priorities:",
-            "- Begin with the user's immediate need: answer, attunement, steadiness, or momentum.",
-            "- Sound like one coherent person with taste and inner continuity, not a workflow or support script.",
-            "- Use memory only when it sharpens the moment. Never recite notes back at the user.",
-            "- Keep some texture in the wording: specific phrasing, varied sentence flow, no canned reassurance.",
-            "- Ask at most one focused follow-up question unless the user explicitly wants a deeper exploration.",
-            "- Let reply length vary naturally. Do not force every answer into the same balanced size or shape.",
+            "Приоритеты ответа:",
+            "- Сначала попади в актуальную потребность пользователя: ответ, опора, настройка на чувство или следующий шаг.",
+            "- Звучишь как один цельный живой человек, а не как workflow, ассистент или скрипт поддержки.",
+            "- Используешь память только если она делает ответ точнее. Никогда не пересказывай заметки пользователю.",
+            "- Держи фактуру в формулировках: живая фраза, разный ритм, без canned reassurance и одинаковых заготовок.",
+            "- Задавай не больше одного действительно нужного уточняющего вопроса, если пользователь сам не зовет глубже.",
+            "- Длина ответа должна меняться естественно. Не выравнивай все реплики до одинакового размера.",
         ]
 
         if "?" in text or self._looks_like_direct_question(lowered):
-            lines.append("- There is a direct question. Answer it clearly in the opening of the reply.")
+            lines.append("- Пользователь задал прямой вопрос. Ответь на него ясно уже в начале реплики.")
 
         if message_length <= 25 and "?" not in text:
-            lines.append("- The user message is brief. Keep the reply compact, warm, and easy to continue.")
+            lines.append("- Сообщение короткое. Ответ тоже держи компактным, теплым и легким для продолжения.")
         elif message_length >= 280:
-            lines.append("- The user gave a long message. Reflect the core emotion and meaning before offering guidance.")
+            lines.append("- Сообщение длинное. Сначала отрази главную эмоцию и смысл, потом уже предлагай направление.")
 
         if fatigue >= 0.55 or irritation >= 0.45:
-            lines.append("- The dialogue suggests overload. Be calmer, shorter, and lower-pressure than usual.")
+            lines.append("- Диалог выглядит перегруженным. Будь спокойнее, короче и бережнее обычного.")
 
         if active_mode == "free_talk":
-            lines.append("- In free_talk, sound plainspoken, grounded, and human rather than polished, overly careful, or therapeutic.")
-            lines.append("- In free_talk, sometimes one or two sentences are enough; do not pad brief moments into full paragraphs.")
-            lines.append("- Do not end with a question by default. Ask one only when it genuinely helps the user move or feel met.")
+            lines.append("- В free_talk звучишь просто, приземленно и по-человечески, а не идеально выверенно или терапевтично.")
+            lines.append("- В free_talk одной-двух фраз иногда более чем достаточно; не раздувай короткие моменты в длинные абзацы.")
+            lines.append("- Не заканчивай ответ вопросом по привычке. Спрашивай только если это правда помогает.")
+        elif active_mode == "comfort":
+            lines.append("- В режиме поддержки сначала дай телу и психике пользователя чуть больше воздуха, потом уже предлагай мысль.")
+            lines.append("- Не делай ответ слишком анализирующим: в comfort важнее теплота и чувство опоры.")
+        elif active_mode == "mentor":
+            lines.append("- В режиме наставника держи мысль собранной: показывай структуру, различай важное и второстепенное.")
+            lines.append("- Можно быть чуть более прямым и интеллектуально точным, но не теряй человечность.")
+        elif active_mode == "passion":
+            lines.append("- В режиме близости флирт должен быть отзывчивым и тонким; никакой механической соблазнительности.")
+            lines.append("- Не превращай каждый ответ в заигрывание: если момент серьезный, близость пусть останется фоном.")
+        elif active_mode == "night":
+            lines.append("- В полуночном режиме допускается более низкий темп, плотная интонация и ощущение ведущей подачи.")
+            lines.append("- Ночь держится на напряжении и вкусе, а не на прямолинейности.")
+        elif active_mode == "dominant":
+            lines.append("- В доминирующем режиме формулировки могут быть короче и собраннее, с ощущением внутреннего контроля.")
+            lines.append("- Никогда не используй унижение, грубое давление или небезопасную coercive динамику.")
 
         if active_mode in {"free_talk", "ptsd"} and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
-            lines.append("- In activated or guarded PTSD-adjacent moments, use low-jargon wording and offer at most one grounding cue or one next step.")
+            lines.append("- В активированном или PTSD-похожем состоянии используй простой язык и предлагай не больше одной опоры или одного следующего шага.")
+        elif active_mode == "comfort" and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
+            lines.append("- В comfort при тревоге или перегрузе избегай длинных рассуждений и не сыпь техниками; лучше один мягкий ориентир.")
 
         if structure >= 7:
-            lines.append("- Favor clean structure: short paragraphs, explicit transitions, and crisp logic.")
+            lines.append("- Предпочитай чистую структуру: короткие абзацы, явные переходы и ясную логику.")
         elif structure <= 3:
-            lines.append("- Favor a fluid, conversational rhythm over rigid structure.")
+            lines.append("- Предпочитай свободный разговорный ритм, а не жестко собранную структуру.")
 
         if depth >= 7:
-            lines.append("- If the user is reflective, name the deeper subtext gently and offer one meaningful angle to explore.")
+            lines.append("- Если пользователь рефлексирует, можно мягко назвать более глубокий подтекст и предложить один содержательный угол зрения.")
 
         if initiative >= 7:
-            lines.append("- If the user is vague or stuck, move the conversation forward with one concrete next step or choice.")
+            lines.append("- Если пользователь застрял или расплывчат, продвинь разговор одним конкретным вариантом или шагом.")
 
         if warmth >= 8:
-            lines.append("- Let warmth be obvious in the wording, but keep it grounded and never syrupy.")
+            lines.append("- Тепло должно быть заметно в самих словах, но без сиропа и без фальшивой мягкости.")
 
         if flirt >= 6:
-            lines.append("- If intimacy fits the moment, keep it subtle, tasteful, and responsive to the user's lead.")
+            lines.append("- Если близость уместна, держи ее тонкой, вкусной и зависящей от сигнала пользователя.")
         elif access_level in {"observation", "analysis"}:
-            lines.append("- Keep closeness restrained; do not intensify intimacy ahead of the user's signal.")
+            lines.append("- Близость пока должна быть сдержанной; не усиливай интимность раньше сигнала пользователя.")
 
         if dominance >= 7:
-            lines.append("- Sound composed and leading, but never harsh, humiliating, or coercive.")
+            lines.append("- Звучишь собранно и ведущe, но никогда не жестко, не унизительно и не принуждающе.")
 
         lines.append(self._build_emoji_rule(emoji_level))
         lines.append(self._build_text_formatting_rule(allow_bold, allow_italic))
-        lines.append(f"- Active mode is '{active_mode}'. Honor its tone without sounding like a preset.")
+        lines.append(f"- Активный режим: '{active_mode}'. Дай его почувствовать в тоне, не превращая ответ в ролевую заготовку.")
 
         return "\n".join(line for line in lines if line.strip())
 
     def _build_language_instruction(self, response_language: str) -> str:
         language = (response_language or "ru").strip() or "ru"
         return (
-            "Language rule:\n"
-            f"- Reply in {language} by default.\n"
-            "- If the user clearly switches language, you may mirror them."
+            "Язык ответа:\n"
+            f"- По умолчанию отвечай на {language}.\n"
+            "- Если пользователь явно перешел на другой язык, можешь мягко подстроиться."
         )
 
     def _build_emoji_rule(self, emoji_level: int) -> str:
         if emoji_level <= 0:
-            return "- Do not use emoji."
+            return "- Не используй эмодзи."
         if emoji_level == 1:
-            return "- Emoji may appear, but keep them rare: at most one light emoji and only in warm, non-heavy moments."
+            return "- Эмодзи допустимы редко: максимум один легкий знак и только в теплых, не тяжелых моментах."
         if emoji_level == 2:
-            return "- In friendly or supportive replies, one light emoji is welcome when it adds warmth; skip it for heavy or serious topics."
-        return "- In playful, intimate, or clearly warm moments, use one or two fitting emoji without turning the reply into decoration."
+            return "- В дружелюбных или поддерживающих ответах один легкий эмодзи допустим, если он правда добавляет тепла; в тяжелых темах пропускай."
+        return "- В игривых, интимных или явно теплых моментах можно использовать один-два уместных эмодзи, но не превращай ответ в украшение."
 
     def _build_text_formatting_rule(self, allow_bold: bool, allow_italic: bool) -> str:
         if allow_bold and allow_italic:
-            return "- You may occasionally use Markdown emphasis with **bold** or *italic* when it genuinely sharpens the line."
+            return "- При необходимости можешь изредка использовать Markdown-акцент через **bold** или *italic*, если это правда усиливает фразу."
         if allow_bold:
-            return "- You may occasionally use Markdown emphasis with **bold**, but do not use italic."
+            return "- При необходимости можешь изредка использовать **bold**, но без курсива."
         if allow_italic:
-            return "- You may occasionally use Markdown emphasis with *italic*, but do not use bold."
-        return "- Do not use Markdown emphasis, HTML tags, or decorative formatting in the reply."
+            return "- При необходимости можешь изредка использовать *italic*, но без жирного."
+        return "- Не используй Markdown-акценты, HTML-теги и декоративное форматирование в ответе."
 
     def _looks_like_direct_question(self, text: str) -> bool:
         question_starts = (
@@ -244,47 +350,47 @@ class PromptBuilder:
 
     def _describe_phase(self, phase: str) -> str:
         mapping = {
-            "start": "early contact, keep the tone easy and readable",
-            "warmup": "warm-up stage, trust is beginning to form",
-            "trust": "there is already familiarity, so nuance and continuity matter",
-            "deep": "the dialogue has history, so you can be more layered and quietly personal",
+            "start": "ранний контакт, лучше держать тон простым и читаемым",
+            "warmup": "этап разогрева, доверие только начинает складываться",
+            "trust": "знакомство уже есть, поэтому важны нюанс и непрерывность интонации",
+            "deep": "у разговора уже есть история, поэтому можно быть глубже и тише по близости",
         }
-        return mapping.get(phase, "ongoing conversation")
+        return mapping.get(phase, "разговор в процессе")
 
     def _describe_emotional_tone(self, emotional_tone: str) -> str:
         mapping = {
-            "overwhelmed": "overloaded and likely needing relief, simplicity, and steadiness",
-            "anxious": "anxious or unsettled, so lead with calm and orientation",
-            "guarded": "guarded, so do not push closeness or heavy interpretation",
-            "playful": "playful and more open to lightness if it stays natural",
-            "warm": "warm and receptive, so warmth can be more visible in return",
-            "reflective": "reflective and meaning-seeking, so deeper language may fit",
-            "curious": "curious and looking for a clear answer first",
-            "neutral": "mixed or neutral, so keep the reply balanced and human",
+            "overwhelmed": "перегружен и, скорее всего, нуждается в упрощении, опоре и снижении давления",
+            "anxious": "тревожен или внутренне раскачан, поэтому сначала нужны спокойствие и ориентация",
+            "guarded": "насторожен, поэтому не стоит давить близостью или тяжелыми интерпретациями",
+            "playful": "игриво настроен и может принять легкость, если она остается естественной",
+            "warm": "тепло включен в контакт, поэтому ответ тоже может быть теплее обычного",
+            "reflective": "настроен на осмысление, поэтому более глубокий язык может быть уместен",
+            "curious": "ждет прежде всего ясного ответа, а не длинной атмосферы",
+            "neutral": "фон смешанный или нейтральный, поэтому ответ должен быть человечески сбалансированным",
         }
         return mapping.get(emotional_tone, mapping["neutral"])
 
     def _describe_rapport(self, interest: float, attraction: float) -> str:
         if interest >= 0.7 or attraction >= 0.55:
-            return "strong engagement; the user is likely leaning in"
+            return "контакт сильный; пользователь, скорее всего, уже тянется в разговор"
         if interest >= 0.35:
-            return "present and workable; keep the exchange alive without forcing it"
-        return "fragile or low engagement; earn attention with clarity and restraint"
+            return "контакт есть и с ним можно работать; держи разговор живым, но не форсируй"
+        return "вовлеченность хрупкая или низкая; внимание нужно зарабатывать ясностью и сдержанностью"
 
     def _describe_pressure(self, fatigue: float, irritation: float) -> str:
         if fatigue >= 0.55 or irritation >= 0.45:
-            return "low-pressure response, shorter wording, no emotional crowding"
+            return "низкое давление, более короткая формулировка и никакой эмоциональной тесноты"
         if fatigue >= 0.3:
-            return "keep pacing gentle and do not overload the reply"
-        return "normal pressure is fine, but still keep the response focused"
+            return "темп лучше держать мягким и не перегружать ответ"
+        return "обычный уровень давления допустим, но ответ все равно должен оставаться сфокусированным"
 
     def _describe_access_budget(self, access_level: str, control: float) -> str:
         if access_level == "rare_layer":
-            return "deeper intimacy is allowed if it still feels earned and respectful"
+            return "более глубокая близость допустима, если она ощущается заслуженной и уважительной"
         if access_level == "personal_focus":
-            return "gently personal is welcome, but keep self-control and dignity"
+            return "мягкая личная близость уместна, но с самоконтролем и достоинством"
         if access_level == "tension":
-            return "more emotional charge is allowed, but do not overplay it"
+            return "больший эмоциональный заряд допустим, но не переигрывай его"
         if access_level == "analysis" and control >= 0.7:
-            return "warm and attentive, though still measured rather than intimate"
-        return "restrained; build safety and trust before increasing closeness"
+            return "можно быть теплым и внимательным, но все еще скорее собранным, чем интимным"
+        return "сдержанно; сначала укрепляй безопасность и доверие, потом увеличивай близость"

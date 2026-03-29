@@ -27,7 +27,43 @@
     "log_full_prompt": false,
     "debug_prompt_user_id": null,
     "response_language": "ru",
-    "mode_overrides": {}
+    "mode_overrides": {
+      "base": {
+        "temperature": 0.82,
+        "max_completion_tokens": 340,
+        "prompt_suffix": "Пиши спокойно, ясно и без лишней роли. Лучше естественный разговор, чем эффектная подача."
+      },
+      "comfort": {
+        "temperature": 0.76,
+        "max_completion_tokens": 300,
+        "prompt_suffix": "В приоритете мягкая опора и снижение внутреннего напряжения. Не перегружай длинными объяснениями и не торопи пользователя."
+      },
+      "passion": {
+        "temperature": 0.96,
+        "max_completion_tokens": 260,
+        "prompt_suffix": "Держи тон деликатно-чувственным и отзывчивым. Близость должна ощущаться тонко и взросло, без пошлости и без напора."
+      },
+      "mentor": {
+        "temperature": 0.68,
+        "max_completion_tokens": 420,
+        "prompt_suffix": "Помогай структурировать мысль, различать главное и лишнее, но не превращай ответ в лекцию. Сначала человек, потом схема."
+      },
+      "night": {
+        "temperature": 0.9,
+        "max_completion_tokens": 240,
+        "prompt_suffix": "Тон может быть темнее, медленнее и плотнее обычного. Веди увереннее, но всегда со вкусом и без грубости."
+      },
+      "free_talk": {
+        "temperature": 0.95,
+        "max_completion_tokens": 420,
+        "prompt_suffix": "Звучишь как живой взрослый человек без ассистентского лака. Допустима неровная длина ответа и естественная прямота без канцелярита."
+      },
+      "dominant": {
+        "temperature": 0.74,
+        "max_completion_tokens": 260,
+        "prompt_suffix": "Подача собранная, ведущая и спокойная. Можно быть директивнее, но только в пределах уважения, безопасности и внутреннего достоинства."
+      }
+    }
   },
   "chat": {
     "typing_action_enabled": true,

@@ -364,7 +364,7 @@ class AIService:
         frequency_penalty = float(ai_settings.get("frequency_penalty", 0.0))
         presence_penalty = float(ai_settings.get("presence_penalty", 0.0))
         max_completion_tokens = int(
-            ai_settings.get("max_completion_tokens", 400),
+            ai_profile.get("max_completion_tokens", ai_settings.get("max_completion_tokens", 400)),
         )
         reasoning_effort = str(ai_settings.get("reasoning_effort") or "").strip() or None
         verbosity = str(ai_settings.get("verbosity") or "").strip() or None

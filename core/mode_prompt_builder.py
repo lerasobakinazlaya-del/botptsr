@@ -1,25 +1,25 @@
 def build_mode_instruction(mode_config: dict) -> str:
     def describe(value: int) -> str:
         if value <= 1:
-            return "almost absent"
+            return "почти отсутствует"
         if value <= 3:
-            return "low"
+            return "низко"
         if value <= 5:
-            return "moderate"
+            return "умеренно"
         if value <= 7:
-            return "clear"
+            return "заметно"
         if value <= 9:
-            return "high"
-        return "very high"
+            return "сильно"
+        return "очень сильно"
 
     return (
-        "Mode calibration:\n"
-        f"- Warmth and empathy should feel {describe(mode_config['warmth'])}.\n"
-        f"- Playfulness or flirt energy should feel {describe(mode_config['flirt'])}.\n"
-        f"- Reflection and depth should feel {describe(mode_config['depth'])}.\n"
-        f"- Structure and logic should feel {describe(mode_config['structure'])}.\n"
-        f"- Leading or dominant energy should feel {describe(mode_config['dominance'])}.\n"
-        f"- Initiative should feel {describe(mode_config['initiative'])}.\n"
-        f"- Visible emotional expressiveness should feel {describe(mode_config['emoji_level'])}.\n"
-        "Let the mode shape the texture of the reply quietly, never like a preset being performed."
+        "Калибровка режима:\n"
+        f"- Тепло и эмпатия ощущаются {describe(mode_config['warmth'])}.\n"
+        f"- Игривость или флирт ощущаются {describe(mode_config['flirt'])}.\n"
+        f"- Глубина и рефлексия ощущаются {describe(mode_config['depth'])}.\n"
+        f"- Структура и логика ощущаются {describe(mode_config['structure'])}.\n"
+        f"- Ведущая или доминирующая энергия ощущается {describe(mode_config['dominance'])}.\n"
+        f"- Инициативность ощущается {describe(mode_config['initiative'])}.\n"
+        f"- Внешняя эмоциональная выразительность ощущается {describe(mode_config['emoji_level'])}.\n"
+        "Режим должен окрашивать ответ изнутри и тихо менять его фактуру, а не звучать как включенный пресет."
     )
