@@ -144,9 +144,16 @@ class FakeReferralService:
 class FakeMonetizationRepository:
     def __init__(self):
         self.events = []
+        self.latest_offer_context = {
+            "offer_trigger": "limit_reached",
+            "offer_variant": "b",
+        }
 
     async def log_event(self, **kwargs):
         self.events.append(kwargs)
+
+    async def get_latest_offer_context(self, user_id: int):
+        return dict(self.latest_offer_context)
 
 
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
@@ -302,6 +309,14 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             monetization_repository.events[-1]["event_name"],
             "paid",
         )
+        self.assertEqual(
+            monetization_repository.events[-1]["offer_trigger"],
+            "limit_reached",
+        )
+        self.assertEqual(
+            monetization_repository.events[-1]["offer_variant"],
+            "b",
+        )
 
     async def test_handle_successful_payment_uses_provider_subscription_expiry_when_present(self):
         subscription_expires_at = datetime(2026, 3, 31, 4, 0, 0, tzinfo=timezone.utc)
@@ -348,6 +363,10 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             monetization_repository.events[-1]["event_name"],
             "renewed",
+        )
+        self.assertEqual(
+            monetization_repository.events[-1]["offer_variant"],
+            "b",
         )
 
 

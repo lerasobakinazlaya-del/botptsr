@@ -94,6 +94,14 @@ class AdminMetricsService:
         payment_overview = await self.payment_repository.get_overview()
         monetization_7d = await self.monetization_repository.get_funnel_overview(days=7)
         monetization_30d = await self.monetization_repository.get_funnel_overview(days=30)
+        monetization_by_trigger_30d = await self.monetization_repository.get_segmented_funnel(
+            days=30,
+            segment_by="offer_trigger",
+        )
+        monetization_by_variant_30d = await self.monetization_repository.get_segmented_funnel(
+            days=30,
+            segment_by="offer_variant",
+        )
         referral_overview = await self.referral_service.get_overview()
         total_users = await self.user_service.get_total_users()
         premium_users = await self.user_service.get_premium_users_count()
@@ -126,6 +134,8 @@ class AdminMetricsService:
             "monetization": {
                 "funnel_7d": monetization_7d,
                 "funnel_30d": monetization_30d,
+                "by_trigger_30d": monetization_by_trigger_30d,
+                "by_variant_30d": monetization_by_variant_30d,
             },
             "content": {
                 "messages_total": total_messages,

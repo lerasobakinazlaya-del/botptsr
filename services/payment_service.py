@@ -265,9 +265,12 @@ class PaymentService:
             return
 
         event_name = "paid" if payment_info.get("is_first_payment") else "renewed"
+        latest_offer_context = await self.monetization_repository.get_latest_offer_context(user_id)
         await self.monetization_repository.log_event(
             user_id=user_id,
             event_name=event_name,
+            offer_trigger=(latest_offer_context or {}).get("offer_trigger"),
+            offer_variant=(latest_offer_context or {}).get("offer_variant"),
             payment_external_id=payment.telegram_payment_charge_id,
             metadata={
                 "currency": payment.currency,

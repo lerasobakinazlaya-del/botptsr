@@ -79,6 +79,49 @@ class FakeMonetizationRepository:
                 "invoice_to_paid_pct": 33.33,
                 "paid_to_renewed_pct": 25.0,
             },
+            }
+
+    async def get_segmented_funnel(self, *, days: int = 30, segment_by: str):
+        if segment_by == "offer_trigger":
+            return {
+                "days": days,
+                "segment_by": segment_by,
+                "segments": {
+                    "limit_reached": {
+                        "days": days,
+                        "stages": {
+                            "offer_shown": {"events": 30, "users": 20},
+                            "invoice_opened": {"events": 18, "users": 14},
+                            "paid": {"events": 5, "users": 5},
+                            "renewed": {"events": 1, "users": 1},
+                        },
+                        "conversion": {
+                            "offer_to_invoice_pct": 70.0,
+                            "invoice_to_paid_pct": 35.71,
+                            "paid_to_renewed_pct": 20.0,
+                        },
+                    }
+                },
+            }
+        return {
+            "days": days,
+            "segment_by": segment_by,
+            "segments": {
+                "a": {
+                    "days": days,
+                    "stages": {
+                        "offer_shown": {"events": 28, "users": 21},
+                        "invoice_opened": {"events": 15, "users": 12},
+                        "paid": {"events": 4, "users": 4},
+                        "renewed": {"events": 1, "users": 1},
+                    },
+                    "conversion": {
+                        "offer_to_invoice_pct": 57.14,
+                        "invoice_to_paid_pct": 33.33,
+                        "paid_to_renewed_pct": 25.0,
+                    },
+                }
+            },
         }
 
     async def get_recent_events(self, limit: int = 20):
@@ -126,4 +169,6 @@ class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(payload["monetization"]["funnel_7d"]["stages"]["offer_shown"]["users"], 15)
         self.assertEqual(payload["monetization"]["funnel_30d"]["conversion"]["invoice_to_paid_pct"], 33.33)
+        self.assertEqual(payload["monetization"]["by_trigger_30d"]["segments"]["limit_reached"]["stages"]["paid"]["users"], 5)
+        self.assertEqual(payload["monetization"]["by_variant_30d"]["segments"]["a"]["conversion"]["offer_to_invoice_pct"], 57.14)
         self.assertEqual(payload["recent"]["monetization"][0]["event_name"], "offer_shown")
