@@ -111,11 +111,29 @@ class PaymentRepository:
         )
         paid_users_row = await paid_users_cursor.fetchone()
 
+        provider_cursor = await self.db.connection.execute(
+            """
+            SELECT provider, COUNT(*), COALESCE(SUM(amount), 0)
+            FROM payments
+            WHERE status = 'paid'
+            GROUP BY provider
+            """
+        )
+        provider_rows = await provider_cursor.fetchall()
+        providers = {
+            row[0]: {
+                "successful_payments": row[1],
+                "revenue": float(row[2]),
+            }
+            for row in provider_rows
+        }
+
         return {
             "successful_payments": total_paid_row[0] if total_paid_row else 0,
             "revenue": float(total_paid_row[1] if total_paid_row else 0),
             "first_payments": first_paid_row[0] if first_paid_row else 0,
             "paid_users": paid_users_row[0] if paid_users_row else 0,
+            "providers": providers,
         }
 
     async def get_successful_payments_since(self, days: int) -> int:
@@ -185,7 +203,8 @@ class PaymentRepository:
                 currency,
                 status,
                 is_first_payment,
-                COALESCE(paid_at, created_at) AS event_time
+                COALESCE(paid_at, created_at) AS event_time,
+                metadata_json
             FROM payments
             ORDER BY event_time DESC, id DESC
             LIMIT ?
@@ -193,16 +212,27 @@ class PaymentRepository:
             (limit,),
         )
         rows = await cursor.fetchall()
-        return [
-            {
-                "user_id": row[0],
-                "provider": row[1],
-                "external_payment_id": row[2],
-                "amount": float(row[3]),
-                "currency": row[4],
-                "status": row[5],
-                "is_first_payment": bool(row[6]),
-                "event_time": row[7],
-            }
-            for row in rows
-        ]
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            metadata = {}
+            if row[8]:
+                try:
+                    metadata = json.loads(row[8])
+                except json.JSONDecodeError:
+                    metadata = {}
+            items.append(
+                {
+                    "user_id": row[0],
+                    "provider": row[1],
+                    "external_payment_id": row[2],
+                    "amount": float(row[3]),
+                    "currency": row[4],
+                    "status": row[5],
+                    "is_first_payment": bool(row[6]),
+                    "event_time": row[7],
+                    "package_key": metadata.get("package_key") or "",
+                    "package_title": metadata.get("package_title") or "",
+                    "virtual_payment": bool(metadata.get("virtual_payment")),
+                }
+            )
+        return items

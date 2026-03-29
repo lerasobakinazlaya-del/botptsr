@@ -290,7 +290,7 @@ class AdminSettingsService:
             "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
             "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
             "premium_menu_back_button_text": "← К режимам",
-            "virtual_payment_description_template": "Тестовая оплата\n\nТариф: {package_title}\nЦена: {price_label}\nСрок: {access_days_label}\n\nНажми кнопку ниже, чтобы выдать Premium без реального списания.",
+            "virtual_payment_description_template": "Тестовый checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nЭто виртуальная оплата для проверки воронки. Реального списания не будет, но покупка сохранится в истории оплат.",
             "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
             "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
             "product_title": "Подписка Premium",

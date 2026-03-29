@@ -305,11 +305,12 @@ class PaymentService:
                 pass
 
         return (
-            f"Тестовая оплата\n\n"
+            f"Тестовый checkout\n\n"
             f"Тариф: {package['title']}\n"
             f"Цена: {price_label}\n"
-            f"Срок: {access_days_label}\n\n"
-            f"Нажми кнопку ниже, чтобы выдать Premium без реального списания."
+            f"Срок доступа: {access_days_label}\n\n"
+            f"Это виртуальная оплата для запуска и проверки воронки.\n"
+            f"Реального списания не будет, но покупка сохранится в истории оплат."
         )
 
     async def process_virtual_payment(
