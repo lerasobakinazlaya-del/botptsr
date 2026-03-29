@@ -2,7 +2,12 @@ import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from handlers.payments import CALLBACK_BUY_PREMIUM, send_premium_offer
+from handlers.payments import (
+    CALLBACK_BUY_PREMIUM,
+    OFFER_TRIGGER_LIMIT_REACHED,
+    OFFER_TRIGGER_MODE_LOCKED,
+    send_premium_offer,
+)
 from keyboards.modes_keyboard import get_modes_keyboard
 from services.payment_service import PaymentService
 
@@ -24,8 +29,18 @@ class FakePaymentServiceForOffer:
 
     def get_payment_settings(self):
         return {
+            "currency": "RUB",
+            "price_minor_units": 49900,
+            "access_duration_days": 30,
             "premium_benefits_text": "Premium benefits",
             "buy_cta_text": "Buy premium",
+            "offer_cta_text_a": "Open Premium for 30 days",
+            "offer_cta_text_b": "Remove limits and unlock all modes",
+            "offer_benefits_text_a": "120 messages per day and all modes.",
+            "offer_benefits_text_b": "Premium unlocks paid modes and a higher daily limit.",
+            "offer_price_line_template": "Now: {price_label} for {access_days} days.",
+            "offer_limit_reached_template": "Free quota is over. Premium gives {premium_limit} messages per day for {access_days} days.",
+            "offer_locked_mode_template": "{mode_name} is available in Premium. Unlock all paid modes and up to {premium_limit} messages per day for {access_days} days.",
             "unavailable_message": "Payments unavailable",
             "invoice_error_message": "Invoice failed",
         }
@@ -132,7 +147,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.invoice_calls, 1)
         self.assertEqual(
             message.answers[0]["text"],
-            "Premium active until 01.04.2026\n\nBuy premium\n\nPremium benefits",
+            "Premium active until 01.04.2026\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
         )
 
     async def test_send_premium_offer_sends_intro_and_invoice(self):
@@ -144,7 +159,62 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result)
         self.assertEqual(payment_service.invoice_calls, 1)
-        self.assertEqual(message.answers[0]["text"], "Buy premium\n\nPremium benefits")
+        self.assertEqual(
+            message.answers[0]["text"],
+            "Remove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+        )
+
+    async def test_send_premium_offer_uses_alternate_ab_variant_for_even_user(self):
+        message = FakeMessage(user_id=124)
+        payment_service = FakePaymentServiceForOffer()
+        user_service = FakeUserServiceForOffer({"id": 124, "is_premium": False, "premium_expires_at": None})
+
+        result = await send_premium_offer(message, payment_service, user_service)
+
+        self.assertTrue(result)
+        self.assertEqual(
+            message.answers[0]["text"],
+            "Open Premium for 30 days\n\nNow: 499.00 RUB for 30 days.\n\n120 messages per day and all modes.",
+        )
+
+    async def test_send_premium_offer_uses_limit_reached_pitch(self):
+        message = FakeMessage()
+        payment_service = FakePaymentServiceForOffer()
+        user_service = FakeUserServiceForOffer()
+
+        result = await send_premium_offer(
+            message,
+            payment_service,
+            user_service,
+            trigger=OFFER_TRIGGER_LIMIT_REACHED,
+            premium_limit=120,
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            message.answers[0]["text"],
+            "Free quota is over. Premium gives 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+        )
+
+    async def test_send_premium_offer_uses_mode_locked_pitch(self):
+        message = FakeMessage()
+        payment_service = FakePaymentServiceForOffer()
+        user_service = FakeUserServiceForOffer()
+
+        result = await send_premium_offer(
+            message,
+            payment_service,
+            user_service,
+            trigger=OFFER_TRIGGER_MODE_LOCKED,
+            mode_name="Mentor",
+            premium_limit=120,
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(
+            message.answers[0]["text"],
+            "Mentor is available in Premium. Unlock all paid modes and up to 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+        )
 
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
         payment_repository = FakePaymentRepository()

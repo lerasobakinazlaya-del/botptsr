@@ -3,8 +3,8 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, Message
 
 from config.modes import get_mode, get_modes, get_premium_modes
+from handlers.payments import OFFER_TRIGGER_MODE_LOCKED, send_premium_offer
 from keyboards.modes_keyboard import get_modes_keyboard
-from handlers.payments import send_premium_offer
 
 
 router = Router(name="modes-router")
@@ -82,7 +82,14 @@ async def change_mode_handler(
     if mode_key in get_premium_modes() and not user.get("is_premium") and not can_select_mode:
         await callback.answer(ui_settings["mode_locked_text"], show_alert=True)
         if callback.message is not None and hasattr(callback.message, "answer"):
-            await send_premium_offer(callback.message, payment_service, user_service)
+            await send_premium_offer(
+                callback.message,
+                payment_service,
+                user_service,
+                trigger=OFFER_TRIGGER_MODE_LOCKED,
+                mode_name=get_mode(mode_key).name,
+                premium_limit=int(runtime_settings["limits"].get("premium_daily_messages_limit", 150)),
+            )
         return
 
     await user_service.set_mode(callback.from_user.id, mode_key)

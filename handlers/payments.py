@@ -8,29 +8,104 @@ from aiogram.types import Message, PreCheckoutQuery
 router = Router(name="payments-router")
 logger = logging.getLogger(__name__)
 CALLBACK_BUY_PREMIUM = "buy_premium"
+OFFER_TRIGGER_DEFAULT = "default"
+OFFER_TRIGGER_LIMIT_REACHED = "limit_reached"
+OFFER_TRIGGER_MODE_LOCKED = "mode_locked"
 
 
-async def send_premium_offer(message: Message, payment_service, user_service=None) -> bool:
+def _pick_offer_variant(user_id: int) -> str:
+    return "a" if user_id % 2 == 0 else "b"
+
+
+def _format_price_label(payment_settings: dict) -> str:
+    currency = str(payment_settings.get("currency") or "RUB").upper()
+    amount_minor_units = int(payment_settings.get("price_minor_units", 0))
+    if currency == "XTR":
+        return f"{amount_minor_units} {currency}"
+    return f"{amount_minor_units / 100:.2f} {currency}"
+
+
+def _build_offer_intro(
+    payment_settings: dict,
+    *,
+    user_id: int,
+    trigger: str,
+    mode_name: str | None = None,
+    premium_limit: int | None = None,
+) -> list[str]:
+    variant = _pick_offer_variant(user_id)
+    access_days = max(1, int(payment_settings.get("access_duration_days", 30)))
+    price_label = _format_price_label(payment_settings)
+
+    cta_text = str(
+        payment_settings.get(f"offer_cta_text_{variant}")
+        or payment_settings.get("buy_cta_text")
+        or ""
+    ).strip()
+    benefits_text = str(
+        payment_settings.get(f"offer_benefits_text_{variant}")
+        or payment_settings.get("premium_benefits_text")
+        or ""
+    ).strip()
+    price_line = str(payment_settings.get("offer_price_line_template") or "").strip()
+    if price_line:
+        price_line = price_line.format(price_label=price_label, access_days=access_days)
+
+    trigger_line = ""
+    if trigger == OFFER_TRIGGER_LIMIT_REACHED:
+        trigger_line = str(payment_settings.get("offer_limit_reached_template") or "").strip()
+        if trigger_line:
+            trigger_line = trigger_line.format(
+                access_days=access_days,
+                premium_limit=premium_limit or 0,
+                price_label=price_label,
+            )
+    elif trigger == OFFER_TRIGGER_MODE_LOCKED:
+        trigger_line = str(payment_settings.get("offer_locked_mode_template") or "").strip()
+        if trigger_line:
+            trigger_line = trigger_line.format(
+                mode_name=mode_name or "Premium",
+                access_days=access_days,
+                premium_limit=premium_limit or 0,
+                price_label=price_label,
+            )
+
+    return [part for part in (trigger_line, cta_text, price_line, benefits_text) if part]
+
+
+async def send_premium_offer(
+    message: Message,
+    payment_service,
+    user_service=None,
+    *,
+    trigger: str = OFFER_TRIGGER_DEFAULT,
+    mode_name: str | None = None,
+    premium_limit: int | None = None,
+) -> bool:
     payment_settings = payment_service.get_payment_settings()
     if not payment_service.is_enabled():
         await message.answer(payment_settings["unavailable_message"])
         return False
 
-    benefits_text = str(payment_settings.get("premium_benefits_text") or "").strip()
-    buy_cta_text = str(payment_settings.get("buy_cta_text") or "").strip()
     status_text = ""
     if user_service is not None:
         user = await user_service.get_user(message.from_user.id)
         status_text = payment_service.build_subscription_status_text(user)
 
-    if benefits_text or buy_cta_text or status_text:
-        intro_parts = []
-        if status_text:
-            intro_parts.append(status_text)
-        if buy_cta_text:
-            intro_parts.append(buy_cta_text)
-        if benefits_text:
-            intro_parts.append(benefits_text)
+    intro_parts = []
+    if status_text:
+        intro_parts.append(status_text)
+    intro_parts.extend(
+        _build_offer_intro(
+            payment_settings,
+            user_id=message.from_user.id,
+            trigger=trigger,
+            mode_name=mode_name,
+            premium_limit=premium_limit,
+        )
+    )
+
+    if intro_parts:
         await message.answer("\n\n".join(intro_parts))
 
     sent = await payment_service.send_premium_invoice(message)

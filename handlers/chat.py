@@ -9,7 +9,11 @@ from aiogram.types import Message
 
 from config.modes import get_mode
 from handlers.modes import show_modes_menu
-from handlers.payments import send_premium_offer
+from handlers.payments import (
+    OFFER_TRIGGER_LIMIT_REACHED,
+    OFFER_TRIGGER_MODE_LOCKED,
+    send_premium_offer,
+)
 from services.ai_profile_service import resolve_ai_profile
 from services.ai_service import AIBackpressureError
 from services.telegram_formatting import (
@@ -365,7 +369,13 @@ async def chat_handler(
                 and today_count >= limits_settings["free_daily_messages_limit"]
             ):
                 await message.answer(limits_settings["free_daily_limit_message"])
-                await send_premium_offer(message, payment_service, user_service)
+                await send_premium_offer(
+                    message,
+                    payment_service,
+                    user_service,
+                    trigger=OFFER_TRIGGER_LIMIT_REACHED,
+                    premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
+                )
                 return
 
         state = await state_repository.get(user_id)
@@ -388,7 +398,14 @@ async def chat_handler(
                     daily_limit=selection_status["daily_limit"],
                 )
             )
-            await send_premium_offer(message, payment_service, user_service)
+            await send_premium_offer(
+                message,
+                payment_service,
+                user_service,
+                trigger=OFFER_TRIGGER_MODE_LOCKED,
+                mode_name=mode.name,
+                premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
+            )
             return
 
         history = await message_repository.get_last_messages(
