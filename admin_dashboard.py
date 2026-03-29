@@ -915,19 +915,20 @@ def _dashboard_html() -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Админка бота</title>
   <style>
-    :root{--bg:#09131d;--bg2:#12263a;--panel:rgba(9,19,32,.86);--soft:rgba(255,255,255,.05);--text:#eef6ff;--muted:#9bb0c8;--accent:#85df96;--warn:#f7c971;--danger:#ff7b72;--border:rgba(255,255,255,.08)}
+    :root{--bg:#09131d;--bg2:#12263a;--panel:rgba(9,19,32,.86);--soft:rgba(255,255,255,.05);--text:#eef6ff;--muted:#9bb0c8;--accent:#85df96;--warn:#f7c971;--danger:#ff7b72;--border:rgba(255,255,255,.08);--content-max:1600px}
     *{box-sizing:border-box}body{margin:0;color:var(--text);font-family:"Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(133,223,150,.12),transparent 26%),radial-gradient(circle at top right,rgba(247,201,113,.12),transparent 24%),linear-gradient(145deg,var(--bg),var(--bg2))}
-    .layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{padding:22px 16px;border-right:1px solid var(--border);background:rgba(5,12,20,.78);backdrop-filter:blur(10px)}.main{padding:24px}
-    .nav{display:grid;gap:8px;margin-top:18px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:14px;padding:11px 14px;cursor:pointer;font-weight:600}.nav button.active,.toolbar .primary,.actions .primary{background:linear-gradient(135deg,var(--accent),#59c9a8);color:#082112;border:0}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.page{display:none;gap:16px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:1.1fr .9fr}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .layout{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}.sidebar{padding:20px 14px;border-right:1px solid var(--border);background:rgba(5,12,20,.78);backdrop-filter:blur(10px)}.main{padding:20px;display:grid;gap:14px;min-width:0}.main>*{width:100%;max-width:var(--content-max);margin:0 auto}
+    .nav{display:grid;gap:8px;margin-top:18px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:12px;padding:10px 13px;cursor:pointer;font-weight:600}.nav button.active,.toolbar .primary,.actions .primary{background:linear-gradient(135deg,var(--accent),#59c9a8);color:#082112;border:0}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input,.toolbar select{flex:1 1 220px;min-width:0}.toolbar button{flex:0 0 auto}.page{display:none;gap:14px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:16px}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.users-layout{grid-template-columns:minmax(320px,420px) minmax(0,1fr)}.conversations-layout{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
     h1,h2,h3,p{margin-top:0}.muted{color:var(--muted)}.stat-label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}.stat-value{font-size:30px;font-weight:700}
-    label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:130px;resize:vertical}
+    label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:104px;resize:vertical}
     .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
-    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
-    .conversation-feed{display:grid;gap:12px;max-height:72vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:160px;max-height:280px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px;margin-bottom:16px}.composer textarea{min-height:120px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:120px;max-height:240px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
-    @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}}
+    .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
+    @media (max-width:1380px){.users-layout,.conversations-layout{grid-template-columns:1fr}}
+    @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}.main{padding:16px}.toolbar input,.toolbar select,.toolbar button{flex:1 1 100%}}
   </style>
 </head>
 <body>
@@ -986,7 +987,7 @@ def _dashboard_html() -> str:
 
       <section class="page" data-view="users">
         <div><h2>Пользователи и права</h2><p class="muted">Добавляй администраторов, меняй премиум-статус и назначай активный режим для конкретного пользователя.</p></div>
-        <div class="cols">
+        <div class="cols users-layout">
           <div class="panel">
             <h3>Карточка пользователя</h3>
             <div class="two">
@@ -1005,8 +1006,8 @@ def _dashboard_html() -> str:
             </div>
           </div>
           <div class="panel">
-            <h3>Поиск, рассылка и список</h3>
-            <div class="toolbar">
+            <h3>Поиск и список</h3>
+            <div class="toolbar users-search-toolbar">
               <input id="user-search" placeholder="ID, имя пользователя или имя">
               <select id="user-sort">
                 <option value="created_desc">Новые сначала</option>
@@ -1026,8 +1027,11 @@ def _dashboard_html() -> str:
               <button type="button" class="template-chip" data-user-filter="premium_expired">Истекли</button>
               <button type="button" class="template-chip" data-user-filter="without_premium">Без Premium</button>
             </div>
-            <div id="user-segment-summary"></div>
+            <div id="user-segment-summary" class="segment-summary"></div>
             <p class="muted" id="users-result-meta">Здесь появится сводка по списку пользователей.</p>
+            <details class="details-panel" style="margin-bottom:16px">
+              <summary>&#1056;&#1072;&#1089;&#1089;&#1099;&#1083;&#1082;&#1072; &#1080; &#1096;&#1072;&#1073;&#1083;&#1086;&#1085;&#1099;</summary>
+              <div class="details-content">
             <div class="composer">
               <h4>Рассылка выбранным пользователям</h4>
               <label>Текст рассылки
@@ -1053,14 +1057,16 @@ def _dashboard_html() -> str:
                 </div>
               </div>
             </div>
-            <div id="users-table"></div>
+              </div>
+            </details>
+            <div id="users-table" class="table-wrap"></div>
           </div>
         </div>
       </section>
 
       <section class="page" data-view="conversations">
         <div><h2>Диалоги и память</h2><p class="muted">Отдельный просмотр истории сообщений, долговременной памяти и текущего состояния пользователя.</p></div>
-        <div class="cols">
+        <div class="cols conversations-layout">
           <div class="panel">
             <h3>Пользователь</h3>
             <div class="toolbar">
