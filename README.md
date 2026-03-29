@@ -156,6 +156,24 @@ PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
 
 - `http://127.0.0.1:8080`
 
+## Автоматическая проверка перед запуском
+
+Единая проверка запускается так:
+
+```powershell
+.\venv\Scripts\python.exe scripts\prelaunch_check.py --strict-env
+```
+
+Что она делает автоматически:
+
+- проверяет обязательные `.env`-переменные
+- валидирует `config/*.json`
+- компилирует Python-файлы через `compileall`
+- запускает `pytest`
+- поднимает smoke-проверку админки через `TestClient`
+
+JSON-отчёт сохраняется в `logs/prelaunch_report.json`.
+
 ## Docker
 
 Запуск:

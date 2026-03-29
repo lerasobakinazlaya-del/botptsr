@@ -89,6 +89,9 @@ class ReengagementService:
         user = await self.user_service.get_user(user_id)
         if user is None or bool(user.get("is_admin")):
             return
+        if str(candidate.get("last_message_role") or "").strip() not in {"", "assistant"}:
+            logger.info("[REENGAGE] Skip user_id=%s reason=last_message_not_assistant", user_id)
+            return
 
         runtime_settings = self.settings_service.get_runtime_settings()
         proactive_settings = runtime_settings["proactive"]

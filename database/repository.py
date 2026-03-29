@@ -250,17 +250,41 @@ class MessageRepository:
     ) -> list[dict[str, Any]]:
         cursor = await self.db.connection.execute(
             """
+            WITH message_stats AS (
+                SELECT
+                    user_id,
+                    MAX(CASE WHEN role = 'user' THEN created_at END) AS last_user_message_at,
+                    MAX(CASE WHEN role = 'assistant' THEN created_at END) AS last_assistant_message_at,
+                    MAX(created_at) AS last_message_at
+                FROM messages
+                GROUP BY user_id
+            ),
+            last_message AS (
+                SELECT m.user_id, m.role
+                FROM messages m
+                INNER JOIN (
+                    SELECT user_id, MAX(id) AS last_id
+                    FROM messages
+                    GROUP BY user_id
+                ) latest
+                    ON latest.user_id = m.user_id
+                   AND latest.last_id = m.id
+            )
             SELECT
-                user_id,
-                MAX(CASE WHEN role = 'user' THEN created_at END) AS last_user_message_at,
-                MAX(CASE WHEN role = 'assistant' THEN created_at END) AS last_assistant_message_at,
-                MAX(created_at) AS last_message_at
-            FROM messages
-            GROUP BY user_id
-            HAVING last_user_message_at IS NOT NULL
-               AND datetime(last_user_message_at) <= datetime('now', ?)
-               AND datetime(last_message_at) >= datetime('now', ?)
-            ORDER BY datetime(last_user_message_at) ASC
+                stats.user_id,
+                stats.last_user_message_at,
+                stats.last_assistant_message_at,
+                stats.last_message_at,
+                last_message.role AS last_message_role
+            FROM message_stats stats
+            INNER JOIN last_message ON last_message.user_id = stats.user_id
+            WHERE stats.last_user_message_at IS NOT NULL
+              AND stats.last_assistant_message_at IS NOT NULL
+              AND last_message.role = 'assistant'
+              AND datetime(stats.last_assistant_message_at) >= datetime(stats.last_user_message_at)
+              AND datetime(stats.last_user_message_at) <= datetime('now', ?)
+              AND datetime(stats.last_message_at) >= datetime('now', ?)
+            ORDER BY datetime(stats.last_user_message_at) ASC
             LIMIT ?
             """,
             (f"-{max(1, int(idle_hours))} hours", f"-{max(1, int(recent_window_days))} days", max(1, int(limit))),
@@ -272,6 +296,7 @@ class MessageRepository:
                 "last_user_message_at": row[1],
                 "last_assistant_message_at": row[2],
                 "last_message_at": row[3],
+                "last_message_role": row[4],
             }
             for row in rows
         ]

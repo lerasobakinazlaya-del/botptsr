@@ -22,16 +22,42 @@ class ConversationSummaryService:
         self.state_repository = state_repository
         self.settings_service = settings_service
         self.long_term_memory_service = long_term_memory_service
-        self._tasks: set[asyncio.Task] = set()
+        self._user_tasks: dict[int, asyncio.Task] = {}
+        self._pending_snapshots: dict[int, dict[str, Any]] = {}
 
     def schedule_refresh(self, user_id: int, state_snapshot: dict[str, Any]) -> None:
+        self._pending_snapshots[user_id] = state_snapshot
+        task = self._user_tasks.get(user_id)
+        if task is not None and not task.done():
+            return
+        self._start_user_task(user_id)
+
+    def _start_user_task(self, user_id: int) -> None:
         task = asyncio.create_task(
-            self.maybe_refresh_summary(user_id, state_snapshot),
+            self._run_refresh_loop(user_id),
             name=f"summary-refresh-{user_id}",
         )
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
-        task.add_done_callback(self._log_task_error)
+        self._user_tasks[user_id] = task
+        task.add_done_callback(
+            lambda current_task, current_user_id=user_id: self._on_task_done(
+                current_user_id,
+                current_task,
+            )
+        )
+
+    async def _run_refresh_loop(self, user_id: int) -> None:
+        while True:
+            state_snapshot = self._pending_snapshots.pop(user_id, None)
+            if state_snapshot is None:
+                return
+            await self.maybe_refresh_summary(user_id, state_snapshot)
+
+    def _on_task_done(self, user_id: int, task: asyncio.Task) -> None:
+        if self._user_tasks.get(user_id) is task:
+            self._user_tasks.pop(user_id, None)
+        self._log_task_error(task)
+        if user_id in self._pending_snapshots:
+            self._start_user_task(user_id)
 
     async def maybe_refresh_summary(
         self,

@@ -173,6 +173,21 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(service.ai_service.calls), 1)
         self.assertEqual(service._bot.messages, [(1, "Привет")])
 
+    async def test_process_candidate_skips_when_last_message_is_not_assistant(self):
+        service = self._build_service()
+
+        await service._process_candidate(
+            {
+                "user_id": 1,
+                "last_user_message_at": "2026-01-01 00:00:00",
+                "last_message_role": "user",
+            },
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls, [])
+        self.assertEqual(service._bot.messages, [])
+
     def test_quiet_hours_respects_timezone(self):
         service = self._build_service(quiet_hours_enabled=True)
         settings = service.settings_service.get_runtime_settings()["proactive"]

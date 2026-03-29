@@ -34,7 +34,7 @@ fi
 ./venv/bin/pip install -r requirements.txt
 
 echo "==> Verifying Python files"
-./venv/bin/python -m compileall -q main.py admin_dashboard.py core handlers services tests
+./venv/bin/python -m compileall -q main.py admin_dashboard.py core handlers services scripts tests
 
 echo "==> Validating JSON config files"
 ./venv/bin/python - <<'PY'
@@ -50,8 +50,8 @@ print("Validated:", ", ".join(validated))
 PY
 
 if [ "${RUN_TESTS:-1}" = "1" ]; then
-  echo "==> Running test suite"
-  ./venv/bin/python -m pytest -q
+  echo "==> Running automated prelaunch checks"
+  ./venv/bin/python scripts/prelaunch_check.py --strict-env
 else
   echo "==> RUN_TESTS=0, skipping tests"
 fi

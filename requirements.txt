@@ -6,3 +6,4 @@ redis==6.4.0
 fastapi==0.116.1
 uvicorn==0.35.0
 tzdata==2025.2
+pytest==9.0.2
