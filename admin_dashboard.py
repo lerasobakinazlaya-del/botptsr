@@ -961,11 +961,11 @@ def _dashboard_html() -> str:
           <div class="panel"><h3>Поддержка</h3><div id="support-summary"></div></div>
         </div>
         <div class="cols">
-          <div class="panel"><h3>Monetization funnel</h3><div id="monetization-summary"></div></div>
+          <div class="panel"><h3>Воронка монетизации</h3><div id="monetization-summary"></div></div>
           <div class="panel"><h3>Последние события монетизации</h3><div id="recent-monetization"></div></div>
         </div>
         <div class="cols">
-          <div class="panel"><h3>По триггеру paywall</h3><div id="monetization-by-trigger"></div></div>
+          <div class="panel"><h3>По триггеру оффера</h3><div id="monetization-by-trigger"></div></div>
           <div class="panel"><h3>По A/B варианту</h3><div id="monetization-by-variant"></div></div>
         </div>
       </section>

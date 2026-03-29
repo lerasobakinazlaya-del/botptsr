@@ -34,17 +34,17 @@ class FakePaymentServiceForOffer:
             "currency": "RUB",
             "price_minor_units": 49900,
             "access_duration_days": 30,
-            "premium_benefits_text": "Premium benefits",
-            "buy_cta_text": "Buy premium",
-            "offer_cta_text_a": "Open Premium for 30 days",
-            "offer_cta_text_b": "Remove limits and unlock all modes",
-            "offer_benefits_text_a": "120 messages per day and all modes.",
-            "offer_benefits_text_b": "Premium unlocks paid modes and a higher daily limit.",
-            "offer_price_line_template": "Now: {price_label} for {access_days} days.",
-            "offer_limit_reached_template": "Free quota is over. Premium gives {premium_limit} messages per day for {access_days} days.",
-            "offer_locked_mode_template": "{mode_name} is available in Premium. Unlock all paid modes and up to {premium_limit} messages per day for {access_days} days.",
-            "unavailable_message": "Payments unavailable",
-            "invoice_error_message": "Invoice failed",
+            "premium_benefits_text": "Преимущества Premium",
+            "buy_cta_text": "Купить Premium",
+            "offer_cta_text_a": "Открыть Premium на 30 дней",
+            "offer_cta_text_b": "Снять лимиты и открыть все режимы",
+            "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
+            "offer_benefits_text_b": "Premium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
+            "offer_price_line_template": "Сейчас: {price_label} за {access_days} дней.",
+            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium даст {premium_limit} сообщений в день и доступ ко всем режимам на {access_days} дней.",
+            "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Открой все закрытые режимы и лимит до {premium_limit} сообщений в день на {access_days} дней.",
+            "unavailable_message": "Оплата сейчас недоступна",
+            "invoice_error_message": "Не удалось создать счёт",
         }
 
     def is_enabled(self) -> bool:
@@ -55,7 +55,7 @@ class FakePaymentServiceForOffer:
 
     def build_subscription_status_text(self, user):
         if user and user.get("is_premium"):
-            return "Premium active until 01.04.2026"
+            return "Premium активен до 01.04.2026"
         return ""
 
     async def track_offer_shown(self, **kwargs):
@@ -117,14 +117,14 @@ class FakeSettingsService:
                 "price_minor_units": 49900,
                 "access_duration_days": 30,
                 "recurring_stars_enabled": True,
-                "product_title": "Premium access",
-                "product_description": "Unlock premium chat modes.",
-                "premium_benefits_text": "Premium benefits",
-                "buy_cta_text": "Buy premium",
-                "recurring_button_text": "Open payment",
-                "already_premium_message": "Premium active.",
-                "unavailable_message": "Payments unavailable",
-                "invoice_error_message": "Invoice failed",
+                "product_title": "Подписка Premium",
+                "product_description": "Открой премиум-режимы.",
+                "premium_benefits_text": "Преимущества Premium",
+                "buy_cta_text": "Купить Premium",
+                "recurring_button_text": "Открыть оплату",
+                "already_premium_message": "Premium уже активен.",
+                "unavailable_message": "Оплата сейчас недоступна",
+                "invoice_error_message": "Не удалось создать счёт",
                 "success_message": "Payment success",
                 "renewal_reminder_days": [7, 3, 1],
                 "expiry_reminder_template": "Expires in {days} days",
@@ -176,7 +176,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.invoice_events[0]["variant"], "b")
         self.assertEqual(
             message.answers[0]["text"],
-            "Premium active until 01.04.2026\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+            "Premium активен до 01.04.2026\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
         )
 
     async def test_send_premium_offer_sends_intro_and_invoice(self):
@@ -192,7 +192,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.invoice_events[0]["trigger"], "default")
         self.assertEqual(
             message.answers[0]["text"],
-            "Remove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+            "Снять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
         )
 
     async def test_send_premium_offer_uses_alternate_ab_variant_for_even_user(self):
@@ -206,7 +206,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.offer_events[0]["variant"], "a")
         self.assertEqual(
             message.answers[0]["text"],
-            "Open Premium for 30 days\n\nNow: 499.00 RUB for 30 days.\n\n120 messages per day and all modes.",
+            "Открыть Premium на 30 дней\n\nСейчас: 499.00 RUB за 30 дней.\n\n120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
         )
 
     async def test_send_premium_offer_uses_limit_reached_pitch(self):
@@ -226,7 +226,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_LIMIT_REACHED)
         self.assertEqual(
             message.answers[0]["text"],
-            "Free quota is over. Premium gives 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+            "Бесплатный лимит на сегодня закончился. Premium даст 120 сообщений в день и доступ ко всем режимам на 30 дней.\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
         )
 
     async def test_send_premium_offer_uses_mode_locked_pitch(self):
@@ -247,7 +247,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
         self.assertEqual(
             message.answers[0]["text"],
-            "Mentor is available in Premium. Unlock all paid modes and up to 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
+            "Режим Mentor доступен только в Premium. Открой все закрытые режимы и лимит до 120 сообщений в день на 30 дней.\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
         )
 
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
@@ -260,8 +260,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
                 payment_provider_token="",
                 payment_currency="RUB",
                 premium_price_minor_units=49900,
-                premium_product_title="Premium access",
-                premium_product_description="Unlock premium chat modes.",
+                premium_product_title="Подписка Premium",
+                premium_product_description="Открой премиум-режимы.",
             ),
             payment_repository=payment_repository,
             user_service=user_service,
@@ -329,8 +329,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
                 payment_provider_token="",
                 payment_currency="XTR",
                 premium_price_minor_units=349,
-                premium_product_title="Premium access",
-                premium_product_description="Unlock premium chat modes.",
+                premium_product_title="Подписка Premium",
+                premium_product_description="Открой премиум-режимы.",
             ),
             payment_repository=payment_repository,
             user_service=user_service,
@@ -377,8 +377,8 @@ class PaymentFormattingTests(unittest.TestCase):
                 payment_provider_token="",
                 payment_currency="RUB",
                 premium_price_minor_units=49900,
-                premium_product_title="Premium access",
-                premium_product_description="Unlock premium chat modes.",
+                premium_product_title="Подписка Premium",
+                premium_product_description="Открой премиум-режимы.",
             ),
             payment_repository=FakePaymentRepository(),
             user_service=FakeUserService(),

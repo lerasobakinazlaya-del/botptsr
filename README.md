@@ -138,8 +138,8 @@ ADMIN_DASHBOARD_CACHE_TTL=15
 PAYMENT_PROVIDER_TOKEN=your_telegram_payment_provider_token
 PAYMENT_CURRENCY=RUB
 PREMIUM_PRICE_MINOR_UNITS=49900
-PREMIUM_PRODUCT_TITLE=Premium access
-PREMIUM_PRODUCT_DESCRIPTION=Unlock premium chat modes and paid features.
+PREMIUM_PRODUCT_TITLE=Подписка Premium
+PREMIUM_PRODUCT_DESCRIPTION=Открой премиум-режимы и платные функции.
 ```
 
 Замечания по переменным админки:
@@ -350,21 +350,21 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 - оба сервиса в состоянии `active (running)`
 - `http://127.0.0.1:8080/api/health` отдает `200`, показывает актуальный `release.json` и `redis.mode=connected`
 - в `Health` админки видны актуальные метрики `AI queue`, `OpenAI pool` и `Chat sessions`
-## Monetization model
+## Модель монетизации
 
-- Free users get a daily quota with warning messages before exhaustion.
-- Premium access is sold for a fixed duration instead of lifetime access.
-- The default plan grants `30 days` of premium access.
-- Premium also has a daily quota, which keeps usage economically predictable.
-- Paid modes support a limited free preview to improve upgrade conversion.
-- Users receive renewal reminders before premium expires.
-- Telegram Stars (`XTR`) can use recurring billing for the 30-day plan.
-- Referral rewards are granted in premium days, not lifetime premium.
+- Бесплатные пользователи получают дневной лимит и предупреждения до его исчерпания.
+- Premium продаётся на фиксированный срок, а не как пожизненный доступ.
+- По умолчанию подписка выдаётся на `30 дней`.
+- У Premium тоже есть дневной лимит, чтобы нагрузка оставалась экономически предсказуемой.
+- Платные режимы поддерживают ограниченный бесплатный preview для роста конверсии в оплату.
+- Перед окончанием Premium пользователь получает напоминания о продлении.
+- Для Telegram Stars (`XTR`) можно использовать рекуррентную оплату для плана на 30 дней.
+- Реферальные награды выдаются в premium-днях, а не в виде пожизненного Premium.
 
-Current defaults in this repo:
+Текущие значения по умолчанию в репозитории:
 
-- Free quota: `12` messages/day
-- Free warnings: `5`, `3`, `1`, `0`
-- Premium quota: `120` messages/day
-- Renewal reminders: `7`, `3`, `1` day before expiration
-- Referral reward: `7 premium days`
+- Бесплатный лимит: `12` сообщений в день
+- Предупреждения по бесплатному лимиту: `5`, `3`, `1`, `0`
+- Лимит Premium: `120` сообщений в день
+- Напоминания о продлении: за `7`, `3`, `1` день до окончания
+- Реферальная награда: `7 premium-дней`

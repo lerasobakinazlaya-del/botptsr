@@ -114,9 +114,9 @@ def get_settings() -> Settings:
             os.getenv("PREMIUM_PRICE_MINOR_UNITS"),
             default=49900,
         ),
-        premium_product_title=os.getenv("PREMIUM_PRODUCT_TITLE", "Premium access"),
+        premium_product_title=os.getenv("PREMIUM_PRODUCT_TITLE", "Подписка Premium"),
         premium_product_description=os.getenv(
             "PREMIUM_PRODUCT_DESCRIPTION",
-            "Unlock premium chat modes and paid features.",
+            "Открой премиум-режимы и платные функции.",
         ),
     )

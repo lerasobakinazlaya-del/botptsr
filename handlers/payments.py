@@ -64,7 +64,7 @@ def _build_offer_intro(
         trigger_line = str(payment_settings.get("offer_locked_mode_template") or "").strip()
         if trigger_line:
             trigger_line = trigger_line.format(
-                mode_name=mode_name or "Premium",
+                mode_name=mode_name or "премиум",
                 access_days=access_days,
                 premium_limit=premium_limit or 0,
                 price_label=price_label,
