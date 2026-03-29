@@ -1,5 +1,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
+from types import SimpleNamespace
+from uuid import uuid4
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, Message
 
@@ -102,6 +104,10 @@ class PaymentService:
         )
         return packages
 
+    def uses_virtual_payments(self, payment_settings: dict | None = None) -> bool:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        return str(payment.get("mode") or "telegram").strip().lower() == "virtual"
+
     def get_default_package_key(self, payment_settings: dict | None = None) -> str:
         payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
         default_key = str(payment.get("default_package_key") or "").strip().lower()
@@ -133,6 +139,8 @@ class PaymentService:
         payment = self.get_payment_settings()
         if not self.get_enabled_packages(payment):
             return False
+        if self.uses_virtual_payments(payment):
+            return True
         if payment["currency"].upper() == "XTR":
             return any(int(package.get("price_minor_units", 0)) > 0 for package in self.get_enabled_packages(payment))
         return bool(str(payment.get("provider_token") or "").strip())
@@ -269,6 +277,112 @@ class PaymentService:
             prices=prices,
         )
         return True
+
+    def build_virtual_checkout_text(self, package_key: str | None = None) -> str:
+        payment = self.get_payment_settings()
+        package = self.get_package(package_key, payment)
+        if package is None:
+            return str(payment.get("invoice_error_message") or "").strip()
+
+        access_days = int(package.get("access_duration_days", 30))
+        access_days_label = format_access_days_label(access_days)
+        price_label = format_package_price_label(package, payment)
+        template = str(
+            payment.get("virtual_payment_description_template")
+            or ""
+        ).strip()
+        if template:
+            try:
+                return template.format(
+                    package_key=package["key"],
+                    package_title=package["title"],
+                    price_label=price_label,
+                    access_days=access_days,
+                    access_days_label=access_days_label,
+                    description=package.get("description", ""),
+                ).strip()
+            except (KeyError, ValueError):
+                pass
+
+        return (
+            f"Тестовая оплата\n\n"
+            f"Тариф: {package['title']}\n"
+            f"Цена: {price_label}\n"
+            f"Срок: {access_days_label}\n\n"
+            f"Нажми кнопку ниже, чтобы выдать Premium без реального списания."
+        )
+
+    async def process_virtual_payment(
+        self,
+        *,
+        user_id: int,
+        package_key: str | None = None,
+    ) -> dict:
+        payment = self.get_payment_settings()
+        package = self.get_package(package_key, payment)
+        if package is None:
+            raise ValueError("Unknown premium package")
+
+        external_payment_id = f"virtual-{user_id}-{package['key']}-{uuid4().hex[:12]}"
+        amount_minor_units = int(package.get("price_minor_units", 0))
+        amount = self._to_major_units(amount_minor_units, payment["currency"])
+        premium_expires_at = await self.user_service.grant_premium_days(
+            user_id,
+            int(package.get("access_duration_days", 30)),
+        )
+        payment_info = await self.payment_repository.save_payment(
+            user_id=user_id,
+            provider="virtual",
+            external_payment_id=external_payment_id,
+            amount=amount,
+            currency=payment["currency"],
+            status="paid",
+            paid_at=None,
+            metadata={
+                "invoice_payload": self.build_invoice_payload(user_id, package["key"]),
+                "provider_payment_charge_id": None,
+                "total_amount_minor_units": amount_minor_units,
+                "subscription_expiration_date": None,
+                "is_recurring": False,
+                "is_first_recurring": False,
+                "premium_expires_at": premium_expires_at,
+                "package_key": package["key"],
+                "package_title": package["title"],
+                "access_duration_days": int(package.get("access_duration_days", 30)),
+                "package_price_minor_units": amount_minor_units,
+                "virtual_payment": True,
+            },
+        )
+
+        referral_result = await self.referral_service.process_successful_payment(
+            referred_user_id=user_id,
+            amount_minor_units=amount_minor_units,
+            external_payment_id=external_payment_id,
+            is_first_payment=bool(payment_info["is_first_payment"]),
+        )
+        synthetic_payment = SimpleNamespace(
+            telegram_payment_charge_id=external_payment_id,
+            currency=payment["currency"],
+            total_amount=amount_minor_units,
+            is_recurring=False,
+            is_first_recurring=False,
+        )
+        await self._track_successful_payment_event(
+            user_id=user_id,
+            payment=synthetic_payment,
+            payment_info=payment_info,
+            package=package,
+        )
+        return {
+            "payment": payment_info,
+            "referral": referral_result,
+            "premium_expires_at": premium_expires_at,
+            "is_recurring": False,
+            "is_first_recurring": False,
+            "package_key": package["key"],
+            "package_title": package["title"],
+            "virtual_payment": True,
+        }
 
     async def track_offer_shown(
         self,
@@ -443,6 +557,9 @@ class PaymentService:
     def _normalize_payment_settings(self, payment_settings: dict) -> dict:
         payment = deepcopy(payment_settings)
         payment["provider_token"] = str(payment.get("provider_token") or "").strip()
+        payment["mode"] = str(payment.get("mode") or "telegram").strip().lower() or "telegram"
+        if payment["mode"] not in {"telegram", "virtual"}:
+            payment["mode"] = "telegram"
         payment["currency"] = str(payment.get("currency") or "RUB").strip().upper() or "RUB"
         payment["product_title"] = str(payment.get("product_title") or "Premium").strip() or "Premium"
         payment["product_description"] = str(payment.get("product_description") or "").strip()

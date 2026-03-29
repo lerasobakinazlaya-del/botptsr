@@ -233,6 +233,7 @@
     "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен."
   },
   "payment": {
+    "mode": "virtual",
     "provider_token": "",
     "currency": "RUB",
     "default_package_key": "month",
@@ -288,6 +289,9 @@
     "premium_menu_package_button_template": "{title} • {price_label}",
     "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
     "premium_menu_back_button_text": "← К режимам",
+    "virtual_payment_description_template": "Тестовая оплата\n\nТариф: {package_title}\nЦена: {price_label}\nСрок: {access_days_label}\n\nНажми кнопку ниже, чтобы выдать Premium без реального списания.",
+    "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
+    "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
     "product_title": "Подписка Premium",
     "product_description": "Открой премиум-режимы и платные функции.",
     "recurring_button_text": "Открыть оплату",

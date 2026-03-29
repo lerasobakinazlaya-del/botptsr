@@ -267,6 +267,7 @@ class AdminSettingsService:
             "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен.",
         },
         "payment": {
+            "mode": "virtual",
             "offer_cta_text_a": "Открыть Premium на 30 дней",
             "offer_cta_text_b": "Снять лимиты и открыть все режимы",
             "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
@@ -289,6 +290,9 @@ class AdminSettingsService:
             "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
             "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
             "premium_menu_back_button_text": "← К режимам",
+            "virtual_payment_description_template": "Тестовая оплата\n\nТариф: {package_title}\nЦена: {price_label}\nСрок: {access_days_label}\n\nНажми кнопку ниже, чтобы выдать Premium без реального списания.",
+            "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
+            "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
             "product_title": "Подписка Premium",
             "product_description": "Открой премиум-режимы и платные функции.",
             "recurring_button_text": "РћС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ",
@@ -788,6 +792,9 @@ class AdminSettingsService:
 
         payment = current["payment"]
         payment["provider_token"] = str(payment["provider_token"]).strip()
+        payment["mode"] = str(payment.get("mode") or "telegram").strip().lower() or "telegram"
+        if payment["mode"] not in {"telegram", "virtual"}:
+            payment["mode"] = "telegram"
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
         payment["default_package_key"] = str(payment.get("default_package_key") or "month").strip().lower() or "month"
@@ -819,6 +826,9 @@ class AdminSettingsService:
             "premium_menu_preview_template",
             "premium_menu_buy_button_template",
             "premium_menu_back_button_text",
+            "virtual_payment_description_template",
+            "virtual_payment_button_template",
+            "virtual_payment_completed_message",
             "recurring_button_text",
             "already_premium_message",
             "unavailable_message",

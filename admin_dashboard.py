@@ -1296,6 +1296,12 @@ def _dashboard_html() -> str:
         <div class="panel">
             <div class="two">
               <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
+              <label>Режим оплаты
+                <select id="payment_mode">
+                  <option value="virtual">Виртуальная</option>
+                  <option value="telegram">Telegram</option>
+                </select>
+              </label>
               <label>Валюта<input id="payment_currency"></label>
               <label>Пакет по умолчанию
                 <select id="payment_default_package_key">
@@ -1318,6 +1324,9 @@ def _dashboard_html() -> str:
           <label>Шаблон кнопки тарифа<input id="payment_premium_menu_package_button_template"></label>
           <label>Текст preview в premium-меню<textarea id="payment_premium_menu_preview_template"></textarea></label>
           <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
+          <label>Текст виртуальной оплаты<textarea id="payment_virtual_payment_description_template"></textarea></label>
+          <label>Кнопка виртуальной оплаты<input id="payment_virtual_payment_button_template"></label>
+          <label>Текст после подтверждения<input id="payment_virtual_payment_completed_message"></label>
           <label>Текст кнопки подписки<input id="payment_recurring_button_text"></label>
           <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
           <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
@@ -1675,6 +1684,7 @@ def _dashboard_html() -> str:
       if(!state.settings||!state.settings.runtime)return
       const p=state.settings.runtime.payment,ref=state.settings.runtime.referral
       setValue('#payment_provider_token',p.provider_token)
+      setValue('#payment_mode',p.mode||'telegram')
       setValue('#payment_currency',p.currency)
       setValue('#payment_default_package_key',p.default_package_key||'month')
       setChecked('#payment_recurring_stars_enabled',!!p.recurring_stars_enabled)
@@ -1689,6 +1699,9 @@ def _dashboard_html() -> str:
       setValue('#payment_premium_menu_package_button_template',p.premium_menu_package_button_template||'')
       setValue('#payment_premium_menu_preview_template',p.premium_menu_preview_template||'')
       setValue('#payment_premium_menu_back_button_text',p.premium_menu_back_button_text||'')
+      setValue('#payment_virtual_payment_description_template',p.virtual_payment_description_template||'')
+      setValue('#payment_virtual_payment_button_template',p.virtual_payment_button_template||'')
+      setValue('#payment_virtual_payment_completed_message',p.virtual_payment_completed_message||'')
       setValue('#payment_recurring_button_text',p.recurring_button_text||'')
       setValue('#payment_unavailable_message',p.unavailable_message)
       setValue('#payment_invoice_error_message',p.invoice_error_message)
@@ -1736,6 +1749,7 @@ def _dashboard_html() -> str:
       return {
         payment:{
           provider_token:$('#payment_provider_token').value,
+          mode:$('#payment_mode').value,
           currency:$('#payment_currency').value,
           default_package_key:$('#payment_default_package_key').value,
           recurring_stars_enabled:$('#payment_recurring_stars_enabled').checked,
@@ -1750,6 +1764,9 @@ def _dashboard_html() -> str:
           premium_menu_package_button_template:$('#payment_premium_menu_package_button_template').value,
           premium_menu_preview_template:$('#payment_premium_menu_preview_template').value,
           premium_menu_back_button_text:$('#payment_premium_menu_back_button_text').value,
+          virtual_payment_description_template:$('#payment_virtual_payment_description_template').value,
+          virtual_payment_button_template:$('#payment_virtual_payment_button_template').value,
+          virtual_payment_completed_message:$('#payment_virtual_payment_completed_message').value,
           recurring_button_text:$('#payment_recurring_button_text').value,
           unavailable_message:$('#payment_unavailable_message').value,
           invoice_error_message:$('#payment_invoice_error_message').value,

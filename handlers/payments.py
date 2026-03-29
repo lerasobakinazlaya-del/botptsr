@@ -12,6 +12,7 @@ router = Router(name="payments-router")
 logger = logging.getLogger(__name__)
 CALLBACK_OPEN_PREMIUM_MENU = "open_premium_menu"
 CALLBACK_BUY_PREMIUM = "buy_premium"
+CALLBACK_CONFIRM_VIRTUAL_PAYMENT = "confirm_virtual_payment"
 CALLBACK_PREMIUM_BACK_TO_MODES = "premium_back_to_modes"
 OFFER_TRIGGER_DEFAULT = "default"
 OFFER_TRIGGER_LIMIT_REACHED = "limit_reached"
@@ -100,6 +101,23 @@ def _build_buy_premium_callback_data(package_key: str, trigger: str) -> str:
     return f"{CALLBACK_BUY_PREMIUM}:{safe_package_key}:{normalized_trigger}"
 
 
+def _build_confirm_virtual_payment_callback_data(package_key: str) -> str:
+    safe_package_key = str(package_key or "month").strip().lower() or "month"
+    return f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:{safe_package_key}"
+
+
+def _parse_confirm_virtual_payment_callback_data(data: str | None, payment_service) -> str:
+    raw = str(data or "").strip()
+    prefix = f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:"
+    if not raw.startswith(prefix):
+        return payment_service.get_default_package_key()
+
+    package_key = str(raw[len(prefix):]).strip().lower() or payment_service.get_default_package_key()
+    if payment_service.get_package(package_key) is None:
+        return payment_service.get_default_package_key()
+    return package_key
+
+
 def _parse_buy_premium_callback_data(data: str | None, payment_service) -> dict[str, str]:
     raw = str(data or "").strip()
     default_package_key = payment_service.get_default_package_key()
@@ -166,6 +184,37 @@ def _build_premium_menu_keyboard(payment_service, payment_settings: dict, *, tri
     back_text = str(payment_settings.get("premium_menu_back_button_text") or "← К режимам").strip() or "← К режимам"
     buttons.append([InlineKeyboardButton(text=back_text, callback_data=CALLBACK_PREMIUM_BACK_TO_MODES)])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def _build_virtual_payment_keyboard(payment_settings: dict, package: dict) -> InlineKeyboardMarkup:
+    price_label = format_package_price_label(package, payment_settings)
+    access_days = int(package.get("access_duration_days", 30))
+    access_days_label = format_access_days_label(access_days)
+    template = str(payment_settings.get("virtual_payment_button_template") or "").strip()
+    try:
+        confirm_text = template.format(
+            package_key=package["key"],
+            package_title=package["title"],
+            price_label=price_label,
+            access_days=access_days,
+            access_days_label=access_days_label,
+            description=package.get("description", ""),
+        ).strip()
+    except (KeyError, ValueError):
+        confirm_text = ""
+    confirm_text = confirm_text or f"Подтвердить тестовую оплату • {price_label}"
+    back_text = str(payment_settings.get("premium_menu_back_button_text") or "← К режимам").strip() or "← К режимам"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=confirm_text,
+                    callback_data=_build_confirm_virtual_payment_callback_data(package["key"]),
+                )
+            ],
+            [InlineKeyboardButton(text=back_text, callback_data=CALLBACK_OPEN_PREMIUM_MENU)],
+        ]
+    )
 
 
 def _sorted_modes(mode_catalog: dict | None) -> list[tuple[str, dict]]:
@@ -389,6 +438,25 @@ async def send_premium_offer(
         await message.answer(payment_settings["unavailable_message"])
         return False
 
+    if payment_service.uses_virtual_payments(payment_settings):
+        await message.answer(
+            payment_service.build_virtual_checkout_text(package["key"]),
+            reply_markup=_build_virtual_payment_keyboard(payment_settings, package),
+        )
+        await payment_service.track_invoice_opened(
+            user_id=message.from_user.id,
+            trigger=trigger,
+            variant=payment_service.get_offer_variant(message.from_user.id),
+            metadata={
+                "mode_name": mode_name,
+                "premium_limit": premium_limit,
+                "package_key": package["key"],
+                "package_title": package["title"],
+                "payment_mode": "virtual",
+            },
+        )
+        return True
+
     sent = await payment_service.send_premium_invoice(message, package["key"])
     if not sent:
         await message.answer(payment_settings["invoice_error_message"])
@@ -403,6 +471,7 @@ async def send_premium_offer(
             "premium_limit": premium_limit,
             "package_key": package["key"],
             "package_title": package["title"],
+            "payment_mode": "telegram",
         },
     )
     return True
@@ -447,6 +516,35 @@ async def buy_premium_callback(callback: CallbackQuery, payment_service, user_se
         trigger=parsed["trigger"],
         package_key=parsed["package_key"],
     )
+
+
+@router.callback_query(F.data.startswith(CALLBACK_CONFIRM_VIRTUAL_PAYMENT))
+async def confirm_virtual_payment_callback(callback: CallbackQuery, payment_service, user_service):
+    await user_service.ensure_user(callback.from_user)
+    await callback.answer()
+
+    package_key = _parse_confirm_virtual_payment_callback_data(callback.data, payment_service)
+    try:
+        result = await payment_service.process_virtual_payment(
+            user_id=callback.from_user.id,
+            package_key=package_key,
+        )
+    except ValueError:
+        logger.warning("Rejected virtual payment with invalid package for user %s", callback.from_user.id)
+        return
+
+    if callback.message is not None and hasattr(callback.message, "edit_text"):
+        completed_text = str(
+            payment_service.get_payment_settings().get("virtual_payment_completed_message")
+            or "Тестовая оплата подтверждена."
+        ).strip()
+        try:
+            await callback.message.edit_text(completed_text)
+        except TelegramBadRequest:
+            pass
+
+    if callback.message is not None and hasattr(callback.message, "answer"):
+        await callback.message.answer(payment_service.build_success_message(result))
 
 
 @router.pre_checkout_query()

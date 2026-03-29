@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from handlers.modes import build_modes_menu_text
 from handlers.payments import (
     CALLBACK_BUY_PREMIUM,
+    CALLBACK_CONFIRM_VIRTUAL_PAYMENT,
     CALLBACK_OPEN_PREMIUM_MENU,
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
@@ -80,16 +81,19 @@ class FakeMessage:
 
 
 class FakePaymentServiceForOffer:
-    def __init__(self, *, enabled: bool = True, invoice_result: bool = True):
+    def __init__(self, *, enabled: bool = True, invoice_result: bool = True, virtual_mode: bool = False):
         self.enabled = enabled
         self.invoice_result = invoice_result
+        self.virtual_mode = virtual_mode
         self.invoice_calls = 0
         self.invoice_package_keys = []
         self.offer_events = []
         self.invoice_events = []
+        self.virtual_payment_calls = []
 
     def get_payment_settings(self):
         return {
+            "mode": "virtual" if self.virtual_mode else "telegram",
             "currency": "RUB",
             "default_package_key": "month",
             "price_minor_units": 49900,
@@ -111,6 +115,9 @@ class FakePaymentServiceForOffer:
             "premium_menu_package_button_template": "{title} • {price_label}",
             "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
             "premium_menu_back_button_text": "← К режимам",
+            "virtual_payment_description_template": "Тестовая оплата\n\nТариф: {package_title}\nЦена: {price_label}\nСрок: {access_days_label}\n\nПодтверди тестовую покупку.",
+            "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
+            "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
             "unavailable_message": "Оплата сейчас недоступна",
             "invoice_error_message": "Не удалось создать счет",
             "product_description": "Открой Premium.",
@@ -126,6 +133,9 @@ class FakePaymentServiceForOffer:
         if user and user.get("is_premium"):
             return "Premium активен до 01.04.2026"
         return ""
+
+    def uses_virtual_payments(self, payment_settings=None):
+        return self.virtual_mode
 
     def get_enabled_packages(self, payment_settings=None):
         payment = payment_settings or self.get_payment_settings()
@@ -159,6 +169,24 @@ class FakePaymentServiceForOffer:
         self.invoice_calls += 1
         self.invoice_package_keys.append(package_key or self.get_default_package_key())
         return self.invoice_result
+
+    def build_virtual_checkout_text(self, package_key=None):
+        package = self.get_package(package_key)
+        return f"Тестовая оплата\n\nТариф: {package['title']}"
+
+    async def process_virtual_payment(self, *, user_id: int, package_key: str | None = None):
+        package = self.get_package(package_key)
+        self.virtual_payment_calls.append((user_id, package["key"]))
+        return {
+            "package_title": package["title"],
+            "package_key": package["key"],
+            "premium_expires_at": "2026-04-28 12:00:00",
+            "is_recurring": False,
+            "referral": None,
+        }
+
+    def build_success_message(self, result):
+        return f"Успешно: {result['package_title']}"
 
 
 class FakeUserServiceForOffer:
@@ -421,6 +449,28 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result)
         self.assertEqual(message.answers[0]["text"], "Не удалось создать счет")
 
+    async def test_send_premium_offer_opens_virtual_checkout_when_virtual_mode_enabled(self):
+        message = FakeMessage()
+        payment_service = FakePaymentServiceForOffer(virtual_mode=True)
+
+        result = await send_premium_offer(
+            message,
+            payment_service,
+            trigger=OFFER_TRIGGER_LIMIT_REACHED,
+            package_key="week",
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(payment_service.invoice_calls, 0)
+        self.assertEqual(len(message.answers), 1)
+        self.assertIn("Тестовая оплата", message.answers[0]["text"])
+        keyboard = message.answers[0]["reply_markup"]
+        self.assertEqual(
+            keyboard.inline_keyboard[0][0].callback_data,
+            f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:week",
+        )
+        self.assertEqual(payment_service.invoice_events[0]["metadata"]["payment_mode"], "virtual")
+
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
         payment_repository = FakePaymentRepository()
         user_service = FakeUserService()
@@ -524,6 +574,35 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["package_key"], "month")
         self.assertEqual(monetization_repository.events[-1]["event_name"], "renewed")
         self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
+
+    async def test_process_virtual_payment_grants_days_and_saves_virtual_record(self):
+        payment_repository = FakePaymentRepository()
+        user_service = FakeUserService()
+        referral_service = FakeReferralService()
+        monetization_repository = FakeMonetizationRepository()
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Подписка Premium",
+                premium_product_description="Открой премиум-режимы.",
+            ),
+            payment_repository=payment_repository,
+            user_service=user_service,
+            settings_service=FakeSettingsService(),
+            referral_service=referral_service,
+            monetization_repository=monetization_repository,
+        )
+
+        result = await service.process_virtual_payment(user_id=42, package_key="day")
+
+        self.assertEqual(user_service.grants, [(42, 1)])
+        self.assertEqual(payment_repository.saved["provider"], "virtual")
+        self.assertEqual(payment_repository.saved["currency"], "RUB")
+        self.assertEqual(payment_repository.saved["metadata"]["virtual_payment"], True)
+        self.assertEqual(result["package_key"], "day")
+        self.assertEqual(monetization_repository.events[-1]["event_name"], "paid")
 
 
 class PaymentFormattingTests(unittest.TestCase):
