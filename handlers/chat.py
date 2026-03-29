@@ -7,7 +7,6 @@ from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
-from config.modes import get_mode
 from handlers.modes import show_modes_menu
 from handlers.payments import (
     OFFER_TRIGGER_LIMIT_REACHED,
@@ -391,10 +390,11 @@ async def chat_handler(
         )
 
         if not selection_status["allowed"]:
-            mode = get_mode(active_mode)
+            mode_meta = mode_catalog.get(active_mode, {})
+            mode_name = str(mode_meta.get("name") or active_mode)
             await message.answer(
                 limits_settings["mode_preview_exhausted_message"].format(
-                    mode_name=mode.name,
+                    mode_name=mode_name,
                     daily_limit=selection_status["daily_limit"],
                 )
             )
@@ -403,7 +403,7 @@ async def chat_handler(
                 payment_service,
                 user_service,
                 trigger=OFFER_TRIGGER_MODE_LOCKED,
-                mode_name=mode.name,
+                mode_name=mode_name,
                 premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
             )
             return

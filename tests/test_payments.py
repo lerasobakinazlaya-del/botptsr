@@ -415,3 +415,42 @@ class ModesKeyboardTests(unittest.TestCase):
 
         callback_data = [button.callback_data for row in keyboard.inline_keyboard for button in row]
         self.assertNotIn(CALLBACK_BUY_PREMIUM, callback_data)
+
+    def test_modes_keyboard_marks_all_premium_modes_explicitly(self):
+        keyboard = get_modes_keyboard(
+            {"is_premium": False},
+            {
+                "ui": {"premium_button_text": "Premium"},
+                "limits": {
+                    "mode_preview_enabled": True,
+                    "mode_daily_limits": {"passion": 2},
+                },
+            },
+            {
+                "base": {
+                    "key": "base",
+                    "name": "Базовый",
+                    "icon": "💬",
+                    "is_premium": False,
+                    "sort_order": 10,
+                },
+                "passion": {
+                    "key": "passion",
+                    "name": "Близость",
+                    "icon": "🔥",
+                    "is_premium": True,
+                    "sort_order": 20,
+                },
+                "mentor": {
+                    "key": "mentor",
+                    "name": "Наставник",
+                    "icon": "🧠",
+                    "is_premium": True,
+                    "sort_order": 30,
+                },
+            },
+        )
+
+        texts = [button.text for row in keyboard.inline_keyboard for button in row]
+        self.assertIn("🔥 Близость • Премиум (2/день)", texts)
+        self.assertIn("🧠 Наставник • Премиум", texts)
