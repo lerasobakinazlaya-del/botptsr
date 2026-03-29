@@ -192,6 +192,7 @@ class AdminSettingsService:
             "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
             "admins_bypass_daily_limits": True,
             "mode_preview_enabled": True,
+            "mode_preview_default_limit": 2,
             "mode_daily_limits": {
                 "passion": 2,
                 "mentor": 2,
@@ -236,6 +237,10 @@ class AdminSettingsService:
             "price_minor_units": 49900,
             "access_duration_days": 30,
             "recurring_stars_enabled": True,
+            "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
+            "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
+            "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
+            "premium_menu_back_button_text": "← К режимам",
             "product_title": "Подписка Premium",
             "product_description": "Открой премиум-режимы и платные функции.",
             "recurring_button_text": "РћС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ",
@@ -710,6 +715,7 @@ class AdminSettingsService:
         )
         limits["admins_bypass_daily_limits"] = bool(limits.get("admins_bypass_daily_limits", True))
         limits["mode_preview_enabled"] = bool(limits.get("mode_preview_enabled"))
+        limits["mode_preview_default_limit"] = max(0, int(limits.get("mode_preview_default_limit", 2)))
         limits["mode_daily_limits"] = self._normalize_int_map(limits.get("mode_daily_limits"), minimum=0)
         limits["mode_preview_exhausted_message"] = self._normalize_text(
             limits.get("mode_preview_exhausted_message", ""),
@@ -758,6 +764,10 @@ class AdminSettingsService:
             "offer_price_line_template",
             "offer_limit_reached_template",
             "offer_locked_mode_template",
+            "premium_menu_description_template",
+            "premium_menu_preview_template",
+            "premium_menu_buy_button_template",
+            "premium_menu_back_button_text",
             "recurring_button_text",
             "already_premium_message",
             "unavailable_message",

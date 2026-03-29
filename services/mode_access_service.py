@@ -95,10 +95,11 @@ class ModeAccessService:
             return 0
 
         configured = limits.get("mode_daily_limits", {})
+        default_limit = max(0, int(limits.get("mode_preview_default_limit", 0) or 0))
         try:
-            return max(0, int(configured.get(mode_key, 0)))
+            return max(0, int(configured.get(mode_key, default_limit)))
         except (TypeError, ValueError):
-            return 0
+            return default_limit
 
     def _get_today_usage(self, state: dict[str, Any], mode_key: str) -> int:
         usage = self._normalized_usage_map((state or {}).get(self.USAGE_STATE_KEY))

@@ -200,6 +200,7 @@
     "premium_daily_limit_message": "Ты исчерпал дневной лимит Premium-сообщений. Возвращайся завтра или обнови лимит в настройках.",
     "admins_bypass_daily_limits": true,
     "mode_preview_enabled": true,
+    "mode_preview_default_limit": 2,
     "mode_daily_limits": {
       "passion": 2,
       "mentor": 2,
@@ -237,6 +238,10 @@
     "price_minor_units": 49900,
     "access_duration_days": 30,
     "recurring_stars_enabled": true,
+    "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
+    "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
+    "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
+    "premium_menu_back_button_text": "← К режимам",
     "product_title": "Подписка Premium",
     "product_description": "Открой премиум-режимы и платные функции.",
     "recurring_button_text": "Открыть оплату",

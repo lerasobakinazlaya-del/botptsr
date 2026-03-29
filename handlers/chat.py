@@ -11,7 +11,7 @@ from handlers.modes import show_modes_menu
 from handlers.payments import (
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
-    send_premium_offer,
+    show_premium_menu,
 )
 from services.ai_profile_service import resolve_ai_profile
 from services.ai_service import AIBackpressureError
@@ -332,7 +332,7 @@ async def chat_handler(
         return
 
     if user_text == ui_settings["premium_button_text"]:
-        await send_premium_offer(message, payment_service, user_service)
+        await show_premium_menu(message, payment_service, user_service, admin_settings_service)
         return
 
     if user_text.lower() in {"/ref", "рефералка", "реферальная ссылка"} and referral_settings["enabled"]:
@@ -368,10 +368,11 @@ async def chat_handler(
                 and today_count >= limits_settings["free_daily_messages_limit"]
             ):
                 await message.answer(limits_settings["free_daily_limit_message"])
-                await send_premium_offer(
+                await show_premium_menu(
                     message,
                     payment_service,
                     user_service,
+                    admin_settings_service,
                     trigger=OFFER_TRIGGER_LIMIT_REACHED,
                     premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
                 )
@@ -398,10 +399,11 @@ async def chat_handler(
                     daily_limit=selection_status["daily_limit"],
                 )
             )
-            await send_premium_offer(
+            await show_premium_menu(
                 message,
                 payment_service,
                 user_service,
+                admin_settings_service,
                 trigger=OFFER_TRIGGER_MODE_LOCKED,
                 mode_name=mode_name,
                 premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),

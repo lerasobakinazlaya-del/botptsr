@@ -2,14 +2,17 @@ import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+from handlers.modes import build_modes_menu_text
 from handlers.payments import (
     CALLBACK_BUY_PREMIUM,
+    CALLBACK_OPEN_PREMIUM_MENU,
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
     send_premium_offer,
+    show_premium_menu,
 )
-from handlers.modes import build_modes_menu_text
 from keyboards.modes_keyboard import get_modes_keyboard
+from services.mode_access_service import ModeAccessService
 from services.payment_service import PaymentService
 
 
@@ -17,9 +20,13 @@ class FakeMessage:
     def __init__(self, user_id: int = 123):
         self.from_user = SimpleNamespace(id=user_id)
         self.answers = []
+        self.edits = []
 
     async def answer(self, text: str, reply_markup=None):
         self.answers.append({"text": text, "reply_markup": reply_markup})
+
+    async def edit_text(self, text: str, reply_markup=None):
+        self.edits.append({"text": text, "reply_markup": reply_markup})
 
 
 class FakePaymentServiceForOffer:
@@ -39,13 +46,18 @@ class FakePaymentServiceForOffer:
             "buy_cta_text": "Купить Premium",
             "offer_cta_text_a": "Открыть Premium на 30 дней",
             "offer_cta_text_b": "Снять лимиты и открыть все режимы",
-            "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
-            "offer_benefits_text_b": "Premium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
+            "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ.",
+            "offer_benefits_text_b": "Premium открывает закрытые режимы и даёт повышенный лимит.",
             "offer_price_line_template": "Сейчас: {price_label} за {access_days} дней.",
-            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium даст {premium_limit} сообщений в день и доступ ко всем режимам на {access_days} дней.",
-            "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Открой все закрытые режимы и лимит до {premium_limit} сообщений в день на {access_days} дней.",
+            "offer_limit_reached_template": "Бесплатный лимит закончился. Premium даст {premium_limit} сообщений в день на {access_days} дней.",
+            "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Лимит Premium: {premium_limit} сообщений в день.",
+            "premium_menu_description_template": "Premium открывает: {premium_modes_list}. Цена: {price_label} на {access_days_label}. Лимит: {premium_daily_limit}.",
+            "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
+            "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
+            "premium_menu_back_button_text": "← К режимам",
             "unavailable_message": "Оплата сейчас недоступна",
             "invoice_error_message": "Не удалось создать счёт",
+            "product_description": "Открой Premium.",
         }
 
     def is_enabled(self) -> bool:
@@ -80,6 +92,57 @@ class FakeUserServiceForOffer:
 
     async def get_user(self, user_id: int):
         return dict(self.user)
+
+
+class FakeAdminSettingsServiceForOffer:
+    def get_runtime_settings(self):
+        return {
+            "payment": {
+                "currency": "RUB",
+                "price_minor_units": 49900,
+                "access_duration_days": 30,
+                "premium_menu_description_template": "Premium открывает: {premium_modes_list}. Цена: {price_label} на {access_days_label}. Лимит: {premium_daily_limit}.",
+                "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
+            },
+            "limits": {
+                "premium_daily_messages_limit": 120,
+                "mode_preview_enabled": True,
+                "mode_preview_default_limit": 2,
+                "mode_daily_limits": {"mentor": 1},
+            },
+        }
+
+    def get_mode_catalog(self):
+        return {
+            "base": {
+                "key": "base",
+                "name": "Базовый",
+                "icon": "💬",
+                "is_premium": False,
+                "sort_order": 10,
+            },
+            "passion": {
+                "key": "passion",
+                "name": "Близость",
+                "icon": "🔥",
+                "is_premium": True,
+                "sort_order": 20,
+            },
+            "mentor": {
+                "key": "mentor",
+                "name": "Наставник",
+                "icon": "🧠",
+                "is_premium": True,
+                "sort_order": 30,
+            },
+            "free_talk": {
+                "key": "free_talk",
+                "name": "Свободный",
+                "icon": "🌘",
+                "is_premium": True,
+                "sort_order": 40,
+            },
+        }
 
 
 class FakePaymentRepository:
@@ -122,6 +185,10 @@ class FakeSettingsService:
                 "product_description": "Открой премиум-режимы.",
                 "premium_benefits_text": "Преимущества Premium",
                 "buy_cta_text": "Купить Premium",
+                "premium_menu_description_template": "Premium открывает: {premium_modes_list}.",
+                "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
+                "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
+                "premium_menu_back_button_text": "← К режимам",
                 "recurring_button_text": "Открыть оплату",
                 "already_premium_message": "Premium уже активен.",
                 "unavailable_message": "Оплата сейчас недоступна",
@@ -158,7 +225,33 @@ class FakeMonetizationRepository:
 
 
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
-    async def test_send_premium_offer_allows_renewal_for_active_user(self):
+    async def test_show_premium_menu_renders_unified_premium_screen(self):
+        message = FakeMessage()
+        payment_service = FakePaymentServiceForOffer()
+        user_service = FakeUserServiceForOffer()
+        admin_settings_service = FakeAdminSettingsServiceForOffer()
+
+        result = await show_premium_menu(
+            message,
+            payment_service,
+            user_service,
+            admin_settings_service,
+            trigger=OFFER_TRIGGER_MODE_LOCKED,
+            mode_name="Наставник",
+            premium_limit=120,
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(len(message.answers), 1)
+        text = message.answers[0]["text"]
+        self.assertIn("Режим Наставник доступен только в Premium.", text)
+        self.assertIn("Premium открывает: 🔥 Близость, 🧠 Наставник, 🌘 Свободный.", text)
+        self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день, 🌘 Свободный — 2/день.", text)
+        keyboard = message.answers[0]["reply_markup"]
+        self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, CALLBACK_BUY_PREMIUM)
+        self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
+
+    async def test_show_premium_menu_includes_active_subscription_status(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
         user_service = FakeUserServiceForOffer(
@@ -168,49 +261,15 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
                 "premium_expires_at": "2026-04-01 12:00:00",
             }
         )
+        admin_settings_service = FakeAdminSettingsServiceForOffer()
 
-        result = await send_premium_offer(message, payment_service, user_service)
-
-        self.assertTrue(result)
-        self.assertEqual(payment_service.invoice_calls, 1)
-        self.assertEqual(payment_service.offer_events[0]["variant"], "b")
-        self.assertEqual(payment_service.invoice_events[0]["variant"], "b")
-        self.assertEqual(
-            message.answers[0]["text"],
-            "Premium активен до 01.04.2026\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
-        )
-
-    async def test_send_premium_offer_sends_intro_and_invoice(self):
-        message = FakeMessage()
-        payment_service = FakePaymentServiceForOffer()
-        user_service = FakeUserServiceForOffer()
-
-        result = await send_premium_offer(message, payment_service, user_service)
+        result = await show_premium_menu(message, payment_service, user_service, admin_settings_service)
 
         self.assertTrue(result)
-        self.assertEqual(payment_service.invoice_calls, 1)
-        self.assertEqual(payment_service.offer_events[0]["trigger"], "default")
-        self.assertEqual(payment_service.invoice_events[0]["trigger"], "default")
-        self.assertEqual(
-            message.answers[0]["text"],
-            "Снять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
-        )
+        self.assertIn("Premium активен до 01.04.2026", message.answers[0]["text"])
+        self.assertNotIn("Пробно:", message.answers[0]["text"])
 
-    async def test_send_premium_offer_uses_alternate_ab_variant_for_even_user(self):
-        message = FakeMessage(user_id=124)
-        payment_service = FakePaymentServiceForOffer()
-        user_service = FakeUserServiceForOffer({"id": 124, "is_premium": False, "premium_expires_at": None})
-
-        result = await send_premium_offer(message, payment_service, user_service)
-
-        self.assertTrue(result)
-        self.assertEqual(payment_service.offer_events[0]["variant"], "a")
-        self.assertEqual(
-            message.answers[0]["text"],
-            "Открыть Premium на 30 дней\n\nСейчас: 499.00 RUB за 30 дней.\n\n120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
-        )
-
-    async def test_send_premium_offer_uses_limit_reached_pitch(self):
+    async def test_send_premium_offer_only_opens_invoice_and_tracks_event(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
         user_service = FakeUserServiceForOffer()
@@ -224,32 +283,19 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(result)
-        self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_LIMIT_REACHED)
-        self.assertEqual(
-            message.answers[0]["text"],
-            "Бесплатный лимит на сегодня закончился. Premium даст 120 сообщений в день и доступ ко всем режимам на 30 дней.\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
-        )
+        self.assertEqual(payment_service.invoice_calls, 1)
+        self.assertEqual(len(message.answers), 0)
+        self.assertEqual(payment_service.offer_events, [])
+        self.assertEqual(payment_service.invoice_events[0]["trigger"], OFFER_TRIGGER_LIMIT_REACHED)
 
-    async def test_send_premium_offer_uses_mode_locked_pitch(self):
+    async def test_send_premium_offer_reports_invoice_error(self):
         message = FakeMessage()
-        payment_service = FakePaymentServiceForOffer()
-        user_service = FakeUserServiceForOffer()
+        payment_service = FakePaymentServiceForOffer(invoice_result=False)
 
-        result = await send_premium_offer(
-            message,
-            payment_service,
-            user_service,
-            trigger=OFFER_TRIGGER_MODE_LOCKED,
-            mode_name="Mentor",
-            premium_limit=120,
-        )
+        result = await send_premium_offer(message, payment_service)
 
-        self.assertTrue(result)
-        self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
-        self.assertEqual(
-            message.answers[0]["text"],
-            "Режим Mentor доступен только в Premium. Открой все закрытые режимы и лимит до 120 сообщений в день на 30 дней.\n\nСнять лимиты и открыть все режимы\n\nСейчас: 499.00 RUB за 30 дней.\n\nPremium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
-        )
+        self.assertFalse(result)
+        self.assertEqual(message.answers[0]["text"], "Не удалось создать счёт")
 
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
         payment_repository = FakePaymentRepository()
@@ -306,18 +352,9 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result["premium_expires_at"], "2026-04-28 12:00:00")
         self.assertEqual(result["referral"]["referrer_user_id"], 77)
-        self.assertEqual(
-            monetization_repository.events[-1]["event_name"],
-            "paid",
-        )
-        self.assertEqual(
-            monetization_repository.events[-1]["offer_trigger"],
-            "limit_reached",
-        )
-        self.assertEqual(
-            monetization_repository.events[-1]["offer_variant"],
-            "b",
-        )
+        self.assertEqual(monetization_repository.events[-1]["event_name"], "paid")
+        self.assertEqual(monetization_repository.events[-1]["offer_trigger"], "limit_reached")
+        self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
 
     async def test_handle_successful_payment_uses_provider_subscription_expiry_when_present(self):
         subscription_expires_at = datetime(2026, 3, 31, 4, 0, 0, tzinfo=timezone.utc)
@@ -361,14 +398,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             [(42, subscription_expires_at.strftime("%Y-%m-%d %H:%M:%S"))],
         )
         self.assertTrue(result["is_recurring"])
-        self.assertEqual(
-            monetization_repository.events[-1]["event_name"],
-            "renewed",
-        )
-        self.assertEqual(
-            monetization_repository.events[-1]["offer_variant"],
-            "b",
-        )
+        self.assertEqual(monetization_repository.events[-1]["event_name"], "renewed")
+        self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
 
 
 class PaymentFormattingTests(unittest.TestCase):
@@ -399,42 +430,35 @@ class PaymentFormattingTests(unittest.TestCase):
 
 
 class ModesKeyboardTests(unittest.TestCase):
-    def test_modes_keyboard_adds_buy_button_for_non_premium_user(self):
+    def test_modes_keyboard_adds_premium_menu_button_for_non_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": False},
-            {"ui": {"premium_button_text": "Premium"}, "limits": {}, "payment": {}},
+            {"ui": {"premium_button_text": "💎 Premium"}, "limits": {}, "payment": {}},
         )
 
-        self.assertEqual(keyboard.inline_keyboard[-1][0].callback_data, CALLBACK_BUY_PREMIUM)
-        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "Premium")
+        self.assertEqual(keyboard.inline_keyboard[-1][0].callback_data, CALLBACK_OPEN_PREMIUM_MENU)
+        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium")
 
     def test_modes_keyboard_hides_buy_button_for_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": True},
-            {"ui": {"premium_button_text": "Premium"}, "limits": {}, "payment": {}},
+            {"ui": {"premium_button_text": "💎 Premium"}, "limits": {}, "payment": {}},
         )
 
         callback_data = [button.callback_data for row in keyboard.inline_keyboard for button in row]
-        self.assertNotIn(CALLBACK_BUY_PREMIUM, callback_data)
+        self.assertNotIn(CALLBACK_OPEN_PREMIUM_MENU, callback_data)
 
-    def test_modes_keyboard_uses_dynamic_premium_button_text_from_admin_settings(self):
+    def test_modes_keyboard_marks_locked_modes_but_keeps_button_clean(self):
         keyboard = get_modes_keyboard(
             {"is_premium": False},
             {
                 "ui": {
-                    "premium_button_text": "Premium",
-                    "premium_button_text_template": "💎 Premium • {price_label} / {access_days_label}",
+                    "premium_button_text": "💎 Premium",
+                    "premium_button_text_template": "💎 Premium • 499 RUB / 30 дней",
                     "modes_premium_marker": "🔒",
                 },
-                "limits": {
-                    "mode_preview_enabled": True,
-                    "mode_daily_limits": {"passion": 2},
-                },
-                "payment": {
-                    "currency": "RUB",
-                    "price_minor_units": 49900,
-                    "access_duration_days": 30,
-                },
+                "limits": {},
+                "payment": {},
             },
             {
                 "base": {
@@ -444,55 +468,87 @@ class ModesKeyboardTests(unittest.TestCase):
                     "is_premium": False,
                     "sort_order": 10,
                 },
-                "passion": {
-                    "key": "passion",
-                    "name": "Близость",
-                    "icon": "🔥",
-                    "is_premium": True,
-                    "sort_order": 20,
-                },
                 "mentor": {
                     "key": "mentor",
                     "name": "Наставник",
                     "icon": "🧠",
                     "is_premium": True,
-                    "sort_order": 30,
+                    "sort_order": 20,
                 },
             },
         )
 
         texts = [button.text for row in keyboard.inline_keyboard for button in row]
-        self.assertIn("🔥 Близость 🔒", texts)
         self.assertIn("🧠 Наставник 🔒", texts)
-        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium • 499.00 RUB / 30 дней")
+        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium")
 
-    def test_build_modes_menu_text_uses_catalog_and_payment_settings(self):
+    def test_build_modes_menu_text_returns_clean_catalog_title(self):
         text = build_modes_menu_text(
             {"is_premium": False},
             {
                 "ui": {
                     "modes_title": "Выбери режим",
-                    "modes_menu_premium_text": "Premium: {price_label} на {access_days_label}. Открывает {premium_modes_list}.",
-                    "modes_menu_preview_text": "Пробно: {preview_modes_list}.",
-                    "modes_menu_active_premium_text": "Premium уже активен.",
+                    "modes_menu_premium_text": "Не должно отображаться",
+                    "modes_menu_preview_text": "Не должно отображаться",
                 },
-                "limits": {
-                    "mode_preview_enabled": True,
-                    "mode_daily_limits": {"passion": 2, "mentor": 1},
-                },
-                "payment": {
-                    "currency": "RUB",
-                    "price_minor_units": 49900,
-                    "access_duration_days": 30,
-                },
+                "limits": {},
+                "payment": {},
             },
-            {
-                "base": {"name": "Базовый", "icon": "💬", "is_premium": False, "sort_order": 10},
-                "passion": {"name": "Близость", "icon": "🔥", "is_premium": True, "sort_order": 20},
-                "mentor": {"name": "Наставник", "icon": "🧠", "is_premium": True, "sort_order": 30},
-            },
+            {},
         )
 
-        self.assertIn("Premium: 499.00 RUB на 30 дней.", text)
-        self.assertIn("🔥 Близость, 🧠 Наставник", text)
-        self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день.", text)
+        self.assertEqual(text, "Выбери режим")
+
+
+class ModeAccessServiceTests(unittest.TestCase):
+    def test_default_preview_limit_applies_to_new_premium_modes(self):
+        service = ModeAccessService()
+        runtime_settings = {
+            "limits": {
+                "mode_preview_enabled": True,
+                "mode_preview_default_limit": 2,
+                "mode_daily_limits": {"mentor": 1},
+            }
+        }
+        mode_catalog = {
+            "free_talk": {"is_premium": True},
+            "mentor": {"is_premium": True},
+        }
+        user = {"is_premium": False}
+        state = {}
+
+        status = service.get_selection_status(
+            user=user,
+            mode_key="free_talk",
+            state=state,
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+
+        self.assertTrue(status["allowed"])
+        self.assertEqual(status["daily_limit"], 2)
+
+        state = service.register_successful_message(
+            state,
+            mode_key="free_talk",
+            user=user,
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+        state = service.register_successful_message(
+            state,
+            mode_key="free_talk",
+            user=user,
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+
+        status = service.get_selection_status(
+            user=user,
+            mode_key="free_talk",
+            state=state,
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+        self.assertFalse(status["allowed"])
+        self.assertEqual(status["remaining"], 0)
