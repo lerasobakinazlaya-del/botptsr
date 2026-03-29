@@ -5,7 +5,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
-from services.response_guardrails import apply_ptsd_response_guardrails
+from services.response_guardrails import (
+    apply_ptsd_response_guardrails,
+    build_crisis_support_response,
+    detect_crisis_signal,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -229,8 +233,29 @@ class AIService:
         )
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
         active_mode = self._resolve_effective_mode(new_state, runtime_settings)
+        crisis_signal = detect_crisis_signal(user_message)
+        if crisis_signal is not None:
+            logger.warning("[AI] user_id=%s crisis_signal=%s", user_id, crisis_signal)
+            crisis_response = build_crisis_support_response(crisis_signal)
+            new_state = self.human_memory_service.apply_assistant_message(
+                new_state,
+                crisis_response,
+                source="reply",
+            )
+            return AIResult(
+                response=crisis_response,
+                new_state=new_state,
+                tokens_used=None,
+            )
+
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
         access_level = self.access_engine.update_access_level(new_state)
+        access_level = self.access_engine.apply_safety_guardrails(
+            state=new_state,
+            access_level=access_level,
+            active_mode=active_mode,
+            user_message=user_message,
+        )
         memory_messages = await self.memory_engine.build_context(
             history,
             max_tokens=ai_profile["memory_max_tokens"],
@@ -327,6 +352,13 @@ class AIService:
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
         access_level = self.access_engine.update_access_level(state)
+        access_level = self.access_engine.apply_safety_guardrails(
+            state=state,
+            access_level=access_level,
+            active_mode=active_mode,
+            user_message="",
+            is_proactive=True,
+        )
         memory_messages = await self.memory_engine.build_context(
             history,
             max_tokens=ai_profile["memory_max_tokens"],

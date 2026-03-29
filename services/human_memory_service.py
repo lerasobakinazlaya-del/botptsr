@@ -145,6 +145,9 @@ class HumanMemoryService:
         if current_mode not in {"base", "comfort"}:
             return current_mode
 
+        if current_mode == "comfort":
+            return "comfort"
+
         relationship = self._normalize_relationship((state or {}).get("relationship_state"))
         mood = str(relationship.get("last_user_mood") or "")
         topic = str(relationship.get("last_user_topic") or "")

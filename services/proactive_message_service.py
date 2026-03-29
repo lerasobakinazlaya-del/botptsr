@@ -228,6 +228,13 @@ class ProactiveMessageService:
         state = candidate.get("state_snapshot") or await self.state_repository.get(user_id)
         access_level = self.access_engine.update_access_level(state)
         active_mode = str(state.get("active_mode") or "base")
+        access_level = self.access_engine.apply_safety_guardrails(
+            state=state,
+            access_level=access_level,
+            active_mode=active_mode,
+            user_message="",
+            is_proactive=True,
+        )
         history = await self.message_repository.get_last_messages(
             user_id=user_id,
             limit=settings["history_limit"],

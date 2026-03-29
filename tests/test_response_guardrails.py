@@ -3,6 +3,8 @@ import unittest
 from services.response_guardrails import (
     analyze_response_style,
     apply_ptsd_response_guardrails,
+    build_crisis_support_response,
+    detect_crisis_signal,
 )
 
 
@@ -37,6 +39,17 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertEqual(audit["question_count"], 0)
         self.assertEqual(audit["blocked_phrases"], ["я понимаю, что тебе тяжело"])
         self.assertFalse(audit["looks_overloaded"])
+
+    def test_detect_crisis_signal_for_self_harm(self):
+        crisis = detect_crisis_signal("Я не хочу жить и хочу покончить с собой.")
+
+        self.assertEqual(crisis, "self_harm")
+
+    def test_build_crisis_response_mentions_emergency_help(self):
+        response = build_crisis_support_response("self_harm")
+
+        self.assertIn("экстренные службы", response.lower())
+        self.assertIn("не оставайся один", response.lower())
 
 
 if __name__ == "__main__":

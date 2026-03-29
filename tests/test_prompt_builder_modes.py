@@ -84,6 +84,11 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertEqual(dominant_profile["temperature"], 0.74)
         self.assertEqual(dominant_profile["max_completion_tokens"], 260)
 
+    def test_comfort_mode_includes_ptsd_support_prompt(self):
+        prompt = self._build_prompt("comfort")
+
+        self.assertIn("В режиме поддержки при ПТСР", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

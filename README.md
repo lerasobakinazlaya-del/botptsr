@@ -45,6 +45,11 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - для каждого режима появились отдельные переключатели `allow_bold` и `allow_italic` в админке
 - если форматирование для режима выключено, сырые Markdown-маркеры не показываются пользователю
 - добавлены PTSD response guardrails и regression-тесты на различимость режимов
+- добавлен жёсткий crisis bypass: при явных сигналах риска самоповреждения или вреда другим бот не идёт в обычную генерацию, а сразу возвращает безопасную кризисную инструкцию
+- добавлен safety clamp для близости: уровни `tension`, `personal_focus` и `rare_layer` больше не включаются без явного сигнала пользователя и не используются в тяжёлом эмоциональном состоянии
+- PTSD-ориентированный support prompt теперь применяется и в `comfort`, а не только в `free_talk`
+- adaptive mode больше не может тихо откатить явно выбранный пользователем `comfort` обратно в `base`
+- исправлены битые user-facing fallback и runtime default строки, чтобы на свежем окружении не было mojibake в лимитах и оплате
 
 ## Стек
 
@@ -73,8 +78,11 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `services/ai_profile_service.py` собирает effective AI-профиль для конкретного режима
 - AI-профиль режима может включать `model`, `temperature`, `max_completion_tokens`, `memory_max_tokens`, `history_message_limit`, `timeout_seconds`, `max_retries` и `prompt_suffix`
 - `services/human_memory_service.py` поддерживает пользовательский профиль, recurring topics и relationship state
+- `services/human_memory_service.py` использует adaptive mode только как мягкое повышение `base -> comfort`; явный `comfort` не понижается автоматически
 - `services/ai_service.py` объединяет short-term историю, старую память и human memory context перед генерацией ответа
+- `services/ai_service.py` теперь сначала проверяет crisis signals и только потом идёт в обычную модельную генерацию
 - `services/prompt_builder.py` собирает system prompt из personality, response style, engagement rules, mode signature, access rules и runtime-состояния
+- `services/access_engine.py` теперь дополнительно зажимает интимную эскалацию без явного пользовательского сигнала и для proactive/re-engagement сообщений
 - `services/reengagement_service.py` фоном ищет пользователей с паузой в диалоге и отправляет инициативные сообщения
 - `services/mode_access_service.py` управляет preview-доступом к premium-режимам
 
@@ -327,6 +335,10 @@ CLI-запуск из PowerShell:
 - держите админку за reverse proxy и HTTPS
 - не включайте `DEBUG=true` на проде
 - не включайте `AI_LOG_FULL_PROMPT` на проде
+- crisis-сообщения о немедленном вреде себе или другим теперь обрабатываются deterministic bypass без обычной генерации модели
+- PTSD-support prompt применяется и в `comfort`, и в `free_talk`
+- proactive и re-engagement сообщения теперь принудительно остаются в безопасном уровне близости и не должны первыми эскалировать intimacy
+- даже в режимах `passion`, `night` и `dominant` доступ к более близкой подаче дополнительно ограничен: без явного сигнала пользователя остаётся только безопасный уровень `analysis`
 
 ## Ограничения текущей архитектуры
 

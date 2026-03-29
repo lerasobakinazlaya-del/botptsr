@@ -1,4 +1,41 @@
 class AccessEngine:
+    INTIMATE_ACCESS_LEVELS = {"tension", "personal_focus", "rare_layer"}
+    HEAVY_EMOTIONAL_TONES = {"overwhelmed", "anxious", "guarded"}
+    NEGATIVE_INTIMACY_MARKERS = (
+        "не флиртуй",
+        "без флирта",
+        "не дави",
+        "не хочу близости",
+        "не хочу этого",
+        "не надо так",
+        "не будь пошлой",
+        "без пошлости",
+        "don't flirt",
+        "no flirting",
+    )
+    EXPLICIT_INTIMACY_MARKERS = (
+        "хочу тебя",
+        "будь ближе",
+        "можешь быть ближе",
+        "можешь быть смелее",
+        "флиртуй",
+        "заигрывай",
+        "обними меня",
+        "поцелуй",
+        "эрот",
+        "секс",
+        "сексу",
+        "желание",
+        "возбуж",
+        "веди меня",
+        "скажи жестче",
+        "be closer",
+        "flirt with me",
+        "kiss me",
+        "turn me on",
+        "be more dominant",
+    )
+
     def __init__(self, settings_service=None):
         self.settings_service = settings_service
 
@@ -48,6 +85,31 @@ class AccessEngine:
 
         return str(config.get("default_level") or "analysis")
 
+    def apply_safety_guardrails(
+        self,
+        *,
+        state: dict,
+        access_level: str,
+        active_mode: str,
+        user_message: str,
+        is_proactive: bool = False,
+    ) -> str:
+        normalized_level = str(access_level or "analysis").strip() or "analysis"
+        if normalized_level not in self.INTIMATE_ACCESS_LEVELS:
+            return normalized_level
+
+        emotional_tone = str((state or {}).get("emotional_tone") or "").strip().lower()
+        if emotional_tone in self.HEAVY_EMOTIONAL_TONES:
+            return "analysis"
+
+        if is_proactive:
+            return "analysis"
+
+        if not self._has_explicit_intimacy_signal(user_message):
+            return "analysis"
+
+        return normalized_level
+
     def _get_config(self) -> dict:
         if self.settings_service is None:
             return {
@@ -65,3 +127,13 @@ class AccessEngine:
             }
 
         return self.settings_service.get_runtime_settings()["access"]
+
+    def _has_explicit_intimacy_signal(self, user_message: str) -> bool:
+        lowered = " ".join(str(user_message or "").lower().split())
+        if not lowered:
+            return False
+
+        if any(marker in lowered for marker in self.NEGATIVE_INTIMACY_MARKERS):
+            return False
+
+        return any(marker in lowered for marker in self.EXPLICIT_INTIMACY_MARKERS)
