@@ -88,6 +88,7 @@ async def send_premium_offer(
         return False
 
     status_text = ""
+    offer_variant = payment_service.get_offer_variant(message.from_user.id)
     if user_service is not None:
         user = await user_service.get_user(message.from_user.id)
         status_text = payment_service.build_subscription_status_text(user)
@@ -107,11 +108,30 @@ async def send_premium_offer(
 
     if intro_parts:
         await message.answer("\n\n".join(intro_parts))
+        await payment_service.track_offer_shown(
+            user_id=message.from_user.id,
+            trigger=trigger,
+            variant=offer_variant,
+            metadata={
+                "mode_name": mode_name,
+                "premium_limit": premium_limit,
+            },
+        )
 
     sent = await payment_service.send_premium_invoice(message)
     if not sent:
         await message.answer(payment_settings["invoice_error_message"])
         return False
+
+    await payment_service.track_invoice_opened(
+        user_id=message.from_user.id,
+        trigger=trigger,
+        variant=offer_variant,
+        metadata={
+            "mode_name": mode_name,
+            "premium_limit": premium_limit,
+        },
+    )
 
     return True
 

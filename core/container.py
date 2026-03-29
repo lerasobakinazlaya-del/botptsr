@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 
 from database.db import Database
 from database.memory_repository import MemoryRepository
+from database.monetization_repository import MonetizationRepository
 from database.payment_repository import PaymentRepository
 from database.proactive_repository import ProactiveRepository
 from database.repository import MessageRepository
@@ -50,6 +51,7 @@ class Container:
 
         self.message_repository = MessageRepository(self.db)
         self.memory_repository = MemoryRepository(self.db)
+        self.monetization_repository = MonetizationRepository(self.db)
         self.payment_repository = PaymentRepository(self.db)
         self.proactive_repository = ProactiveRepository(self.db)
         self.user_preference_repository = UserPreferenceRepository(self.db)
@@ -108,6 +110,7 @@ class Container:
         self.payment_service = PaymentService(
             settings=self.settings,
             payment_repository=self.payment_repository,
+            monetization_repository=self.monetization_repository,
             user_service=self.user_service,
             settings_service=self.admin_settings_service,
             referral_service=self.referral_service,

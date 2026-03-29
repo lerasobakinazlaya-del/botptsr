@@ -67,6 +67,20 @@ class Database:
         )
         await self.connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS monetization_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                event_name TEXT NOT NULL,
+                offer_trigger TEXT NULL,
+                offer_variant TEXT NULL,
+                payment_external_id TEXT NULL,
+                metadata_json TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        await self.connection.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_messages_user_id_id
             ON messages (user_id, id DESC)
             """
@@ -99,6 +113,18 @@ class Database:
             """
             CREATE INDEX IF NOT EXISTS idx_referrals_referred_status
             ON referrals (referred_user_id, status, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_monetization_events_name_created
+            ON monetization_events (event_name, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_monetization_events_user_created
+            ON monetization_events (user_id, created_at DESC)
             """
         )
         await self.connection.commit()

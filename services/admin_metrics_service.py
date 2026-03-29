@@ -14,6 +14,7 @@ class AdminMetricsService:
         user_service,
         message_repository,
         payment_repository,
+        monetization_repository,
         referral_service,
         state_repository,
         ai_service,
@@ -26,6 +27,7 @@ class AdminMetricsService:
         self.user_service = user_service
         self.message_repository = message_repository
         self.payment_repository = payment_repository
+        self.monetization_repository = monetization_repository
         self.referral_service = referral_service
         self.state_repository = state_repository
         self.ai_service = ai_service
@@ -90,6 +92,8 @@ class AdminMetricsService:
 
     async def _build_cached_payload(self) -> dict[str, Any]:
         payment_overview = await self.payment_repository.get_overview()
+        monetization_7d = await self.monetization_repository.get_funnel_overview(days=7)
+        monetization_30d = await self.monetization_repository.get_funnel_overview(days=30)
         referral_overview = await self.referral_service.get_overview()
         total_users = await self.user_service.get_total_users()
         premium_users = await self.user_service.get_premium_users_count()
@@ -119,6 +123,10 @@ class AdminMetricsService:
                 "first_7d": await self.payment_repository.get_first_payments_since(7),
                 "first_30d": await self.payment_repository.get_first_payments_since(30),
             },
+            "monetization": {
+                "funnel_7d": monetization_7d,
+                "funnel_30d": monetization_30d,
+            },
             "content": {
                 "messages_total": total_messages,
             },
@@ -133,6 +141,7 @@ class AdminMetricsService:
             "recent": {
                 "users": await self.user_service.get_recent_users(limit=20),
                 "payments": await self.payment_repository.get_recent_payments(limit=20),
+                "monetization": await self.monetization_repository.get_recent_events(limit=20),
                 "referrals": referral_overview["recent"],
                 "proactive": proactive_overview["recent"],
             },

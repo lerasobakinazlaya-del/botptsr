@@ -26,6 +26,8 @@ class FakePaymentServiceForOffer:
         self.enabled = enabled
         self.invoice_result = invoice_result
         self.invoice_calls = 0
+        self.offer_events = []
+        self.invoice_events = []
 
     def get_payment_settings(self):
         return {
@@ -48,10 +50,19 @@ class FakePaymentServiceForOffer:
     def is_enabled(self) -> bool:
         return self.enabled
 
+    def get_offer_variant(self, user_id: int) -> str:
+        return "a" if user_id % 2 == 0 else "b"
+
     def build_subscription_status_text(self, user):
         if user and user.get("is_premium"):
             return "Premium active until 01.04.2026"
         return ""
+
+    async def track_offer_shown(self, **kwargs):
+        self.offer_events.append(kwargs)
+
+    async def track_invoice_opened(self, **kwargs):
+        self.invoice_events.append(kwargs)
 
     async def send_premium_invoice(self, message):
         self.invoice_calls += 1
@@ -73,11 +84,12 @@ class FakeUserServiceForOffer:
 class FakePaymentRepository:
     def __init__(self):
         self.saved = None
+        self.is_first_payment = True
 
     async def save_payment(self, **kwargs):
         self.saved = kwargs
         return {
-            "is_first_payment": True,
+            "is_first_payment": self.is_first_payment,
             "paid_at": "2026-03-29 12:00:00",
         }
 
@@ -129,6 +141,14 @@ class FakeReferralService:
         return {"referrer_user_id": 77}
 
 
+class FakeMonetizationRepository:
+    def __init__(self):
+        self.events = []
+
+    async def log_event(self, **kwargs):
+        self.events.append(kwargs)
+
+
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
     async def test_send_premium_offer_allows_renewal_for_active_user(self):
         message = FakeMessage()
@@ -145,6 +165,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result)
         self.assertEqual(payment_service.invoice_calls, 1)
+        self.assertEqual(payment_service.offer_events[0]["variant"], "b")
+        self.assertEqual(payment_service.invoice_events[0]["variant"], "b")
         self.assertEqual(
             message.answers[0]["text"],
             "Premium active until 01.04.2026\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
@@ -159,6 +181,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result)
         self.assertEqual(payment_service.invoice_calls, 1)
+        self.assertEqual(payment_service.offer_events[0]["trigger"], "default")
+        self.assertEqual(payment_service.invoice_events[0]["trigger"], "default")
         self.assertEqual(
             message.answers[0]["text"],
             "Remove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
@@ -172,6 +196,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         result = await send_premium_offer(message, payment_service, user_service)
 
         self.assertTrue(result)
+        self.assertEqual(payment_service.offer_events[0]["variant"], "a")
         self.assertEqual(
             message.answers[0]["text"],
             "Open Premium for 30 days\n\nNow: 499.00 RUB for 30 days.\n\n120 messages per day and all modes.",
@@ -191,6 +216,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(result)
+        self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_LIMIT_REACHED)
         self.assertEqual(
             message.answers[0]["text"],
             "Free quota is over. Premium gives 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
@@ -211,6 +237,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(result)
+        self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
         self.assertEqual(
             message.answers[0]["text"],
             "Mentor is available in Premium. Unlock all paid modes and up to 120 messages per day for 30 days.\n\nRemove limits and unlock all modes\n\nNow: 499.00 RUB for 30 days.\n\nPremium unlocks paid modes and a higher daily limit.",
@@ -220,6 +247,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         payment_repository = FakePaymentRepository()
         user_service = FakeUserService()
         referral_service = FakeReferralService()
+        monetization_repository = FakeMonetizationRepository()
         service = PaymentService(
             settings=SimpleNamespace(
                 payment_provider_token="",
@@ -232,6 +260,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             user_service=user_service,
             settings_service=FakeSettingsService(),
             referral_service=referral_service,
+            monetization_repository=monetization_repository,
         )
         message = SimpleNamespace(
             from_user=SimpleNamespace(id=42),
@@ -269,11 +298,17 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result["premium_expires_at"], "2026-04-28 12:00:00")
         self.assertEqual(result["referral"]["referrer_user_id"], 77)
+        self.assertEqual(
+            monetization_repository.events[-1]["event_name"],
+            "paid",
+        )
 
     async def test_handle_successful_payment_uses_provider_subscription_expiry_when_present(self):
         subscription_expires_at = datetime(2026, 3, 31, 4, 0, 0, tzinfo=timezone.utc)
         payment_repository = FakePaymentRepository()
+        payment_repository.is_first_payment = False
         user_service = FakeUserService()
+        monetization_repository = FakeMonetizationRepository()
         service = PaymentService(
             settings=SimpleNamespace(
                 payment_provider_token="",
@@ -286,6 +321,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             user_service=user_service,
             settings_service=FakeSettingsService(),
             referral_service=FakeReferralService(),
+            monetization_repository=monetization_repository,
         )
         message = SimpleNamespace(
             from_user=SimpleNamespace(id=42),
@@ -309,6 +345,10 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             [(42, subscription_expires_at.strftime("%Y-%m-%d %H:%M:%S"))],
         )
         self.assertTrue(result["is_recurring"])
+        self.assertEqual(
+            monetization_repository.events[-1]["event_name"],
+            "renewed",
+        )
 
 
 class PaymentFormattingTests(unittest.TestCase):

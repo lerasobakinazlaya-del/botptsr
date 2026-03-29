@@ -18,12 +18,17 @@ class PaymentService:
         user_service,
         settings_service,
         referral_service,
+        monetization_repository=None,
     ):
         self.settings = settings
         self.payment_repository = payment_repository
+        self.monetization_repository = monetization_repository
         self.user_service = user_service
         self.settings_service = settings_service
         self.referral_service = referral_service
+
+    def get_offer_variant(self, user_id: int) -> str:
+        return "a" if user_id % 2 == 0 else "b"
 
     def get_payment_settings(self) -> dict:
         runtime = self.settings_service.get_runtime_settings()
@@ -129,6 +134,42 @@ class PaymentService:
         )
         return True
 
+    async def track_offer_shown(
+        self,
+        *,
+        user_id: int,
+        trigger: str,
+        variant: str,
+        metadata: dict | None = None,
+    ) -> None:
+        if self.monetization_repository is None:
+            return
+        await self.monetization_repository.log_event(
+            user_id=user_id,
+            event_name="offer_shown",
+            offer_trigger=trigger,
+            offer_variant=variant,
+            metadata=metadata,
+        )
+
+    async def track_invoice_opened(
+        self,
+        *,
+        user_id: int,
+        trigger: str,
+        variant: str,
+        metadata: dict | None = None,
+    ) -> None:
+        if self.monetization_repository is None:
+            return
+        await self.monetization_repository.log_event(
+            user_id=user_id,
+            event_name="invoice_opened",
+            offer_trigger=trigger,
+            offer_variant=variant,
+            metadata=metadata,
+        )
+
     async def handle_successful_payment(self, message: Message) -> dict | None:
         payment = message.successful_payment
         if payment is None:
@@ -165,6 +206,11 @@ class PaymentService:
             amount_minor_units=payment.total_amount,
             external_payment_id=payment.telegram_payment_charge_id,
             is_first_payment=bool(payment_info["is_first_payment"]),
+        )
+        await self._track_successful_payment_event(
+            user_id=user_id,
+            payment=payment,
+            payment_info=payment_info,
         )
         return {
             "payment": payment_info,
@@ -213,3 +259,20 @@ class PaymentService:
         if currency.upper() == "XTR":
             return float(total_amount)
         return float(total_amount) / 100.0
+
+    async def _track_successful_payment_event(self, *, user_id: int, payment, payment_info: dict) -> None:
+        if self.monetization_repository is None:
+            return
+
+        event_name = "paid" if payment_info.get("is_first_payment") else "renewed"
+        await self.monetization_repository.log_event(
+            user_id=user_id,
+            event_name=event_name,
+            payment_external_id=payment.telegram_payment_charge_id,
+            metadata={
+                "currency": payment.currency,
+                "total_amount": payment.total_amount,
+                "is_recurring": bool(getattr(payment, "is_recurring", False)),
+                "is_first_payment": bool(payment_info.get("is_first_payment")),
+            },
+        )
