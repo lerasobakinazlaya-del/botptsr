@@ -20,7 +20,10 @@ class FakeAIService:
             new_state={"active_mode": "base"},
         )
         self.calls = []
-        self.human_memory_service = SimpleNamespace(can_send_reengagement=lambda *args, **kwargs: True)
+        self.human_memory_service = SimpleNamespace(
+            can_send_reengagement=lambda *args, **kwargs: True,
+            get_reengagement_context=lambda state: {"topic": "", "callback_hint": ""},
+        )
 
     async def generate_reengagement(self, **kwargs):
         self.calls.append(kwargs)
@@ -198,3 +201,22 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(
                 service._is_in_quiet_hours(settings, timezone_name="Europe/Moscow")
             )
+
+    async def test_process_candidate_skips_when_last_mood_is_heavy(self):
+        service = self._build_service()
+        service.state_repository = FakeStateRepository(
+            {
+                "active_mode": "base",
+                "relationship_state": {
+                    "last_user_mood": "тревога или внутреннее напряжение",
+                },
+            }
+        )
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls, [])
+        self.assertEqual(service._bot.messages, [])

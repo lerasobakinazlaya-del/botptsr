@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class ReengagementService:
+    BLOCKED_LAST_MOODS = {
+        "тревога или внутреннее напряжение",
+        "усталость или перегруз",
+    }
+
     def __init__(
         self,
         *,
@@ -117,10 +122,17 @@ class ReengagementService:
         )
         relationship["last_user_message_at"] = last_user_message_at
         state["relationship_state"] = relationship
+        if str(relationship.get("last_user_mood") or "").strip().lower() in self.BLOCKED_LAST_MOODS:
+            logger.info("[REENGAGE] Skip user_id=%s reason=blocked_last_user_mood", user_id)
+            return
+
+        callback_context = self.ai_service.human_memory_service.get_reengagement_context(state)
+        callback_topic = callback_context.get("callback_hint") or callback_context.get("topic") or ""
         if not self.ai_service.human_memory_service.can_send_reengagement(
             state,
             min_hours_between=settings["reengagement_min_hours_between"],
             last_user_message_at=last_user_message_at,
+            callback_topic=callback_topic,
         ):
             return
 

@@ -37,6 +37,16 @@ class AccessEngineSafetyTests(unittest.TestCase):
 
         self.assertEqual(result, "analysis")
 
+    def test_non_intimate_mode_never_escalates_above_analysis(self):
+        result = self.engine.apply_safety_guardrails(
+            state={"emotional_tone": "warm"},
+            access_level="analysis",
+            active_mode="free_talk",
+            user_message="Флиртуй со мной и будь ближе.",
+        )
+
+        self.assertEqual(result, "analysis")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,11 @@
 class AccessEngine:
+    VALID_ACCESS_LEVELS = {"observation", "analysis", "tension", "personal_focus", "rare_layer"}
     INTIMATE_ACCESS_LEVELS = {"tension", "personal_focus", "rare_layer"}
+    INTIMATE_MODE_LEVELS = {
+        "passion": "personal_focus",
+        "night": "tension",
+        "dominant": "tension",
+    }
     HEAVY_EMOTIONAL_TONES = {"overwhelmed", "anxious", "guarded"}
     NEGATIVE_INTIMACY_MARKERS = (
         "не флиртуй",
@@ -53,29 +59,8 @@ class AccessEngine:
 
         interest = state.get("interest", 0.0)
         control = state.get("control", 1.0)
-        attraction = state.get("attraction", 0.0)
-        instability = state.get("instability", 0.0)
-
         if interest < config["interest_observation_threshold"]:
             return "observation"
-
-        if (
-            instability > config["rare_layer_instability_threshold"]
-            and attraction > config["rare_layer_attraction_threshold"]
-        ):
-            return "rare_layer"
-
-        if (
-            attraction > config["personal_focus_attraction_threshold"]
-            and interest > config["personal_focus_interest_threshold"]
-        ):
-            return "personal_focus"
-
-        if (
-            attraction > config["tension_attraction_threshold"]
-            and control < config["tension_control_threshold"]
-        ):
-            return "tension"
 
         if (
             interest >= config["analysis_interest_threshold"]
@@ -94,21 +79,63 @@ class AccessEngine:
         user_message: str,
         is_proactive: bool = False,
     ) -> str:
-        normalized_level = str(access_level or "analysis").strip() or "analysis"
-        if normalized_level not in self.INTIMATE_ACCESS_LEVELS:
-            return normalized_level
+        decision = self.evaluate_access(
+            state=state,
+            access_level=access_level,
+            active_mode=active_mode,
+            user_message=user_message,
+            is_proactive=is_proactive,
+        )
+        return str(decision["level"])
 
+    def evaluate_access(
+        self,
+        *,
+        state: dict,
+        access_level: str,
+        active_mode: str,
+        user_message: str,
+        is_proactive: bool = False,
+    ) -> dict[str, object]:
+        normalized_level = self._normalize_access_level(access_level)
+        base_level = "observation" if normalized_level == "observation" else "analysis"
+        normalized_mode = str(active_mode or "base").strip().lower() or "base"
         emotional_tone = str((state or {}).get("emotional_tone") or "").strip().lower()
-        if emotional_tone in self.HEAVY_EMOTIONAL_TONES:
-            return "analysis"
+        has_explicit_signal = self._has_explicit_intimacy_signal(user_message)
+
+        if normalized_mode not in self.INTIMATE_MODE_LEVELS:
+            return {
+                "level": base_level,
+                "clamped": bool(has_explicit_signal),
+                "reason": "mode_not_intimate" if has_explicit_signal else "",
+            }
 
         if is_proactive:
-            return "analysis"
+            return {
+                "level": base_level,
+                "clamped": True,
+                "reason": "proactive_intimacy_block",
+            }
 
-        if not self._has_explicit_intimacy_signal(user_message):
-            return "analysis"
+        if emotional_tone in self.HEAVY_EMOTIONAL_TONES:
+            return {
+                "level": base_level,
+                "clamped": bool(has_explicit_signal),
+                "reason": "heavy_emotional_tone" if has_explicit_signal else "",
+            }
 
-        return normalized_level
+        if not has_explicit_signal:
+            return {
+                "level": base_level,
+                "clamped": False,
+                "reason": "",
+            }
+
+        return {
+            "level": self.INTIMATE_MODE_LEVELS[normalized_mode],
+            "clamped": False,
+            "reason": "",
+        }
 
     def _get_config(self) -> dict:
         if self.settings_service is None:
@@ -137,3 +164,9 @@ class AccessEngine:
             return False
 
         return any(marker in lowered for marker in self.EXPLICIT_INTIMACY_MARKERS)
+
+    def _normalize_access_level(self, access_level: str) -> str:
+        normalized = str(access_level or "analysis").strip().lower() or "analysis"
+        if normalized in self.VALID_ACCESS_LEVELS:
+            return normalized
+        return "analysis"

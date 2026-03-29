@@ -5,6 +5,8 @@ from typing import Any
 
 class HumanMemoryService:
     MAX_ITEMS_PER_LIST = 6
+    MAX_CALLBACK_CANDIDATES = 3
+    INACTIVITY_DECAY_GRACE_HOURS = 72
 
     INTEREST_PATTERNS = [
         r"(?:я люблю|мне нравится|обожаю|увлекаюсь|интересуюсь)\s+([^.!?\n]+)",
@@ -40,16 +42,24 @@ class HumanMemoryService:
             return current_state
 
         profile = self._normalize_profile(current_state.get("user_profile"))
-        relationship = self._normalize_relationship(current_state.get("relationship_state"))
+        relationship = self._apply_inactivity_decay(
+            self._normalize_relationship(current_state.get("relationship_state"))
+        )
         lowered = normalized_text.lower()
 
         for value in self._extract_patterns(lowered, self.INTEREST_PATTERNS):
             profile["interests"] = self._remember(profile["interests"], value)
-            relationship["callback_candidates"] = self._remember(relationship["callback_candidates"], value)
+            relationship["callback_candidates"] = self._remember_callback(
+                relationship["callback_candidates"],
+                value,
+            )
 
         for value in self._extract_patterns(lowered, self.GOAL_PATTERNS):
             profile["goals"] = self._remember(profile["goals"], value)
-            relationship["callback_candidates"] = self._remember(relationship["callback_candidates"], value)
+            relationship["callback_candidates"] = self._remember_callback(
+                relationship["callback_candidates"],
+                value,
+            )
 
         for value in self._extract_patterns(lowered, self.TRAIT_PATTERNS):
             profile["personality_traits"] = self._remember(profile["personality_traits"], value)
@@ -98,7 +108,9 @@ class HumanMemoryService:
         source: str = "reply",
     ) -> dict[str, Any]:
         current_state = (state or {}).copy()
-        relationship = self._normalize_relationship(current_state.get("relationship_state"))
+        relationship = self._apply_inactivity_decay(
+            self._normalize_relationship(current_state.get("relationship_state"))
+        )
         relationship["last_assistant_message_at"] = self._now_iso()
         relationship["last_interaction_at"] = relationship["last_assistant_message_at"]
 
@@ -161,11 +173,10 @@ class HumanMemoryService:
         return "base"
 
     def build_reengagement_prompt(self, state: dict[str, Any], *, hours_silent: int, active_mode: str) -> str:
+        context = self.get_reengagement_context(state)
+        topic = context["topic"]
+        callback_hint = context["callback_hint"]
         relationship = self._normalize_relationship((state or {}).get("relationship_state"))
-        profile = self._normalize_profile((state or {}).get("user_profile"))
-
-        topic = relationship.get("last_user_topic") or (profile["recurring_topics"][0] if profile["recurring_topics"] else "")
-        callback_hint = relationship["callback_candidates"][0] if relationship["callback_candidates"] else ""
         preference = self._render_preferences(relationship.get("response_preferences", {}))
 
         parts = [
@@ -187,6 +198,18 @@ class HumanMemoryService:
 
         return "\n".join(parts)
 
+    def get_reengagement_context(self, state: dict[str, Any]) -> dict[str, str]:
+        relationship = self._normalize_relationship((state or {}).get("relationship_state"))
+        profile = self._normalize_profile((state or {}).get("user_profile"))
+        topic = relationship.get("last_user_topic") or (
+            profile["recurring_topics"][0] if profile["recurring_topics"] else ""
+        )
+        callback_hint = relationship["callback_candidates"][0] if relationship["callback_candidates"] else ""
+        return {
+            "topic": str(topic or "").strip(),
+            "callback_hint": str(callback_hint or "").strip(),
+        }
+
     def get_reengagement_metadata(self, state: dict[str, Any]) -> dict[str, Any]:
         return dict((state or {}).get("reengagement") or {})
 
@@ -196,6 +219,7 @@ class HumanMemoryService:
         *,
         min_hours_between: int,
         last_user_message_at: str | None,
+        callback_topic: str | None = None,
     ) -> bool:
         meta = self.get_reengagement_metadata(state)
         last_sent_at = meta.get("last_sent_at")
@@ -209,7 +233,24 @@ class HumanMemoryService:
         if last_triggered_from_user_at and last_triggered_from_user_at == last_user_message_at:
             return False
 
+        normalized_callback_topic = str(callback_topic or "").strip().lower()
+        if normalized_callback_topic:
+            last_callback_topic = str(meta.get("last_callback_topic") or "").strip().lower()
+            if last_callback_topic == normalized_callback_topic:
+                return False
+
         return True
+
+    def mark_reengagement_callback(self, state: dict[str, Any], callback_topic: str | None) -> dict[str, Any]:
+        normalized_topic = str(callback_topic or "").strip()
+        if not normalized_topic:
+            return dict(state or {})
+
+        updated = dict(state or {})
+        reengagement = dict(updated.get("reengagement") or {})
+        reengagement["last_callback_topic"] = normalized_topic
+        updated["reengagement"] = reengagement
+        return updated
 
     def hours_since_iso(self, value: str | None, fallback: int = 24) -> int:
         parsed = self._parse_iso(value)
@@ -234,7 +275,7 @@ class HumanMemoryService:
             "warmth": self._coerce_float(relationship.get("warmth"), 0.18),
             "playfulness": self._coerce_float(relationship.get("playfulness"), 0.08),
             "shared_threads": list(relationship.get("shared_threads") or []),
-            "callback_candidates": list(relationship.get("callback_candidates") or []),
+            "callback_candidates": list(relationship.get("callback_candidates") or [])[: self.MAX_CALLBACK_CANDIDATES],
             "communication_style": dict(relationship.get("communication_style") or {}),
             "response_preferences": dict(relationship.get("response_preferences") or {}),
             "last_user_message_at": relationship.get("last_user_message_at"),
@@ -342,6 +383,14 @@ class HumanMemoryService:
         updated.insert(0, normalized)
         return updated[: self.MAX_ITEMS_PER_LIST]
 
+    def _remember_callback(self, items: list[str], value: str) -> list[str]:
+        normalized = value.strip()
+        if not normalized:
+            return list(items or [])
+        updated = [item for item in (items or []) if item != normalized]
+        updated.insert(0, normalized)
+        return updated[: self.MAX_CALLBACK_CANDIDATES]
+
     def _contains_any(self, text: str, markers: list[str]) -> bool:
         return any(marker in text for marker in markers)
 
@@ -353,6 +402,23 @@ class HumanMemoryService:
             return float(value)
         except (TypeError, ValueError):
             return fallback
+
+    def _apply_inactivity_decay(self, relationship: dict[str, Any]) -> dict[str, Any]:
+        current = dict(relationship or {})
+        parsed = self._parse_iso(current.get("last_interaction_at"))
+        if parsed is None:
+            return current
+
+        hours_since = (datetime.now(timezone.utc) - parsed).total_seconds() / 3600.0
+        if hours_since <= self.INACTIVITY_DECAY_GRACE_HOURS:
+            return current
+
+        decay_days = min(5.0, (hours_since - self.INACTIVITY_DECAY_GRACE_HOURS) / 24.0)
+        current["trust"] = self._shift_metric(current.get("trust", 0.0), -0.015 * decay_days)
+        current["warmth"] = self._shift_metric(current.get("warmth", 0.0), -0.02 * decay_days)
+        current["playfulness"] = self._shift_metric(current.get("playfulness", 0.0), -0.025 * decay_days)
+        current["callback_candidates"] = list(current.get("callback_candidates") or [])[: self.MAX_CALLBACK_CANDIDATES]
+        return current
 
     def _render_preferences(self, preferences: dict[str, Any]) -> str:
         fragments: list[str] = []

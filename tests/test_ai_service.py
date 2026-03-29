@@ -68,6 +68,15 @@ class FakeHumanMemoryService:
     def build_reengagement_prompt(self, state, *, hours_silent, active_mode):
         return ""
 
+    def get_reengagement_context(self, state):
+        return {"topic": "", "callback_hint": ""}
+
+    def mark_reengagement_callback(self, state, callback_topic):
+        updated = dict(state)
+        if callback_topic:
+            updated["callback_topic"] = callback_topic
+        return updated
+
 
 class FakePromptBuilder:
     def build_system_prompt(self, **kwargs):
@@ -77,6 +86,13 @@ class FakePromptBuilder:
 class FakeAccessEngine:
     def update_access_level(self, state):
         return "analysis"
+
+    def evaluate_access(self, **kwargs):
+        return {
+            "level": "analysis",
+            "clamped": False,
+            "reason": "",
+        }
 
     def apply_safety_guardrails(self, **kwargs):
         return "analysis"
@@ -135,6 +151,7 @@ class AIServiceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         stats = service.get_runtime_stats()
         self.assertEqual(stats["requests_queue_timed_out"], 1)
         self.assertEqual(stats["openai_configured_limit"], 8)
+        self.assertEqual(stats["crisis_bypass_count"], 0)
 
     async def test_generate_response_returns_crisis_bypass_without_model_call(self):
         client = FakeOpenAIClient()
@@ -160,6 +177,7 @@ class AIServiceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(client.called)
         self.assertIn("экстренные службы", result.response.lower())
         self.assertIn("не оставайся один", result.response.lower())
+        self.assertEqual(service.get_runtime_stats()["crisis_bypass_count"], 1)
 
 
 if __name__ == "__main__":

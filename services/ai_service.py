@@ -93,6 +93,9 @@ class AIService:
         self._max_queue_wait_ms = 0.0
         self._last_run_ms = 0.0
         self._max_run_ms = 0.0
+        self._crisis_bypass_count = 0
+        self._intimacy_clamp_count = 0
+        self._reengagement_clamped_count = 0
 
     async def start(self) -> None:
         if self._started:
@@ -133,6 +136,9 @@ class AIService:
             "max_queue_wait_ms": self._max_queue_wait_ms,
             "last_run_ms": self._last_run_ms,
             "max_run_ms": self._max_run_ms,
+            "crisis_bypass_count": self._crisis_bypass_count,
+            "intimacy_clamp_count": self._intimacy_clamp_count,
+            "reengagement_clamped_count": self._reengagement_clamped_count,
         }
         if hasattr(self.client, "get_runtime_stats"):
             for key, value in self.client.get_runtime_stats().items():
@@ -234,8 +240,9 @@ class AIService:
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
         active_mode = self._resolve_effective_mode(new_state, runtime_settings)
         crisis_signal = detect_crisis_signal(user_message)
-        if crisis_signal is not None:
+        if crisis_signal == "direct_self_harm":
             logger.warning("[AI] user_id=%s crisis_signal=%s", user_id, crisis_signal)
+            self._crisis_bypass_count += 1
             crisis_response = build_crisis_support_response(crisis_signal)
             new_state = self.human_memory_service.apply_assistant_message(
                 new_state,
@@ -247,15 +254,20 @@ class AIService:
                 new_state=new_state,
                 tokens_used=None,
             )
+        if crisis_signal is not None:
+            logger.info("[AI] user_id=%s crisis_signal=%s no_bypass", user_id, crisis_signal)
 
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
         access_level = self.access_engine.update_access_level(new_state)
-        access_level = self.access_engine.apply_safety_guardrails(
+        access_decision = self.access_engine.evaluate_access(
             state=new_state,
             access_level=access_level,
             active_mode=active_mode,
             user_message=user_message,
         )
+        access_level = str(access_decision["level"])
+        if bool(access_decision.get("clamped")):
+            self._intimacy_clamp_count += 1
         memory_messages = await self.memory_engine.build_context(
             history,
             max_tokens=ai_profile["memory_max_tokens"],
@@ -352,13 +364,16 @@ class AIService:
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
         access_level = self.access_engine.update_access_level(state)
-        access_level = self.access_engine.apply_safety_guardrails(
+        access_decision = self.access_engine.evaluate_access(
             state=state,
             access_level=access_level,
             active_mode=active_mode,
             user_message="",
             is_proactive=True,
         )
+        access_level = str(access_decision["level"])
+        if bool(access_decision.get("clamped")):
+            self._reengagement_clamped_count += 1
         memory_messages = await self.memory_engine.build_context(
             history,
             max_tokens=ai_profile["memory_max_tokens"],
@@ -371,6 +386,8 @@ class AIService:
         relationship = (state or {}).get("relationship_state", {})
         last_user_message_at = relationship.get("last_user_message_at")
         hours_silent = self.human_memory_service.hours_since_iso(last_user_message_at, fallback=24)
+        callback_context = self.human_memory_service.get_reengagement_context(state)
+        callback_topic = callback_context.get("callback_hint") or callback_context.get("topic") or ""
 
         system_prompt = self.prompt_builder.build_system_prompt(
             state=state,
@@ -408,6 +425,10 @@ class AIService:
             state.copy(),
             response_text,
             source="reengagement",
+        )
+        new_state = self.human_memory_service.mark_reengagement_callback(
+            new_state,
+            callback_topic,
         )
         new_state["adaptive_mode"] = active_mode
 

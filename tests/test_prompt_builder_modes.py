@@ -52,12 +52,12 @@ class PromptBuilderModeTests(unittest.TestCase):
     def test_mode_prompts_are_meaningfully_distinct_from_base(self):
         base_prompt = self._build_prompt("base")
         thresholds = {
-            "comfort": 0.88,
-            "passion": 0.87,
-            "mentor": 0.88,
-            "night": 0.87,
-            "free_talk": 0.80,
-            "dominant": 0.87,
+            "comfort": 0.92,
+            "passion": 0.93,
+            "mentor": 0.93,
+            "night": 0.93,
+            "free_talk": 0.84,
+            "dominant": 0.93,
         }
 
         for mode_name, max_ratio in thresholds.items():

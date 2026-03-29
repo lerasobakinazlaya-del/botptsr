@@ -43,10 +43,20 @@ class ResponseGuardrailsTests(unittest.TestCase):
     def test_detect_crisis_signal_for_self_harm(self):
         crisis = detect_crisis_signal("Я не хочу жить и хочу покончить с собой.")
 
-        self.assertEqual(crisis, "self_harm")
+        self.assertEqual(crisis, "direct_self_harm")
+
+    def test_detect_crisis_signal_for_third_party_mention(self):
+        crisis = detect_crisis_signal("Мой друг хочет умереть, я не знаю что делать.")
+
+        self.assertEqual(crisis, "third_party_mention")
+
+    def test_detect_crisis_signal_for_ambiguous_case(self):
+        crisis = detect_crisis_signal("Иногда думаю о смерти и хочу просто исчезнуть.")
+
+        self.assertEqual(crisis, "ambiguous_crisis")
 
     def test_build_crisis_response_mentions_emergency_help(self):
-        response = build_crisis_support_response("self_harm")
+        response = build_crisis_support_response("direct_self_harm")
 
         self.assertIn("экстренные службы", response.lower())
         self.assertIn("не оставайся один", response.lower())

@@ -19,9 +19,7 @@ class PromptBuilder:
         runtime_settings = self.settings_service.get_runtime_settings()
         ai_settings = runtime_settings["ai"]
         mode_config = get_mode_config(active_mode)
-        mode_catalog = self.settings_service.get_mode_catalog().get(active_mode, {})
         mode_instruction = build_mode_instruction(mode_config)
-        mode_description = self._build_mode_description(mode_catalog)
         mode_signature = self._build_mode_signature(
             active_mode=active_mode,
             emotional_tone=str(state.get("emotional_tone") or "neutral"),
@@ -54,7 +52,6 @@ class PromptBuilder:
             templates.get("response_style", ""),
             templates.get("engagement_rules", ""),
             f"{templates['mode_intro']}\n{mode_instruction}",
-            mode_description,
             mode_signature,
             f"{templates['access_intro']}\n{access_rule}",
         ]
@@ -80,42 +77,18 @@ class PromptBuilder:
         active_mode: str,
         access_level: str,
     ) -> str:
-        phase = str(state.get("conversation_phase") or "start")
-        interest = float(state.get("interest", 0.0) or 0.0)
         control = float(state.get("control", 1.0) or 1.0)
-        attraction = float(state.get("attraction", 0.0) or 0.0)
         fatigue = float(state.get("fatigue", 0.0) or 0.0)
         irritation = float(state.get("irritation", 0.0) or 0.0)
         emotional_tone = str(state.get("emotional_tone") or "neutral")
 
         lines = [
-            f"- Фаза разговора: {self._describe_phase(phase)}.",
-            f"- Сигнал пользователя прямо сейчас: {self._describe_emotional_tone(emotional_tone)}.",
-            f"- Уровень контакта: {self._describe_rapport(interest, attraction)}.",
+            f"- Эмоциональный фон пользователя: {self._describe_emotional_tone(emotional_tone)}.",
             f"- Давление в ответе: {self._describe_pressure(fatigue, irritation)}.",
-            f"- Допустимая близость: {self._describe_access_budget(access_level, control)}.",
-            f"- Текстура режима: удерживай '{active_mode}' в интонации, а не играй его как маску.",
+            f"- Активный режим: '{active_mode}', доступ к близости {self._describe_access_budget(access_level, control)}.",
         ]
-        adaptive_mode = str(state.get("adaptive_mode") or "").strip()
-        if adaptive_mode and adaptive_mode != active_mode:
-            lines.append(f"- Допустимая адаптация сейчас: можно мягко приблизиться к интонации '{adaptive_mode}'.")
-        if "interaction_count" in state:
-            lines.append(f"- Количество взаимодействий: {state.get('interaction_count')}.")
 
         return "\n".join(lines)
-
-    def _build_mode_description(self, mode_catalog: dict) -> str:
-        if not mode_catalog:
-            return ""
-
-        lines = [
-            f"Название режима: {mode_catalog.get('name', '')}",
-            f"Описание режима: {mode_catalog.get('description', '')}",
-            f"Тон режима: {mode_catalog.get('tone', '')}",
-            f"Внутреннее состояние: {mode_catalog.get('emotional_state', '')}",
-            f"Правила поведения:\n{mode_catalog.get('behavior_rules', '')}",
-        ]
-        return "\n".join(line for line in lines if line.strip())
 
     def _build_mode_signature(
         self,
@@ -244,26 +217,6 @@ class PromptBuilder:
         if fatigue >= 0.55 or irritation >= 0.45:
             lines.append("- Диалог выглядит перегруженным. Будь спокойнее, короче и бережнее обычного.")
 
-        if active_mode == "free_talk":
-            lines.append("- В free_talk звучишь просто, приземленно и по-человечески, а не идеально выверенно или терапевтично.")
-            lines.append("- В free_talk одной-двух фраз иногда более чем достаточно; не раздувай короткие моменты в длинные абзацы.")
-            lines.append("- Не заканчивай ответ вопросом по привычке. Спрашивай только если это правда помогает.")
-        elif active_mode == "comfort":
-            lines.append("- В режиме поддержки сначала дай телу и психике пользователя чуть больше воздуха, потом уже предлагай мысль.")
-            lines.append("- Не делай ответ слишком анализирующим: в comfort важнее теплота и чувство опоры.")
-        elif active_mode == "mentor":
-            lines.append("- В режиме наставника держи мысль собранной: показывай структуру, различай важное и второстепенное.")
-            lines.append("- Можно быть чуть более прямым и интеллектуально точным, но не теряй человечность.")
-        elif active_mode == "passion":
-            lines.append("- В режиме близости флирт должен быть отзывчивым и тонким; никакой механической соблазнительности.")
-            lines.append("- Не превращай каждый ответ в заигрывание: если момент серьезный, близость пусть останется фоном.")
-        elif active_mode == "night":
-            lines.append("- В полуночном режиме допускается более низкий темп, плотная интонация и ощущение ведущей подачи.")
-            lines.append("- Ночь держится на напряжении и вкусе, а не на прямолинейности.")
-        elif active_mode == "dominant":
-            lines.append("- В доминирующем режиме формулировки могут быть короче и собраннее, с ощущением внутреннего контроля.")
-            lines.append("- Никогда не используй унижение, грубое давление или небезопасную coercive динамику.")
-
         if active_mode in {"free_talk", "ptsd"} and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
             lines.append("- В активированном или PTSD-похожем состоянии используй простой язык и предлагай не больше одной опоры или одного следующего шага.")
         elif active_mode == "comfort" and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
@@ -283,17 +236,8 @@ class PromptBuilder:
         if warmth >= 8:
             lines.append("- Тепло должно быть заметно в самих словах, но без сиропа и без фальшивой мягкости.")
 
-        if flirt >= 6:
-            lines.append("- Если близость уместна, держи ее тонкой, вкусной и зависящей от сигнала пользователя.")
-        elif access_level in {"observation", "analysis"}:
-            lines.append("- Близость пока должна быть сдержанной; не усиливай интимность раньше сигнала пользователя.")
-
-        if dominance >= 7:
-            lines.append("- Звучишь собранно и ведущe, но никогда не жестко, не унизительно и не принуждающе.")
-
         lines.append(self._build_emoji_rule(emoji_level))
         lines.append(self._build_text_formatting_rule(allow_bold, allow_italic))
-        lines.append(f"- Активный режим: '{active_mode}'. Дай его почувствовать в тоне, не превращая ответ в ролевую заготовку.")
 
         return "\n".join(line for line in lines if line.strip())
 

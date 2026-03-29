@@ -10,7 +10,7 @@ DEFAULT_PTSD_BLOCKED_PHRASES = [
     "твои чувства валидны",
 ]
 
-SELF_HARM_PATTERNS = [
+DIRECT_SELF_HARM_PATTERNS = [
     "хочу умереть",
     "не хочу жить",
     "покончить с собой",
@@ -26,19 +26,27 @@ SELF_HARM_PATTERNS = [
     "suicide",
 ]
 
-HARM_TO_OTHERS_PATTERNS = [
-    "убью его",
-    "убью ее",
-    "убью их",
-    "хочу убить",
-    "навредить кому-то",
-    "причинить вред другому",
-    "сделаю больно кому-то",
-    "kill him",
-    "kill her",
-    "kill them",
-    "hurt someone",
-    "hurt somebody",
+THIRD_PARTY_CRISIS_PATTERNS = [
+    "мой друг хочет умереть",
+    "мой друг не хочет жить",
+    "подруга хочет умереть",
+    "друг хочет умереть",
+    "мой близкий хочет умереть",
+    "он хочет покончить с собой",
+    "она хочет покончить с собой",
+    "someone wants to kill themselves",
+    "my friend wants to die",
+]
+
+AMBIGUOUS_CRISIS_PATTERNS = [
+    "не хочу жить так",
+    "лучше бы меня не было",
+    "хочу исчезнуть",
+    "хочу пропасть",
+    "мысли о смерти",
+    "думаю о смерти",
+    "не вижу смысла жить",
+    "все бессмысленно",
 ]
 
 
@@ -47,22 +55,23 @@ def detect_crisis_signal(text: str) -> str | None:
     if not lowered:
         return None
 
-    if any(pattern in lowered for pattern in SELF_HARM_PATTERNS):
-        return "self_harm"
+    if any(pattern in lowered for pattern in DIRECT_SELF_HARM_PATTERNS):
+        return "direct_self_harm"
 
-    if any(pattern in lowered for pattern in HARM_TO_OTHERS_PATTERNS):
-        return "harm_to_others"
+    if any(pattern in lowered for pattern in THIRD_PARTY_CRISIS_PATTERNS):
+        return "third_party_mention"
+
+    if any(pattern in lowered for pattern in AMBIGUOUS_CRISIS_PATTERNS):
+        return "ambiguous_crisis"
 
     return None
 
 
 def build_crisis_support_response(kind: str) -> str:
-    if kind == "harm_to_others":
+    if kind != "direct_self_harm":
         return (
-            "Сейчас важнее всего не оставаться с этим импульсом один на один.\n\n"
-            "Если есть риск, что ты можешь причинить вред другому человеку в ближайшее время, "
-            "сразу отойди от того, чем можно навредить, выйди из контакта с человеком и срочно "
-            "обратись в местные экстренные службы или к человеку рядом, который может вмешаться."
+            "Если риск немедленный, важнее всего сразу обратиться за срочной реальной помощью "
+            "и не оставаться с этим одному."
         )
 
     return (
