@@ -11,6 +11,7 @@ from handlers.modes import show_modes_menu
 from handlers.payments import (
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
+    OFFER_TRIGGER_PREVIEW_EXHAUSTED,
     show_premium_menu,
 )
 from services.ai_profile_service import resolve_ai_profile
@@ -404,7 +405,7 @@ async def chat_handler(
                 payment_service,
                 user_service,
                 admin_settings_service,
-                trigger=OFFER_TRIGGER_MODE_LOCKED,
+                trigger=OFFER_TRIGGER_PREVIEW_EXHAUSTED,
                 mode_name=mode_name,
                 premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
             )

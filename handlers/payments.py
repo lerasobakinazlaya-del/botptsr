@@ -16,6 +16,14 @@ CALLBACK_PREMIUM_BACK_TO_MODES = "premium_back_to_modes"
 OFFER_TRIGGER_DEFAULT = "default"
 OFFER_TRIGGER_LIMIT_REACHED = "limit_reached"
 OFFER_TRIGGER_MODE_LOCKED = "mode_locked"
+OFFER_TRIGGER_PREVIEW_EXHAUSTED = "preview_exhausted"
+
+SUPPORTED_OFFER_TRIGGERS = {
+    OFFER_TRIGGER_DEFAULT,
+    OFFER_TRIGGER_LIMIT_REACHED,
+    OFFER_TRIGGER_MODE_LOCKED,
+    OFFER_TRIGGER_PREVIEW_EXHAUSTED,
+}
 
 
 def _pick_offer_variant(user_id: int) -> str:
@@ -66,11 +74,46 @@ def _build_offer_intro(
                 premium_limit=premium_limit or 0,
                 price_label=price_label,
             )
+    elif trigger == OFFER_TRIGGER_PREVIEW_EXHAUSTED:
+        trigger_line = str(
+            payment_settings.get("offer_preview_exhausted_template")
+            or payment_settings.get("offer_locked_mode_template")
+            or ""
+        ).strip()
+        if trigger_line:
+            trigger_line = trigger_line.format(
+                mode_name=mode_name or "Режим",
+                access_days=access_days,
+                premium_limit=premium_limit or 0,
+                price_label=price_label,
+            )
 
     return [part for part in (trigger_line, cta_text, price_line, benefits_text) if part]
 
 
-def _build_premium_menu_keyboard(payment_settings: dict) -> InlineKeyboardMarkup:
+def _normalize_offer_trigger(value: str | None) -> str:
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in SUPPORTED_OFFER_TRIGGERS else OFFER_TRIGGER_DEFAULT
+
+
+def _build_buy_premium_callback_data(trigger: str) -> str:
+    normalized_trigger = _normalize_offer_trigger(trigger)
+    if normalized_trigger == OFFER_TRIGGER_DEFAULT:
+        return CALLBACK_BUY_PREMIUM
+    return f"{CALLBACK_BUY_PREMIUM}:{normalized_trigger}"
+
+
+def _parse_buy_premium_callback_data(data: str | None) -> str:
+    raw = str(data or "").strip()
+    if raw == CALLBACK_BUY_PREMIUM:
+        return OFFER_TRIGGER_DEFAULT
+    prefix = f"{CALLBACK_BUY_PREMIUM}:"
+    if raw.startswith(prefix):
+        return _normalize_offer_trigger(raw[len(prefix):])
+    return OFFER_TRIGGER_DEFAULT
+
+
+def _build_premium_menu_keyboard(payment_settings: dict, *, trigger: str) -> InlineKeyboardMarkup:
     price_label = format_price_label(payment_settings)
     access_days = max(1, int(payment_settings.get("access_duration_days", 30)))
     access_days_label = format_access_days_label(access_days)
@@ -90,7 +133,7 @@ def _build_premium_menu_keyboard(payment_settings: dict) -> InlineKeyboardMarkup
     back_text = str(payment_settings.get("premium_menu_back_button_text") or "← К режимам").strip() or "← К режимам"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=buy_text, callback_data=CALLBACK_BUY_PREMIUM)],
+            [InlineKeyboardButton(text=buy_text, callback_data=_build_buy_premium_callback_data(trigger))],
             [InlineKeyboardButton(text=back_text, callback_data=CALLBACK_PREMIUM_BACK_TO_MODES)],
         ]
     )
@@ -231,7 +274,7 @@ async def show_premium_menu(
         )
     )
     text = "\n\n".join(part for part in text_parts if part).strip() or str(payment_settings.get("product_description") or "").strip()
-    reply_markup = _build_premium_menu_keyboard(payment_settings)
+    reply_markup = _build_premium_menu_keyboard(payment_settings, trigger=trigger)
 
     if edit_current and hasattr(message, "edit_text"):
         try:
@@ -307,7 +350,7 @@ async def open_premium_menu_callback(callback: CallbackQuery, payment_service, u
     )
 
 
-@router.callback_query(F.data == CALLBACK_BUY_PREMIUM)
+@router.callback_query(F.data.startswith(CALLBACK_BUY_PREMIUM))
 async def buy_premium_callback(callback: CallbackQuery, payment_service, user_service):
     await user_service.ensure_user(callback.from_user)
     await callback.answer()
@@ -315,7 +358,12 @@ async def buy_premium_callback(callback: CallbackQuery, payment_service, user_se
     if callback.message is None or not hasattr(callback.message, "answer"):
         return
 
-    await send_premium_offer(callback.message, payment_service, user_service)
+    await send_premium_offer(
+        callback.message,
+        payment_service,
+        user_service,
+        trigger=_parse_buy_premium_callback_data(callback.data),
+    )
 
 
 @router.pre_checkout_query()

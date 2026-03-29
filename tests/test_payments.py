@@ -8,6 +8,7 @@ from handlers.payments import (
     CALLBACK_OPEN_PREMIUM_MENU,
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
+    OFFER_TRIGGER_PREVIEW_EXHAUSTED,
     send_premium_offer,
     show_premium_menu,
 )
@@ -51,6 +52,7 @@ class FakePaymentServiceForOffer:
             "offer_price_line_template": "Сейчас: {price_label} за {access_days} дней.",
             "offer_limit_reached_template": "Бесплатный лимит закончился. Premium даст {premium_limit} сообщений в день на {access_days} дней.",
             "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Лимит Premium: {premium_limit} сообщений в день.",
+            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium вернёт доступ.",
             "premium_menu_description_template": "Premium открывает: {premium_modes_list}. Цена: {price_label} на {access_days_label}. Лимит: {premium_daily_limit}.",
             "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
             "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
@@ -185,6 +187,7 @@ class FakeSettingsService:
                 "product_description": "Открой премиум-режимы.",
                 "premium_benefits_text": "Преимущества Premium",
                 "buy_cta_text": "Купить Premium",
+                "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился.",
                 "premium_menu_description_template": "Premium открывает: {premium_modes_list}.",
                 "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
                 "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
@@ -248,8 +251,32 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Premium открывает: 🔥 Близость, 🧠 Наставник, 🌘 Свободный.", text)
         self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день, 🌘 Свободный — 2/день.", text)
         keyboard = message.answers[0]["reply_markup"]
-        self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, CALLBACK_BUY_PREMIUM)
+        self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, f"{CALLBACK_BUY_PREMIUM}:{OFFER_TRIGGER_MODE_LOCKED}")
         self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
+
+    async def test_show_premium_menu_uses_preview_exhausted_trigger_in_buy_button(self):
+        message = FakeMessage()
+        payment_service = FakePaymentServiceForOffer()
+        user_service = FakeUserServiceForOffer()
+        admin_settings_service = FakeAdminSettingsServiceForOffer()
+
+        result = await show_premium_menu(
+            message,
+            payment_service,
+            user_service,
+            admin_settings_service,
+            trigger=OFFER_TRIGGER_PREVIEW_EXHAUSTED,
+            mode_name="Свободный",
+            premium_limit=120,
+        )
+
+        self.assertTrue(result)
+        self.assertIn("Пробный доступ к режиму Свободный на сегодня закончился.", message.answers[0]["text"])
+        keyboard = message.answers[0]["reply_markup"]
+        self.assertEqual(
+            keyboard.inline_keyboard[0][0].callback_data,
+            f"{CALLBACK_BUY_PREMIUM}:{OFFER_TRIGGER_PREVIEW_EXHAUSTED}",
+        )
 
     async def test_show_premium_menu_includes_active_subscription_status(self):
         message = FakeMessage()
@@ -454,7 +481,6 @@ class ModesKeyboardTests(unittest.TestCase):
             {
                 "ui": {
                     "premium_button_text": "💎 Premium",
-                    "premium_button_text_template": "💎 Premium • 499 RUB / 30 дней",
                     "modes_premium_marker": "🔒",
                 },
                 "limits": {},
