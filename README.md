@@ -231,6 +231,9 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 
 Скрипт `deploy/systemd/update_bot.sh`:
 
+- проверяет, что `redis-server` и `redis-cli` установлены на сервере, и при необходимости ставит их через `apt-get`
+- включает и перезапускает `redis-server.service`
+- проверяет Redis через `redis-cli ping` и прерывает деплой, если Redis не отвечает
 - обновляет зависимости
 - проверяет Python-файлы через `compileall`
 - валидирует `config/*.json`
@@ -241,9 +244,20 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 
 Важно:
 
+- `bot.service` и `admin-dashboard.service` теперь стартуют после `redis-server.service`
 - `deploy/systemd/admin-dashboard.service` по умолчанию слушает только `127.0.0.1:8080`
 - скрипт использует `sudo cp`, `sudo systemctl daemon-reload` и `sudo systemctl restart`
 - для автоматического деплоя нужен либо `root`, либо пользователь с passwordless `sudo` на эти команды
+
+## Redis На Сервере
+
+Для systemd-развертывания Redis теперь считается обязательной частью сервера:
+
+- `deploy/oracle/bootstrap.sh` и `deploy/beget/bootstrap.sh` ставят `redis-server`, включают сервис и сразу проверяют `redis-cli ping`
+- `deploy/systemd/update_bot.sh` повторно поднимает Redis на каждом выкатывании и останавливает деплой, если Redis не отвечает
+- для systemd-режима используйте `REDIS_URL=redis://localhost:6379/0`
+
+Это нужно, чтобы бот не уходил в in-memory fallback после рестарта сервера или после выкладки.
 
 ## GitHub Actions деплой
 

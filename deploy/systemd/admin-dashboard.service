@@ -1,6 +1,7 @@
 [Unit]
 Description=Bot Admin Dashboard
-After=network.target
+Wants=redis-server.service
+After=network.target redis-server.service
 
 [Service]
 Type=simple

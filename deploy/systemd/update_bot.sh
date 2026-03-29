@@ -6,7 +6,32 @@ BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 BOT_SERVICE="${BOT_SERVICE:-bot.service}"
 ADMIN_SERVICE="${ADMIN_SERVICE:-admin-dashboard.service}"
+REDIS_SERVICE="${REDIS_SERVICE:-redis-server.service}"
 SKIP_GIT="${SKIP_GIT:-0}"
+
+ensure_redis() {
+  echo "==> Ensuring Redis is installed and running"
+
+  if ! command -v redis-server >/dev/null 2>&1 || ! command -v redis-cli >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo apt-get install -y redis-server
+    else
+      echo "Redis is not installed and apt-get is unavailable."
+      echo "Install Redis manually or set a working REDIS_URL before deployment."
+      exit 1
+    fi
+  fi
+
+  sudo systemctl enable "${REDIS_SERVICE}"
+  sudo systemctl restart "${REDIS_SERVICE}"
+
+  if ! redis-cli ping >/dev/null 2>&1; then
+    echo "Redis ping failed after restart."
+    sudo systemctl --no-pager --full status "${REDIS_SERVICE}" || true
+    exit 1
+  fi
+}
 
 echo "==> Updating project in ${APP_DIR}"
 cd "${APP_DIR}"
@@ -29,6 +54,8 @@ echo "==> Preparing virtual environment"
 if [ ! -x "./venv/bin/python" ]; then
   "${PYTHON_BIN}" -m venv venv
 fi
+
+ensure_redis
 
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
@@ -83,6 +110,6 @@ echo "==> Restarting services"
 sudo systemctl restart "${BOT_SERVICE}" "${ADMIN_SERVICE}"
 
 echo "==> Service status"
-sudo systemctl --no-pager --full status "${BOT_SERVICE}" "${ADMIN_SERVICE}" || true
+sudo systemctl --no-pager --full status "${REDIS_SERVICE}" "${BOT_SERVICE}" "${ADMIN_SERVICE}" || true
 
 echo "==> Deployment completed"

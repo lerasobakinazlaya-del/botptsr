@@ -1,6 +1,7 @@
 [Unit]
 Description=Telegram Bot
-After=network.target
+Wants=redis-server.service
+After=network.target redis-server.service
 
 [Service]
 Type=simple

@@ -24,6 +24,12 @@ $PYTHON_BIN -m venv venv
 sudo systemctl enable redis-server
 sudo systemctl restart redis-server
 
+if ! redis-cli ping >/dev/null 2>&1; then
+  echo "Redis did not respond to ping after bootstrap."
+  sudo systemctl --no-pager --full status redis-server || true
+  exit 1
+fi
+
 sudo cp deploy/systemd/bot.service /etc/systemd/system/bot.service
 sudo cp deploy/systemd/admin-dashboard.service /etc/systemd/system/admin-dashboard.service
 sudo systemctl daemon-reload
