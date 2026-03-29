@@ -58,8 +58,13 @@ fi
 
 echo "==> Writing release metadata"
 mkdir -p config
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-CURRENT_COMMIT="$(git rev-parse HEAD)"
+if [ -d .git ]; then
+  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  CURRENT_COMMIT="$(git rev-parse HEAD)"
+else
+  CURRENT_BRANCH="${DEPLOY_BRANCH:-${BRANCH}}"
+  CURRENT_COMMIT="${DEPLOY_COMMIT:-unknown}"
+fi
 DEPLOYED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 cat > config/release.json <<EOF
 {

@@ -100,6 +100,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           APP_DIR: ${{ github.event.inputs.app_dir }}
           DEPLOY_BRANCH: ${{ steps.vars.outputs.branch }}
+          DEPLOY_COMMIT: ${{ github.sha }}
         run: |
           ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" "
             set -e
@@ -109,5 +110,5 @@ jobs:
             find '${APP_DIR}/deploy' -type f \( -name '*.sh' -o -name '*.service' \) -exec sed -i 's/\r$//' {} +
             chmod +x '${APP_DIR}/deploy/systemd/update_bot.sh'
             cd '${APP_DIR}'
-            SKIP_GIT=1 APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'
+            SKIP_GIT=1 APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' DEPLOY_COMMIT='${DEPLOY_COMMIT}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'
           "
