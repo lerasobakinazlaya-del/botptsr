@@ -479,12 +479,18 @@ async def api_mode_catalog_settings(request: Request, _: str = Depends(require_a
 async def api_users(
     query: str = "",
     limit: int = 50,
+    sort_by: str = "created_desc",
     _: str = Depends(require_auth),
 ):
     return {
-        "items": await container.user_service.search_users(query=query, limit=limit),
+        "items": await container.user_service.search_users(
+            query=query,
+            limit=limit,
+            sort_by=sort_by,
+        ),
         "query": query,
         "limit": limit,
+        "sort_by": sort_by,
     }
 
 
@@ -994,6 +1000,14 @@ def _dashboard_html() -> str:
             <h3>Поиск, рассылка и список</h3>
             <div class="toolbar">
               <input id="user-search" placeholder="ID, имя пользователя или имя">
+              <select id="user-sort">
+                <option value="created_desc">Новые сначала</option>
+                <option value="premium_active_first">С Premium наверху</option>
+                <option value="premium_expiry_asc">Подписка скоро закончится</option>
+                <option value="premium_expiry_desc">Подписка закончится нескоро</option>
+                <option value="premium_expiring_soon">Скоро истекают наверху</option>
+                <option value="premium_expired">Истекшие наверху</option>
+              </select>
               <button class="primary" id="search-users">Найти</button>
               <button id="reset-users">Сбросить</button>
             </div>
@@ -1565,8 +1579,6 @@ def _dashboard_html() -> str:
       $('#config-files').innerHTML=fileTable(state.health.config_files)
     }
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
-    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'} • Premium до: ${user.premium_expires_at||'—'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
-    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${esc(user.premium_expires_at||'—')}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
     function renderUsers(){renderUserModeOptions();if(!state.users)return;$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
@@ -1799,7 +1811,8 @@ def _dashboard_html() -> str:
     }
     function testPayload(){return {active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
     function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
-    async function refreshUsers(query){const search=query??$('#user-search').value.trim();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100`);renderUsers()}
+    function currentUserSort(){return $('#user-sort')?.value?.trim()||'created_desc'}
+    async function refreshUsers(query){const search=query??$('#user-search').value.trim();const sortBy=currentUserSort();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100&sort_by=${encodeURIComponent(sortBy)}`);if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}renderUsers()}
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
     async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
     async function sendConversationMessage(){const rawUserId=String($('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||state.currentConversation?.user?.id||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const textarea=$('#conversation_outbound_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст сообщения');const button=$('#send-conversation-message');if(button)button.disabled=true;try{await api(`/api/users/${encodeURIComponent(rawUserId)}/message`,{method:'POST',body:JSON.stringify({text})});if(textarea)textarea.value='';await loadConversation(rawUserId);notice('Сообщение отправлено.')}finally{if(button)button.disabled=false}}
@@ -1811,7 +1824,7 @@ def _dashboard_html() -> str:
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
     function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});$('#test-result').textContent=JSON.stringify(data,null,2)}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
@@ -1832,7 +1845,8 @@ def _dashboard_html() -> str:
     on('#save-user','click',()=>saveCurrentUser().catch(e=>notice(e.message,'error')));
     on('#conversation-long-term-memories','click',event=>{const editButton=event.target.closest('[data-memory-edit]');if(editButton){const memory=(state.currentConversation?.long_term_memories||[]).find(item=>String(item.id)===String(editButton.dataset.memoryEdit));if(memory)fillMemoryEditor(memory);return}const pinButton=event.target.closest('[data-memory-pin]');if(!pinButton)return;toggleMemoryPin(pinButton.dataset.memoryPin,pinButton.dataset.pinned).catch(e=>notice(e.message,'error'))});
     on('#search-users','click',()=>refreshUsers().then(()=>notice('Список пользователей обновлен.')).catch(e=>notice(e.message,'error')));
-    on('#reset-users','click',()=>{$('#user-search').value='';refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});
+    on('#user-sort','change',()=>refreshUsers().then(()=>notice('Сортировка пользователей обновлена.')).catch(e=>notice(e.message,'error')));
+    on('#reset-users','click',()=>{$('#user-search').value='';if($('#user-sort'))$('#user-sort').value='created_desc';refreshUsers('').then(()=>notice('Фильтр сброшен.')).catch(e=>notice(e.message,'error'))});
     on('#users-table','click',event=>{const button=event.target.closest('[data-user-pick]');if(!button)return;$('#user_user_id').value=button.dataset.userPick;loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error'))});
     on('#users-table','change',event=>{const checkbox=event.target.closest('[data-user-select]');if(checkbox){setSelectedUsers([checkbox.dataset.userSelect],checkbox.checked);return}if(event.target.id==='users-select-all-visible'){setSelectedUsers(selectedVisibleUserIds(),event.target.checked)}});
     on('#bulk-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#bulk_message_text',Number(button.dataset.templateIndex))});

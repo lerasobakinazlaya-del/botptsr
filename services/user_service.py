@@ -216,14 +216,20 @@ class UserService:
         rows = await cursor.fetchall()
         return [self._row_to_user(row) for row in rows]
 
-    async def search_users(self, query: str = "", limit: int = 50) -> list[dict[str, Any]]:
+    async def search_users(
+        self,
+        query: str = "",
+        limit: int = 50,
+        sort_by: str = "created_desc",
+    ) -> list[dict[str, Any]]:
         normalized_query = str(query or "").strip()
         safe_limit = max(1, min(limit, 200))
+        order_clause = self._build_user_search_order_clause(sort_by)
 
         if normalized_query:
             like_query = f"%{normalized_query}%"
             cursor = await self.db.connection.execute(
-                """
+                f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
                 WHERE CAST(id AS TEXT) LIKE ?
@@ -236,8 +242,7 @@ class UserService:
                         WHEN LOWER(COALESCE(first_name, '')) = LOWER(?) THEN 2
                         ELSE 3
                     END,
-                    created_at DESC,
-                    id DESC
+                    {order_clause}
                 LIMIT ?
                 """,
                 (
@@ -252,10 +257,10 @@ class UserService:
             )
         else:
             cursor = await self.db.connection.execute(
-                """
+                f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
                 FROM users
-                ORDER BY created_at DESC, id DESC
+                ORDER BY {order_clause}
                 LIMIT ?
                 """,
                 (safe_limit,),
@@ -263,6 +268,44 @@ class UserService:
 
         rows = await cursor.fetchall()
         return [self._row_to_user(row) for row in rows]
+
+    def _build_user_search_order_clause(self, sort_by: str) -> str:
+        normalized = str(sort_by or "").strip().lower() or "created_desc"
+        clauses = {
+            "created_desc": "created_at DESC, id DESC",
+            "premium_expiry_asc": (
+                "CASE "
+                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
+                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL THEN 1 "
+                "ELSE 2 END, "
+                "premium_expires_at ASC, id DESC"
+            ),
+            "premium_expiry_desc": (
+                "CASE "
+                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
+                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL THEN 1 "
+                "ELSE 2 END, "
+                "premium_expires_at DESC, id DESC"
+            ),
+            "premium_active_first": (
+                "CASE WHEN is_premium = 1 AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP) "
+                "THEN 0 ELSE 1 END, "
+                "premium_expires_at ASC, created_at DESC, id DESC"
+            ),
+            "premium_expiring_soon": (
+                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 ELSE 1 END, "
+                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at > CURRENT_TIMESTAMP THEN premium_expires_at ELSE '9999-12-31 23:59:59' END ASC, "
+                "id DESC"
+            ),
+            "premium_expired": (
+                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "AND premium_expires_at <= CURRENT_TIMESTAMP THEN 0 ELSE 1 END, "
+                "premium_expires_at DESC, id DESC"
+            ),
+        }
+        return clauses.get(normalized, clauses["created_desc"])
 
     async def user_exists(self, user_id: int) -> bool:
         cursor = await self.db.connection.execute(
