@@ -112,3 +112,91 @@ jobs:
             cd '${APP_DIR}'
             SKIP_GIT=1 APP_DIR='${APP_DIR}' DEPLOY_BRANCH='${DEPLOY_BRANCH}' DEPLOY_COMMIT='${DEPLOY_COMMIT}' ./deploy/systemd/update_bot.sh '${DEPLOY_BRANCH}'
           "
+
+      - name: Verify Redis and admin health on server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          APP_DIR: ${{ github.event.inputs.app_dir }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- "${APP_DIR}" "${EXPECTED_COMMIT}" <<'REMOTE'
+          set -euo pipefail
+          APP_DIR="$1"
+          EXPECTED_COMMIT="$2"
+          ENV_FILE="${APP_DIR}/.env"
+          HEALTH_JSON="$(mktemp)"
+
+          echo "==> Checking Redis"
+          redis-cli ping | tee /tmp/redis-ping.log
+          grep -qx 'PONG' /tmp/redis-ping.log
+
+          echo "==> Reading admin credentials"
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "Missing $ENV_FILE" >&2
+            exit 1
+          fi
+
+          mapfile -t ADMIN_AUTH < <(/usr/bin/env python3 - "$ENV_FILE" <<'PY'
+          import sys
+          from pathlib import Path
+
+          env_path = Path(sys.argv[1])
+          values = {}
+          for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+              line = raw_line.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              key, value = line.split("=", 1)
+              values[key.strip()] = value.strip().strip('"').strip("'")
+
+          print(values.get("ADMIN_DASHBOARD_USERNAME", ""))
+          print(values.get("ADMIN_DASHBOARD_PASSWORD", ""))
+          PY
+          )
+
+          ADMIN_USER="${ADMIN_AUTH[0]:-}"
+          ADMIN_PASSWORD="${ADMIN_AUTH[1]:-}"
+
+          if [ -z "$ADMIN_USER" ] || [ -z "$ADMIN_PASSWORD" ]; then
+            echo "Admin dashboard credentials are missing in $ENV_FILE" >&2
+            exit 1
+          fi
+
+          echo "==> Fetching admin health"
+          curl --fail --silent --show-error \
+            --user "${ADMIN_USER}:${ADMIN_PASSWORD}" \
+            "http://127.0.0.1:8080/api/health" \
+            > "$HEALTH_JSON"
+
+          echo "==> Validating health payload"
+          /usr/bin/env python3 - "$HEALTH_JSON" "$EXPECTED_COMMIT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          expected_commit = sys.argv[2]
+
+          db_ok = bool(payload.get("db", {}).get("ok"))
+          redis_ok = bool(payload.get("redis", {}).get("ok"))
+          deployed_commit = str(payload.get("release", {}).get("commit") or "")
+
+          if not db_ok:
+              raise SystemExit("db.ok is false")
+          if not redis_ok:
+              raise SystemExit("redis.ok is false")
+          if deployed_commit != expected_commit:
+              raise SystemExit(
+                  f"release.commit mismatch: expected {expected_commit}, got {deployed_commit}"
+              )
+
+          summary = {
+              "db": payload.get("db"),
+              "redis": payload.get("redis"),
+              "release": payload.get("release"),
+          }
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+          REMOTE

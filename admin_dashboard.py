@@ -1,9 +1,11 @@
 import asyncio
 import json
 import secrets
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
@@ -283,14 +285,47 @@ async def _build_health() -> dict[str, Any]:
     except Exception as exc:
         db_status = {"ok": False, "detail": str(exc)}
 
+    redis_url = settings.redis_url
+    redis_parts = urlparse(redis_url)
+    redis_endpoint = redis_parts.hostname or "localhost"
+    if redis_parts.port:
+        redis_endpoint = f"{redis_endpoint}:{redis_parts.port}"
+    redis_db = (redis_parts.path or "/0").lstrip("/") or "0"
+
     if container.redis is None:
-        redis_status = {"ok": True, "detail": "Используется fallback без Redis"}
+        redis_status = {
+            "ok": False,
+            "mode": "fallback",
+            "detail": "Используется in-memory fallback, Redis не подключен",
+            "endpoint": redis_endpoint,
+            "url": redis_url,
+            "database": redis_db,
+            "latency_ms": None,
+        }
     else:
         try:
+            started = time.perf_counter()
             await container.redis.ping()
-            redis_status = {"ok": True, "detail": "Redis доступен"}
+            latency_ms = round((time.perf_counter() - started) * 1000, 1)
+            redis_status = {
+                "ok": True,
+                "mode": "connected",
+                "detail": "Redis доступен",
+                "endpoint": redis_endpoint,
+                "url": redis_url,
+                "database": redis_db,
+                "latency_ms": latency_ms,
+            }
         except Exception as exc:
-            redis_status = {"ok": False, "detail": str(exc)}
+            redis_status = {
+                "ok": False,
+                "mode": "error",
+                "detail": str(exc),
+                "endpoint": redis_endpoint,
+                "url": redis_url,
+                "database": redis_db,
+                "latency_ms": None,
+            }
 
     config_files = {}
     for name, path in {
@@ -1359,7 +1394,20 @@ def _dashboard_html() -> str:
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     function renderModeOverrides(ai,catalog){const overrides=ai.mode_overrides||{};const keys=Object.keys(catalog||{}).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));$('#ai-mode-overrides').innerHTML=keys.map(key=>{const meta=catalog[key]||{};const value=overrides[key]||{};return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon||'')} ${esc(meta.name||key)}</strong><div class="muted">${esc(key)}</div></div></div><div class="three"><label>Модель<input data-ai-override="${key}.model" value="${esc(value.model||'')}"></label><label>Температура<input data-ai-override="${key}.temperature" type="number" step="0.1" value="${esc(value.temperature??'')}"></label><label>Макс. токены<input data-ai-override="${key}.max_completion_tokens" type="number" value="${esc(value.max_completion_tokens??'')}"></label><label>Память<input data-ai-override="${key}.memory_max_tokens" type="number" value="${esc(value.memory_max_tokens??'')}"></label><label>История<input data-ai-override="${key}.history_message_limit" type="number" value="${esc(value.history_message_limit??'')}"></label><label>Таймаут<input data-ai-override="${key}.timeout_seconds" type="number" value="${esc(value.timeout_seconds??'')}"></label></div><div class="three"><label>Повторы<input data-ai-override="${key}.max_retries" type="number" value="${esc(value.max_retries??'')}"></label></div><label>Доп. инструкция<textarea data-ai-override="${key}.prompt_suffix">${esc(value.prompt_suffix||'')}</textarea></label></div>`}).join('')}
     function renderOverview(){if(!state.overview)return;const o=state.overview,users=o.users||{},content=o.content||{},payments=o.payments||{},runtime=o.runtime||{},support=o.support||{},episodes=support.episode_counts||{},proactive=o.proactive||{},preferences=o.preferences||{},referrals=o.referrals||{},recent=o.recent||{};const cards=[["Пользователи",users.total??0,`Всего в базе`],["Новые за 1 день",users.new_1d??0,`Регистрации за сутки`],["Новые за 7 дней",users.new_7d??0,`Регистрации за неделю`],["Премиум",users.premium_total??0,`Активных: ${users.active_with_messages??0}`],["Админы",users.admins_total??0,`Через env и панель`],["Сообщения",content.messages_total??0,`Новые за 30д: ${users.new_30d??0}`],["Платежи",payments.successful_payments??0,`Выручка: ${payments.revenue??0}`],["ИИ",`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`Воркеров: ${runtime.workers??0}`],["Поддержка",support.users_with_support_profile??0,`паника: ${episodes.panic??0}`],["Инициативные",proactive.sent_1d??0,`доля ответов: ${proactive.reply_after_proactive_rate??0}%`],["Часовые пояса",preferences.users_with_timezone??0,`отказов сейчас: ${preferences.proactive_disabled_users??0}`],["Рефералы",referrals.total??0,`Конверсий: ${referrals.converted??0}`]];$('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');$('#recent-users').innerHTML=table(['id','username','first_name','active_mode','is_premium','is_admin','created_at'],recent.users||[]);$('#recent-payments').innerHTML=table(['user_id','amount','currency','status','event_time'],recent.payments||[]);$('#support-summary').innerHTML=`<div class="stack">${metricCards([["Профили поддержки",String(support.users_with_support_profile??0),"Пользователи с профилем поддержки"],["Рефералы",String(referrals.total??0),`Конверсий: ${referrals.converted??0}`],["Инициативные пользователи",String(proactive.users_contacted_7d??0),"Кому бот писал за 7 дней"]])}${kvList([["Эпизоды паники",esc(num(episodes.panic??0))],["Эпизоды флэшбэков",esc(num(episodes.flashback??0))],["Эпизоды бессонницы",esc(num(episodes.insomnia??0))],["Флаги самоповреждения",esc(num(support.self_harm_flags??0))],["Отправлено инициативных",esc(num(proactive.sent_total??0))],["Ошибок инициативных",esc(num(proactive.failed_total??0))],["Ответы после инициативных",esc(`${proactive.reply_after_proactive_total??0} (${proactive.reply_after_proactive_rate??0}%)`)],["Отказы после инициативных",esc(`${proactive.opt_out_after_proactive_total??0} (${proactive.opt_out_after_proactive_rate??0}%)`)],["Пользователи с часовым поясом",esc(num(preferences.users_with_timezone??0))],["Пользователи с отказом",esc(num(preferences.proactive_disabled_users??0))],["Последнее обновление",esc(support.last_updated_at||'Нет данных')]])}</div>`}
-    function renderHealth(){if(!state.health)return;const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{},release=state.health.release||{},warnings=state.health.warnings||[];const warningSummary=warnings.length?statusPill(false,`${warnings.length} предупреждений`,`${warnings.length} предупреждений`):statusPill(true,'Без предупреждений','');const warningList=warnings.length?`<div class="stack">${warnings.map(item=>`<div class="message-card"><div class="message-meta"><strong>${esc(item.severity||'info')}</strong><span>${esc(item.code||'warning')}</span></div><div>${esc(item.message||'')}</div></div>`).join('')}</div>`:'<div class="muted">Критичных предупреждений сейчас нет.</div>';$('#sidebar-health').innerHTML=`${statusPill(db.ok,'БД в норме','БД недоступна')} ${statusPill(redis.ok,'Redis в норме','Redis недоступен')}`;$('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redis.detail||'Норма',redis.detail||'Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Модель ИИ",esc(ai.model||ai.openai_model||'Не указана')],["Релиз",release.available?`${esc(release.branch||'') || 'branch?'}<div class="muted">${esc((release.commit||'').slice(0,12)||'commit?')} • ${esc(release.deployed_at||'')}</div>`:`<span class="muted">release.json не найден</span>`],["Предупреждения",warningSummary]])}</div>`;$('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь ИИ",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["Статус БД",`${statusPill(db.ok,'Норма','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Статус Redis",`${statusPill(redis.ok,'Норма','Ошибка')}<div class="muted">${esc(redis.detail||'')}</div>`],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)],["Ветка",esc(release.branch||'—')],["Коммит",esc((release.commit||'').slice(0,12)||'—')],["Задеплоено",esc(release.deployed_at||'—')]])}<div><div class="stat-label">Предупреждения</div>${warningList}</div></div>`;$('#config-files').innerHTML=fileTable(state.health.config_files)}
+    function renderHealth(){
+      if(!state.health)return;
+      const db=state.health.db||{},redis=state.health.redis||{},ai=state.health.ai_runtime||{},release=state.health.release||{},warnings=state.health.warnings||[];
+      const redisMode=redis.mode||'unknown';
+      const redisSummaryLabel=redis.ok?'Redis в норме':(redisMode==='fallback'?'Redis в fallback':'Redis недоступен');
+      const redisStatusLabel=redis.ok?'Норма':(redisMode==='fallback'?'Fallback':'Ошибка');
+      const redisLatency=redis.latency_ms==null?'—':`${redis.latency_ms} мс`;
+      const warningSummary=warnings.length?statusPill(false,`${warnings.length} предупреждений`,`${warnings.length} предупреждений`):statusPill(true,'Без предупреждений','');
+      const warningList=warnings.length?`<div class="stack">${warnings.map(item=>`<div class="message-card"><div class="message-meta"><strong>${esc(item.severity||'info')}</strong><span>${esc(item.code||'warning')}</span></div><div>${esc(item.message||'')}</div></div>`).join('')}</div>`:'<div class="muted">Критичных предупреждений сейчас нет.</div>';
+      $('#sidebar-health').innerHTML=`${statusPill(db.ok,'БД в норме','БД недоступна')} ${statusPill(redis.ok,redisSummaryLabel,redisSummaryLabel)}`;
+      $('#health-summary').innerHTML=`<div class="stack">${healthSummary(ai)}${kvList([["База данных",`${statusPill(db.ok,'Подключено','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Redis",`${statusPill(redis.ok,redisSummaryLabel,redisSummaryLabel)}<div class="muted">${esc(redis.detail||'')}</div>`],["Redis endpoint",`<span>${esc(redis.endpoint||'—')}</span><div class="muted">DB ${esc(String(redis.database??'—'))} • ${esc(redisLatency)}</div>`],["Модель ИИ",esc(ai.model||ai.openai_model||'Не указана')],["Релиз",release.available?`${esc(release.branch||'') || 'branch?'}<div class="muted">${esc((release.commit||'').slice(0,12)||'commit?')} • ${esc(release.deployed_at||'')}</div>`:`<span class="muted">release.json не найден</span>`],["Предупреждения",warningSummary]])}</div>`;
+      $('#full-health').innerHTML=`<div class="stack">${metricCards([["Кэш метрик",String(ai.cache_hits??0),"Попадания в runtime, если доступны"],["Очередь ИИ",`${ai.queue_size??0}/${ai.queue_capacity??0}`,"Текущее давление"],["Режимов",String(state.health.modes_count??0),"Доступно в каталоге"]])}${kvList([["Статус БД",`${statusPill(db.ok,'Норма','Ошибка')}<div class="muted">${esc(db.detail||'')}</div>`],["Статус Redis",`${statusPill(redis.ok,redisStatusLabel,redisStatusLabel)}<div class="muted">${esc(redis.detail||'')}</div>`],["Режим Redis",esc(redisMode)],["Redis endpoint",esc(redis.endpoint||'—')],["Redis DB",esc(String(redis.database??'—'))],["Redis URL",esc(redis.url||'—')],["Latency Redis",esc(redisLatency)],["Воркеров всего",esc(String(ai.workers??0))],["Воркеров занято",esc(String(ai.busy_workers??0))],["Очередь",esc(`${ai.queue_size??0}/${ai.queue_capacity??0}`)],["Ветка",esc(release.branch||'—')],["Коммит",esc((release.commit||'').slice(0,12)||'—')],["Задеплоено",esc(release.deployed_at||'—')]])}<div><div class="stat-label">Предупреждения</div>${warningList}</div></div>`;
+      $('#config-files').innerHTML=fileTable(state.health.config_files)
+    }
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').textContent=user?`Создан: ${user.created_at||'неизвестно'}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
