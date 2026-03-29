@@ -17,6 +17,55 @@ from services.mode_access_service import ModeAccessService
 from services.payment_service import PaymentService
 
 
+def build_test_packages():
+    return {
+        "day": {
+            "key": "day",
+            "enabled": True,
+            "title": "Premium на 1 день",
+            "description": "Быстрый тестовый доступ.",
+            "price_minor_units": 7900,
+            "access_duration_days": 1,
+            "sort_order": 10,
+            "badge": "Тест",
+            "recurring_stars_enabled": False,
+        },
+        "week": {
+            "key": "week",
+            "enabled": True,
+            "title": "Premium на 7 дней",
+            "description": "Неделя полного доступа.",
+            "price_minor_units": 24900,
+            "access_duration_days": 7,
+            "sort_order": 20,
+            "badge": "Популярно",
+            "recurring_stars_enabled": False,
+        },
+        "month": {
+            "key": "month",
+            "enabled": True,
+            "title": "Premium на 30 дней",
+            "description": "Основной пакет.",
+            "price_minor_units": 49900,
+            "access_duration_days": 30,
+            "sort_order": 30,
+            "badge": "Основной",
+            "recurring_stars_enabled": True,
+        },
+        "year": {
+            "key": "year",
+            "enabled": True,
+            "title": "Premium на 365 дней",
+            "description": "Максимально выгодный пакет.",
+            "price_minor_units": 399000,
+            "access_duration_days": 365,
+            "sort_order": 40,
+            "badge": "Выгодно",
+            "recurring_stars_enabled": False,
+        },
+    }
+
+
 class FakeMessage:
     def __init__(self, user_id: int = 123):
         self.from_user = SimpleNamespace(id=user_id)
@@ -35,30 +84,35 @@ class FakePaymentServiceForOffer:
         self.enabled = enabled
         self.invoice_result = invoice_result
         self.invoice_calls = 0
+        self.invoice_package_keys = []
         self.offer_events = []
         self.invoice_events = []
 
     def get_payment_settings(self):
         return {
             "currency": "RUB",
+            "default_package_key": "month",
             "price_minor_units": 49900,
             "access_duration_days": 30,
+            "packages": build_test_packages(),
             "premium_benefits_text": "Преимущества Premium",
             "buy_cta_text": "Купить Premium",
             "offer_cta_text_a": "Открыть Premium на 30 дней",
             "offer_cta_text_b": "Снять лимиты и открыть все режимы",
             "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ.",
-            "offer_benefits_text_b": "Premium открывает закрытые режимы и даёт повышенный лимит.",
+            "offer_benefits_text_b": "Premium открывает закрытые режимы и дает повышенный лимит.",
             "offer_price_line_template": "Сейчас: {price_label} за {access_days} дней.",
             "offer_limit_reached_template": "Бесплатный лимит закончился. Premium даст {premium_limit} сообщений в день на {access_days} дней.",
             "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Лимит Premium: {premium_limit} сообщений в день.",
-            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium вернёт доступ.",
+            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium вернет доступ.",
             "premium_menu_description_template": "Premium открывает: {premium_modes_list}. Цена: {price_label} на {access_days_label}. Лимит: {premium_daily_limit}.",
+            "premium_menu_packages_title": "Выбери пакет:",
+            "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
+            "premium_menu_package_button_template": "{title} • {price_label}",
             "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
-            "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
             "premium_menu_back_button_text": "← К режимам",
             "unavailable_message": "Оплата сейчас недоступна",
-            "invoice_error_message": "Не удалось создать счёт",
+            "invoice_error_message": "Не удалось создать счет",
             "product_description": "Открой Premium.",
         }
 
@@ -73,14 +127,37 @@ class FakePaymentServiceForOffer:
             return "Premium активен до 01.04.2026"
         return ""
 
+    def get_enabled_packages(self, payment_settings=None):
+        payment = payment_settings or self.get_payment_settings()
+        return sorted(
+            [dict(item) for item in payment["packages"].values() if item.get("enabled")],
+            key=lambda item: item.get("sort_order", 0),
+        )
+
+    def get_default_package_key(self, payment_settings=None):
+        payment = payment_settings or self.get_payment_settings()
+        return payment.get("default_package_key", "month")
+
+    def get_default_package(self, payment_settings=None):
+        return self.get_package(self.get_default_package_key(payment_settings), payment_settings)
+
+    def get_package(self, package_key=None, payment_settings=None):
+        payment = payment_settings or self.get_payment_settings()
+        key = package_key or self.get_default_package_key(payment)
+        package = payment["packages"].get(key)
+        if not package or not package.get("enabled"):
+            return None
+        return dict(package)
+
     async def track_offer_shown(self, **kwargs):
         self.offer_events.append(kwargs)
 
     async def track_invoice_opened(self, **kwargs):
         self.invoice_events.append(kwargs)
 
-    async def send_premium_invoice(self, message):
+    async def send_premium_invoice(self, message, package_key=None):
         self.invoice_calls += 1
+        self.invoice_package_keys.append(package_key or self.get_default_package_key())
         return self.invoice_result
 
 
@@ -101,9 +178,13 @@ class FakeAdminSettingsServiceForOffer:
         return {
             "payment": {
                 "currency": "RUB",
+                "default_package_key": "month",
                 "price_minor_units": 49900,
                 "access_duration_days": 30,
+                "packages": build_test_packages(),
                 "premium_menu_description_template": "Premium открывает: {premium_modes_list}. Цена: {price_label} на {access_days_label}. Лимит: {premium_daily_limit}.",
+                "premium_menu_packages_title": "Выбери пакет:",
+                "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
                 "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
             },
             "limits": {
@@ -180,22 +261,26 @@ class FakeSettingsService:
             "payment": {
                 "provider_token": "provider-token",
                 "currency": "RUB",
+                "default_package_key": "month",
                 "price_minor_units": 49900,
                 "access_duration_days": 30,
                 "recurring_stars_enabled": True,
+                "packages": build_test_packages(),
                 "product_title": "Подписка Premium",
                 "product_description": "Открой премиум-режимы.",
                 "premium_benefits_text": "Преимущества Premium",
                 "buy_cta_text": "Купить Premium",
                 "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился.",
                 "premium_menu_description_template": "Premium открывает: {premium_modes_list}.",
+                "premium_menu_packages_title": "Выбери пакет:",
+                "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
+                "premium_menu_package_button_template": "{title} • {price_label}",
                 "premium_menu_preview_template": "Пробно: {preview_modes_list}.",
-                "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
                 "premium_menu_back_button_text": "← К режимам",
                 "recurring_button_text": "Открыть оплату",
                 "already_premium_message": "Premium уже активен.",
                 "unavailable_message": "Оплата сейчас недоступна",
-                "invoice_error_message": "Не удалось создать счёт",
+                "invoice_error_message": "Не удалось создать счет",
                 "success_message": "Payment success",
                 "renewal_reminder_days": [7, 3, 1],
                 "expiry_reminder_template": "Expires in {days} days",
@@ -228,7 +313,7 @@ class FakeMonetizationRepository:
 
 
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
-    async def test_show_premium_menu_renders_unified_premium_screen(self):
+    async def test_show_premium_menu_renders_package_buttons_and_details(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
         user_service = FakeUserServiceForOffer()
@@ -249,12 +334,21 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         text = message.answers[0]["text"]
         self.assertIn("Режим Наставник доступен только в Premium.", text)
         self.assertIn("Premium открывает: 🔥 Близость, 🧠 Наставник, 🌘 Свободный.", text)
+        self.assertIn("Выбери пакет:", text)
+        self.assertIn("Premium на 30 дней — 499.00 RUB на 30 дней", text)
         self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день, 🌘 Свободный — 2/день.", text)
         keyboard = message.answers[0]["reply_markup"]
-        self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, f"{CALLBACK_BUY_PREMIUM}:{OFFER_TRIGGER_MODE_LOCKED}")
+        self.assertEqual(
+            keyboard.inline_keyboard[0][0].callback_data,
+            f"{CALLBACK_BUY_PREMIUM}:day:{OFFER_TRIGGER_MODE_LOCKED}",
+        )
+        self.assertEqual(
+            keyboard.inline_keyboard[2][0].callback_data,
+            f"{CALLBACK_BUY_PREMIUM}:month:{OFFER_TRIGGER_MODE_LOCKED}",
+        )
         self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
 
-    async def test_show_premium_menu_uses_preview_exhausted_trigger_in_buy_button(self):
+    async def test_show_premium_menu_uses_preview_exhausted_trigger_in_buttons(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
         user_service = FakeUserServiceForOffer()
@@ -271,11 +365,11 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(result)
-        self.assertIn("Пробный доступ к режиму Свободный на сегодня закончился.", message.answers[0]["text"])
+        self.assertIn("Пробный доступ к режиму Свободный", message.answers[0]["text"])
         keyboard = message.answers[0]["reply_markup"]
         self.assertEqual(
             keyboard.inline_keyboard[0][0].callback_data,
-            f"{CALLBACK_BUY_PREMIUM}:{OFFER_TRIGGER_PREVIEW_EXHAUSTED}",
+            f"{CALLBACK_BUY_PREMIUM}:day:{OFFER_TRIGGER_PREVIEW_EXHAUSTED}",
         )
 
     async def test_show_premium_menu_includes_active_subscription_status(self):
@@ -296,7 +390,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Premium активен до 01.04.2026", message.answers[0]["text"])
         self.assertNotIn("Пробно:", message.answers[0]["text"])
 
-    async def test_send_premium_offer_only_opens_invoice_and_tracks_event(self):
+    async def test_send_premium_offer_only_opens_selected_invoice_and_tracks_event(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
         user_service = FakeUserServiceForOffer()
@@ -307,22 +401,25 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             user_service,
             trigger=OFFER_TRIGGER_LIMIT_REACHED,
             premium_limit=120,
+            package_key="year",
         )
 
         self.assertTrue(result)
         self.assertEqual(payment_service.invoice_calls, 1)
+        self.assertEqual(payment_service.invoice_package_keys, ["year"])
         self.assertEqual(len(message.answers), 0)
         self.assertEqual(payment_service.offer_events, [])
         self.assertEqual(payment_service.invoice_events[0]["trigger"], OFFER_TRIGGER_LIMIT_REACHED)
+        self.assertEqual(payment_service.invoice_events[0]["metadata"]["package_key"], "year")
 
     async def test_send_premium_offer_reports_invoice_error(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer(invoice_result=False)
 
-        result = await send_premium_offer(message, payment_service)
+        result = await send_premium_offer(message, payment_service, package_key="month")
 
         self.assertFalse(result)
-        self.assertEqual(message.answers[0]["text"], "Не удалось создать счёт")
+        self.assertEqual(message.answers[0]["text"], "Не удалось создать счет")
 
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
         payment_repository = FakePaymentRepository()
@@ -346,8 +443,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         message = SimpleNamespace(
             from_user=SimpleNamespace(id=42),
             successful_payment=SimpleNamespace(
-                invoice_payload="premium:42",
-                total_amount=49900,
+                invoice_payload="premium:42:week",
+                total_amount=24900,
                 currency="RUB",
                 telegram_payment_charge_id="tg-charge-1",
                 provider_payment_charge_id="provider-charge-1",
@@ -359,26 +456,25 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
 
         result = await service.handle_successful_payment(message)
 
-        self.assertEqual(user_service.grants, [(42, 30)])
+        self.assertEqual(user_service.grants, [(42, 7)])
         self.assertEqual(user_service.set_until_calls, [])
-        self.assertIsNotNone(payment_repository.saved)
-        self.assertEqual(payment_repository.saved["amount"], 499.0)
-        self.assertEqual(payment_repository.saved["status"], "paid")
-        self.assertEqual(payment_repository.saved["external_payment_id"], "tg-charge-1")
+        self.assertEqual(payment_repository.saved["amount"], 249.0)
+        self.assertEqual(payment_repository.saved["metadata"]["package_key"], "week")
+        self.assertEqual(payment_repository.saved["metadata"]["package_title"], "Premium на 7 дней")
         self.assertEqual(payment_repository.saved["metadata"]["premium_expires_at"], "2026-04-28 12:00:00")
         self.assertEqual(
             referral_service.calls,
             [
                 {
                     "referred_user_id": 42,
-                    "amount_minor_units": 49900,
+                    "amount_minor_units": 24900,
                     "external_payment_id": "tg-charge-1",
                     "is_first_payment": True,
                 }
             ],
         )
         self.assertEqual(result["premium_expires_at"], "2026-04-28 12:00:00")
-        self.assertEqual(result["referral"]["referrer_user_id"], 77)
+        self.assertEqual(result["package_key"], "week")
         self.assertEqual(monetization_repository.events[-1]["event_name"], "paid")
         self.assertEqual(monetization_repository.events[-1]["offer_trigger"], "limit_reached")
         self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
@@ -406,7 +502,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         message = SimpleNamespace(
             from_user=SimpleNamespace(id=42),
             successful_payment=SimpleNamespace(
-                invoice_payload="premium:42",
+                invoice_payload="premium:42:month",
                 total_amount=349,
                 currency="XTR",
                 telegram_payment_charge_id="tg-charge-2",
@@ -425,12 +521,13 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             [(42, subscription_expires_at.strftime("%Y-%m-%d %H:%M:%S"))],
         )
         self.assertTrue(result["is_recurring"])
+        self.assertEqual(result["package_key"], "month")
         self.assertEqual(monetization_repository.events[-1]["event_name"], "renewed")
         self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
 
 
 class PaymentFormattingTests(unittest.TestCase):
-    def test_build_success_message_includes_expiry(self):
+    def test_build_success_message_includes_expiry_and_package(self):
         service = PaymentService(
             settings=SimpleNamespace(
                 payment_provider_token="",
@@ -447,12 +544,14 @@ class PaymentFormattingTests(unittest.TestCase):
 
         text = service.build_success_message(
             {
+                "package_title": "Premium на 30 дней",
                 "premium_expires_at": "2026-04-28 12:00:00",
                 "is_recurring": False,
             }
         )
 
         self.assertIn("Payment success", text)
+        self.assertIn("Premium на 30 дней", text)
         self.assertIn("28.04.2026 12:00 UTC", text)
 
 

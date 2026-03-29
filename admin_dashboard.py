@@ -1297,8 +1297,14 @@ def _dashboard_html() -> str:
             <div class="two">
               <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
               <label>Валюта<input id="payment_currency"></label>
-              <label>Цена<input id="payment_price_minor_units" type="number"></label>
-              <label>Дней доступа<input id="payment_access_duration_days" type="number"></label>
+              <label>Пакет по умолчанию
+                <select id="payment_default_package_key">
+                  <option value="day">1 день</option>
+                  <option value="week">7 дней</option>
+                  <option value="month">30 дней</option>
+                  <option value="year">365 дней</option>
+                </select>
+              </label>
               <label>Название<input id="payment_product_title"></label>
             </div>
           <label class="checkbox"><input id="payment_recurring_stars_enabled" type="checkbox">Автопродление через Stars при валюте XTR</label>
@@ -1307,13 +1313,73 @@ def _dashboard_html() -> str:
           <label>CTA оплаты<input id="payment_buy_cta_text"></label>
           <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
           <label>Описание premium-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
+          <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
+          <label>Шаблон строки тарифа<input id="payment_premium_menu_package_line_template"></label>
+          <label>Шаблон кнопки тарифа<input id="payment_premium_menu_package_button_template"></label>
           <label>Текст preview в premium-меню<textarea id="payment_premium_menu_preview_template"></textarea></label>
-          <label>Кнопка оплаты в premium-меню<input id="payment_premium_menu_buy_button_template"></label>
           <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
           <label>Текст кнопки подписки<input id="payment_recurring_button_text"></label>
           <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
           <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
           <label>Успешная оплата<textarea id="payment_success_message"></textarea></label>
+        </div>
+        <div class="panel">
+          <h3>Пакеты Premium</h3>
+          <p class="muted">Именно эти варианты увидит пользователь в едином Premium-меню.</p>
+          <div class="cols">
+            <div class="mode-card">
+              <div class="mode-head"><strong>1 день</strong><span class="badge">day</span></div>
+              <label class="checkbox"><input id="payment_package_day_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_day_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="three">
+                <label>Название<input id="payment_package_day_title"></label>
+                <label>Цена<input id="payment_package_day_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_day_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_day_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_day_badge"></label>
+              </div>
+              <label>Описание<textarea id="payment_package_day_description"></textarea></label>
+            </div>
+            <div class="mode-card">
+              <div class="mode-head"><strong>7 дней</strong><span class="badge">week</span></div>
+              <label class="checkbox"><input id="payment_package_week_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_week_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="three">
+                <label>Название<input id="payment_package_week_title"></label>
+                <label>Цена<input id="payment_package_week_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_week_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_week_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_week_badge"></label>
+              </div>
+              <label>Описание<textarea id="payment_package_week_description"></textarea></label>
+            </div>
+            <div class="mode-card">
+              <div class="mode-head"><strong>30 дней</strong><span class="badge">month</span></div>
+              <label class="checkbox"><input id="payment_package_month_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_month_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="three">
+                <label>Название<input id="payment_package_month_title"></label>
+                <label>Цена<input id="payment_package_month_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_month_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_month_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_month_badge"></label>
+              </div>
+              <label>Описание<textarea id="payment_package_month_description"></textarea></label>
+            </div>
+            <div class="mode-card">
+              <div class="mode-head"><strong>365 дней</strong><span class="badge">year</span></div>
+              <label class="checkbox"><input id="payment_package_year_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_year_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="three">
+                <label>Название<input id="payment_package_year_title"></label>
+                <label>Цена<input id="payment_package_year_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_year_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_year_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_year_badge"></label>
+              </div>
+              <label>Описание<textarea id="payment_package_year_description"></textarea></label>
+            </div>
+          </div>
         </div>
         <div class="panel">
           <h3>Реферальная программа</h3>
@@ -1417,6 +1483,37 @@ def _dashboard_html() -> str:
     function openView(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===name))}
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
+    const PAYMENT_PACKAGE_KEYS=['day','week','month','year']
+    function packageInputId(key,field){return `#payment_package_${key}_${field}`}
+    function renderPaymentPackages(packages){
+      PAYMENT_PACKAGE_KEYS.forEach(key=>{
+        const item=(packages&&packages[key])||{}
+        setChecked(packageInputId(key,'enabled'),!!item.enabled)
+        setChecked(packageInputId(key,'recurring_stars_enabled'),!!item.recurring_stars_enabled)
+        setValue(packageInputId(key,'title'),item.title||'')
+        setValue(packageInputId(key,'price_minor_units'),item.price_minor_units??'')
+        setValue(packageInputId(key,'access_duration_days'),item.access_duration_days??'')
+        setValue(packageInputId(key,'sort_order'),item.sort_order??'')
+        setValue(packageInputId(key,'badge'),item.badge||'')
+        setValue(packageInputId(key,'description'),item.description||'')
+      })
+    }
+    function collectPaymentPackages(){
+      const packages={}
+      PAYMENT_PACKAGE_KEYS.forEach(key=>{
+        packages[key]={
+          enabled:$(packageInputId(key,'enabled'))?.checked||false,
+          recurring_stars_enabled:$(packageInputId(key,'recurring_stars_enabled'))?.checked||false,
+          title:$(packageInputId(key,'title'))?.value||'',
+          price_minor_units:Number($(packageInputId(key,'price_minor_units'))?.value||0),
+          access_duration_days:Number($(packageInputId(key,'access_duration_days'))?.value||0),
+          sort_order:Number($(packageInputId(key,'sort_order'))?.value||0),
+          badge:$(packageInputId(key,'badge'))?.value||'',
+          description:$(packageInputId(key,'description'))?.value||'',
+        }
+      })
+      return packages
+    }
     function renderModeOverrides(ai,catalog){const overrides=ai.mode_overrides||{};const keys=Object.keys(catalog||{}).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));$('#ai-mode-overrides').innerHTML=keys.map(key=>{const meta=catalog[key]||{};const value=overrides[key]||{};return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon||'')} ${esc(meta.name||key)}</strong><div class="muted">${esc(key)}</div></div></div><div class="three"><label>Модель<input data-ai-override="${key}.model" value="${esc(value.model||'')}"></label><label>Температура<input data-ai-override="${key}.temperature" type="number" step="0.1" value="${esc(value.temperature??'')}"></label><label>Макс. токены<input data-ai-override="${key}.max_completion_tokens" type="number" value="${esc(value.max_completion_tokens??'')}"></label><label>Память<input data-ai-override="${key}.memory_max_tokens" type="number" value="${esc(value.memory_max_tokens??'')}"></label><label>История<input data-ai-override="${key}.history_message_limit" type="number" value="${esc(value.history_message_limit??'')}"></label><label>Таймаут<input data-ai-override="${key}.timeout_seconds" type="number" value="${esc(value.timeout_seconds??'')}"></label></div><div class="three"><label>Повторы<input data-ai-override="${key}.max_retries" type="number" value="${esc(value.max_retries??'')}"></label></div><label>Доп. инструкция<textarea data-ai-override="${key}.prompt_suffix">${esc(value.prompt_suffix||'')}</textarea></label></div>`}).join('')}
     function renderOverview(){
       if(!state.overview)return;
@@ -1574,7 +1671,42 @@ def _dashboard_html() -> str:
     }
     function renderPrompts(){if(!state.settings||!state.settings.prompts)return;const p=state.settings.prompts,accessRules=p.access_rules||{};setValue('#prompt_personality_core',p.personality_core);setValue('#prompt_safety_block',p.safety_block);setValue('#prompt_response_style',p.response_style||'');setValue('#prompt_engagement_rules',p.engagement_rules||'');setValue('#prompt_ptsd_mode_prompt',p.ptsd_mode_prompt||'');setValue('#prompt_memory_intro',p.memory_intro);setValue('#prompt_state_intro',p.state_intro);setValue('#prompt_mode_intro',p.mode_intro);setValue('#prompt_access_intro',p.access_intro);setValue('#prompt_final_instruction',p.final_instruction);setValue('#access_observation',accessRules.observation);setValue('#access_analysis',accessRules.analysis);setValue('#access_tension',accessRules.tension);setValue('#access_personal_focus',accessRules.personal_focus);setValue('#access_rare_layer',accessRules.rare_layer)}
     function renderModes(){if(!state.settings||!state.settings.modes||!state.settings.mode_catalog)return;const m=state.settings.modes,c=state.settings.mode_catalog;const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));const modeScaleLabel=k=>({warmth:'Теплота',flirt:'Флирт',depth:'Глубина',structure:'Структура',dominance:'Доминирование',initiative:'Инициатива',emoji_level:'Эмодзи',allow_bold:'Жирный текст',allow_italic:'Курсив'}[k]||k);$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k]||{},scale=m[k]||{},numericEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='number'),booleanEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='boolean');return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)}</div></div><span class="badge">${meta.is_premium?'Премиум':'Бесплатно'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order??0}"></label></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Премиум</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${numericEntries.map(([mk,mv])=>`<label>${esc(modeScaleLabel(mk))}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div>${booleanEntries.length?`<div class="two">${booleanEntries.map(([mk,mv])=>`<label class="checkbox"><input data-mode-scale="${k}.${mk}" type="checkbox" ${mv?'checked':''}>${esc(modeScaleLabel(mk))}</label>`).join('')}</div>`:''}</div>`}).join('')}
-    function renderPayments(){if(!state.settings||!state.settings.runtime)return;const p=state.settings.runtime.payment,ref=state.settings.runtime.referral;$('#payment_provider_token').value=p.provider_token;$('#payment_currency').value=p.currency;$('#payment_price_minor_units').value=p.price_minor_units;$('#payment_access_duration_days').value=p.access_duration_days;$('#payment_recurring_stars_enabled').checked=!!p.recurring_stars_enabled;$('#payment_product_title').value=p.product_title;$('#payment_product_description').value=p.product_description;$('#payment_premium_benefits_text').value=p.premium_benefits_text;$('#payment_buy_cta_text').value=p.buy_cta_text;$('#payment_offer_preview_exhausted_template').value=p.offer_preview_exhausted_template||'';$('#payment_premium_menu_description_template').value=p.premium_menu_description_template||'';$('#payment_premium_menu_preview_template').value=p.premium_menu_preview_template||'';$('#payment_premium_menu_buy_button_template').value=p.premium_menu_buy_button_template||'';$('#payment_premium_menu_back_button_text').value=p.premium_menu_back_button_text||'';$('#payment_recurring_button_text').value=p.recurring_button_text||'';$('#payment_unavailable_message').value=p.unavailable_message;$('#payment_invoice_error_message').value=p.invoice_error_message;$('#payment_success_message').value=p.success_message;$('#referral_enabled').checked=!!ref.enabled;$('#referral_start_parameter_prefix').value=ref.start_parameter_prefix;$('#referral_program_title').value=ref.program_title;$('#referral_allow_self_referral').checked=!!ref.allow_self_referral;$('#referral_require_first_paid_invoice').checked=!!ref.require_first_paid_invoice;$('#referral_award_referrer_premium').checked=!!ref.award_referrer_premium;$('#referral_award_referred_user_premium').checked=!!ref.award_referred_user_premium;$('#referral_program_description').value=ref.program_description;$('#referral_share_text_template').value=ref.share_text_template;$('#referral_referred_welcome_message').value=ref.referred_welcome_message;$('#referral_referrer_reward_message').value=ref.referrer_reward_message;$('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)}
+    function renderPayments(){
+      if(!state.settings||!state.settings.runtime)return
+      const p=state.settings.runtime.payment,ref=state.settings.runtime.referral
+      setValue('#payment_provider_token',p.provider_token)
+      setValue('#payment_currency',p.currency)
+      setValue('#payment_default_package_key',p.default_package_key||'month')
+      setChecked('#payment_recurring_stars_enabled',!!p.recurring_stars_enabled)
+      setValue('#payment_product_title',p.product_title)
+      setValue('#payment_product_description',p.product_description)
+      setValue('#payment_premium_benefits_text',p.premium_benefits_text)
+      setValue('#payment_buy_cta_text',p.buy_cta_text)
+      setValue('#payment_offer_preview_exhausted_template',p.offer_preview_exhausted_template||'')
+      setValue('#payment_premium_menu_description_template',p.premium_menu_description_template||'')
+      setValue('#payment_premium_menu_packages_title',p.premium_menu_packages_title||'')
+      setValue('#payment_premium_menu_package_line_template',p.premium_menu_package_line_template||'')
+      setValue('#payment_premium_menu_package_button_template',p.premium_menu_package_button_template||'')
+      setValue('#payment_premium_menu_preview_template',p.premium_menu_preview_template||'')
+      setValue('#payment_premium_menu_back_button_text',p.premium_menu_back_button_text||'')
+      setValue('#payment_recurring_button_text',p.recurring_button_text||'')
+      setValue('#payment_unavailable_message',p.unavailable_message)
+      setValue('#payment_invoice_error_message',p.invoice_error_message)
+      setValue('#payment_success_message',p.success_message)
+      renderPaymentPackages(p.packages||{})
+      setChecked('#referral_enabled',!!ref.enabled)
+      setValue('#referral_start_parameter_prefix',ref.start_parameter_prefix)
+      setValue('#referral_program_title',ref.program_title)
+      setChecked('#referral_allow_self_referral',!!ref.allow_self_referral)
+      setChecked('#referral_require_first_paid_invoice',!!ref.require_first_paid_invoice)
+      setChecked('#referral_award_referrer_premium',!!ref.award_referrer_premium)
+      setChecked('#referral_award_referred_user_premium',!!ref.award_referred_user_premium)
+      setValue('#referral_program_description',ref.program_description)
+      setValue('#referral_share_text_template',ref.share_text_template)
+      setValue('#referral_referred_welcome_message',ref.referred_welcome_message)
+      setValue('#referral_referrer_reward_message',ref.referrer_reward_message)
+      $('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)
+    }
     function renderLogs(){if(state.logs)$('#logs-output').textContent=(state.logs.lines||[]).join('\\n')||'Лог пуст.'}
     function runtimePayload(){
       const modeOverrides={};
@@ -1600,7 +1732,45 @@ def _dashboard_html() -> str:
       return {safety:{throttle_rate_limit_seconds:Number($('#safety_throttle_rate_limit_seconds').value),throttle_warning_interval_seconds:Number($('#safety_throttle_warning_interval_seconds').value),max_message_length:Number($('#safety_max_message_length').value),reject_suspicious_messages:$('#safety_reject_suspicious_messages').checked,throttle_warning_text:$('#safety_throttle_warning_text').value,message_too_long_text:$('#safety_message_too_long_text').value,suspicious_rejection_text:$('#safety_suspicious_rejection_text').value,suspicious_keywords:$('#safety_suspicious_keywords').value},state_engine:{defaults,positive_keywords:$('#state_positive_keywords').value,negative_keywords:$('#state_negative_keywords').value,attraction_keywords:$('#state_attraction_keywords').value,message_effects:effects},access:{forced_level:$('#access_forced_level').value.trim(),default_level:$('#access_default_level').value.trim(),interest_observation_threshold:Number($('#access_interest_observation_threshold').value),rare_layer_instability_threshold:Number($('#access_rare_layer_instability_threshold').value),rare_layer_attraction_threshold:Number($('#access_rare_layer_attraction_threshold').value),personal_focus_attraction_threshold:Number($('#access_personal_focus_attraction_threshold').value),personal_focus_interest_threshold:Number($('#access_personal_focus_interest_threshold').value),tension_attraction_threshold:Number($('#access_tension_attraction_threshold').value),tension_control_threshold:Number($('#access_tension_control_threshold').value),analysis_interest_threshold:Number($('#access_analysis_interest_threshold').value),analysis_control_threshold:Number($('#access_analysis_control_threshold').value)},limits:{free_daily_messages_enabled:$('#limits_free_daily_messages_enabled').checked,premium_daily_messages_enabled:$('#limits_premium_daily_messages_enabled').checked,admins_bypass_daily_limits:$('#limits_admins_bypass_daily_limits').checked,free_daily_messages_limit:Number($('#limits_free_daily_messages_limit').value),premium_daily_messages_limit:Number($('#limits_premium_daily_messages_limit').value),free_daily_limit_message:$('#limits_free_daily_limit_message').value,premium_daily_limit_message:$('#limits_premium_daily_limit_message').value,mode_preview_enabled:$('#limits_mode_preview_enabled').checked,mode_preview_default_limit:Number($('#limits_mode_preview_default_limit').value),mode_daily_limits:parseModeLimitsMap($('#limits_mode_daily_limits').value),mode_preview_exhausted_message:$('#limits_mode_preview_exhausted_message').value},engagement:{adaptive_mode_enabled:$('#engagement_adaptive_mode_enabled').checked,reengagement_enabled:$('#engagement_reengagement_enabled').checked,reengagement_idle_hours:Number($('#engagement_reengagement_idle_hours').value),reengagement_min_hours_between:Number($('#engagement_reengagement_min_hours_between').value),reengagement_recent_window_days:Number($('#engagement_reengagement_recent_window_days').value),reengagement_poll_seconds:Number($('#engagement_reengagement_poll_seconds').value),reengagement_batch_size:Number($('#engagement_reengagement_batch_size').value)}}}
     function promptsPayload(){return {personality_core:$('#prompt_personality_core').value,safety_block:$('#prompt_safety_block').value,response_style:$('#prompt_response_style').value,engagement_rules:$('#prompt_engagement_rules').value,ptsd_mode_prompt:$('#prompt_ptsd_mode_prompt').value,memory_intro:$('#prompt_memory_intro').value,state_intro:$('#prompt_state_intro').value,mode_intro:$('#prompt_mode_intro').value,access_intro:$('#prompt_access_intro').value,final_instruction:$('#prompt_final_instruction').value,access_rules:{observation:$('#access_observation').value,analysis:$('#access_analysis').value,tension:$('#access_tension').value,personal_focus:$('#access_personal_focus').value,rare_layer:$('#access_rare_layer').value}}}
     function modesPayload(){const modes={},catalog={};document.querySelectorAll('[data-mode-scale]').forEach(i=>{const [m,k]=i.dataset.modeScale.split('.');modes[m]??={};modes[m][k]=i.type==='checkbox'?i.checked:Number(i.value)});document.querySelectorAll('[data-catalog]').forEach(i=>{const [m,k]=i.dataset.catalog.split('.');catalog[m]??={};catalog[m][k]=i.type==='checkbox'?i.checked:(k==='sort_order'?Number(i.value):i.value)});return {modes,catalog}}
-    function paymentsPayload(){return {payment:{provider_token:$('#payment_provider_token').value,currency:$('#payment_currency').value,price_minor_units:Number($('#payment_price_minor_units').value),access_duration_days:Number($('#payment_access_duration_days').value),recurring_stars_enabled:$('#payment_recurring_stars_enabled').checked,product_title:$('#payment_product_title').value,product_description:$('#payment_product_description').value,premium_benefits_text:$('#payment_premium_benefits_text').value,buy_cta_text:$('#payment_buy_cta_text').value,offer_preview_exhausted_template:$('#payment_offer_preview_exhausted_template').value,premium_menu_description_template:$('#payment_premium_menu_description_template').value,premium_menu_preview_template:$('#payment_premium_menu_preview_template').value,premium_menu_buy_button_template:$('#payment_premium_menu_buy_button_template').value,premium_menu_back_button_text:$('#payment_premium_menu_back_button_text').value,recurring_button_text:$('#payment_recurring_button_text').value,unavailable_message:$('#payment_unavailable_message').value,invoice_error_message:$('#payment_invoice_error_message').value,success_message:$('#payment_success_message').value},referral:{enabled:$('#referral_enabled').checked,start_parameter_prefix:$('#referral_start_parameter_prefix').value,program_title:$('#referral_program_title').value,allow_self_referral:$('#referral_allow_self_referral').checked,require_first_paid_invoice:$('#referral_require_first_paid_invoice').checked,award_referrer_premium:$('#referral_award_referrer_premium').checked,award_referred_user_premium:$('#referral_award_referred_user_premium').checked,program_description:$('#referral_program_description').value,share_text_template:$('#referral_share_text_template').value,referred_welcome_message:$('#referral_referred_welcome_message').value,referrer_reward_message:$('#referral_referrer_reward_message').value}}}
+    function paymentsPayload(){
+      return {
+        payment:{
+          provider_token:$('#payment_provider_token').value,
+          currency:$('#payment_currency').value,
+          default_package_key:$('#payment_default_package_key').value,
+          recurring_stars_enabled:$('#payment_recurring_stars_enabled').checked,
+          product_title:$('#payment_product_title').value,
+          product_description:$('#payment_product_description').value,
+          premium_benefits_text:$('#payment_premium_benefits_text').value,
+          buy_cta_text:$('#payment_buy_cta_text').value,
+          offer_preview_exhausted_template:$('#payment_offer_preview_exhausted_template').value,
+          premium_menu_description_template:$('#payment_premium_menu_description_template').value,
+          premium_menu_packages_title:$('#payment_premium_menu_packages_title').value,
+          premium_menu_package_line_template:$('#payment_premium_menu_package_line_template').value,
+          premium_menu_package_button_template:$('#payment_premium_menu_package_button_template').value,
+          premium_menu_preview_template:$('#payment_premium_menu_preview_template').value,
+          premium_menu_back_button_text:$('#payment_premium_menu_back_button_text').value,
+          recurring_button_text:$('#payment_recurring_button_text').value,
+          unavailable_message:$('#payment_unavailable_message').value,
+          invoice_error_message:$('#payment_invoice_error_message').value,
+          success_message:$('#payment_success_message').value,
+          packages:collectPaymentPackages(),
+        },
+        referral:{
+          enabled:$('#referral_enabled').checked,
+          start_parameter_prefix:$('#referral_start_parameter_prefix').value,
+          program_title:$('#referral_program_title').value,
+          allow_self_referral:$('#referral_allow_self_referral').checked,
+          require_first_paid_invoice:$('#referral_require_first_paid_invoice').checked,
+          award_referrer_premium:$('#referral_award_referrer_premium').checked,
+          award_referred_user_premium:$('#referral_award_referred_user_premium').checked,
+          program_description:$('#referral_program_description').value,
+          share_text_template:$('#referral_share_text_template').value,
+          referred_welcome_message:$('#referral_referred_welcome_message').value,
+          referrer_reward_message:$('#referral_referrer_reward_message').value
+        }
+      }
+    }
     function testPayload(){return {active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
     function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
     async function refreshUsers(query){const search=query??$('#user-search').value.trim();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100`);renderUsers()}

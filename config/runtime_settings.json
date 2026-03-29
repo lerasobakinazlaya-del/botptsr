@@ -235,13 +235,58 @@
   "payment": {
     "provider_token": "",
     "currency": "RUB",
+    "default_package_key": "month",
     "price_minor_units": 49900,
     "access_duration_days": 30,
     "recurring_stars_enabled": true,
+    "packages": {
+      "day": {
+        "enabled": true,
+        "title": "Premium на 1 день",
+        "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+        "price_minor_units": 7900,
+        "access_duration_days": 1,
+        "sort_order": 10,
+        "badge": "Тест",
+        "recurring_stars_enabled": false
+      },
+      "week": {
+        "enabled": true,
+        "title": "Premium на 7 дней",
+        "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+        "price_minor_units": 24900,
+        "access_duration_days": 7,
+        "sort_order": 20,
+        "badge": "Популярно",
+        "recurring_stars_enabled": false
+      },
+      "month": {
+        "enabled": true,
+        "title": "Premium на 30 дней",
+        "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+        "price_minor_units": 49900,
+        "access_duration_days": 30,
+        "sort_order": 30,
+        "badge": "Основной",
+        "recurring_stars_enabled": true
+      },
+      "year": {
+        "enabled": true,
+        "title": "Premium на 365 дней",
+        "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+        "price_minor_units": 399000,
+        "access_duration_days": 365,
+        "sort_order": 40,
+        "badge": "Выгодно",
+        "recurring_stars_enabled": false
+      }
+    },
     "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium снова откроет этот режим и даст лимит до {premium_limit} сообщений в день на {access_days} дней.",
     "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
+    "premium_menu_packages_title": "Выбери подходящий вариант доступа:",
+    "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
+    "premium_menu_package_button_template": "{title} • {price_label}",
     "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
-    "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
     "premium_menu_back_button_text": "← К режимам",
     "product_title": "Подписка Premium",
     "product_description": "Открой премиум-режимы и платные функции.",
@@ -251,8 +296,8 @@
     "buy_cta_text": "Оформить Premium",
     "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
     "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
-    "success_message": "Оплата прошла успешно. Premium уже активирован."
-    ,"renewal_reminder_days": [
+    "success_message": "Оплата прошла успешно. Premium уже активирован.",
+    "renewal_reminder_days": [
       7,
       3,
       1

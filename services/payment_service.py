@@ -1,15 +1,55 @@
+from copy import deepcopy
 from datetime import datetime, timezone
 
-from aiogram.types import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    LabeledPrice,
-    Message,
-)
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, Message
+
+from services.payment_formatting import format_access_days_label, format_package_price_label
 
 
 class PaymentService:
     RECURRING_STARS_PERIOD_SECONDS = 30 * 24 * 60 * 60
+    DEFAULT_PACKAGE_CATALOG = {
+        "day": {
+            "enabled": True,
+            "title": "Premium на 1 день",
+            "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+            "price_minor_units": 7900,
+            "access_duration_days": 1,
+            "sort_order": 10,
+            "badge": "Тест",
+            "recurring_stars_enabled": False,
+        },
+        "week": {
+            "enabled": True,
+            "title": "Premium на 7 дней",
+            "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+            "price_minor_units": 24900,
+            "access_duration_days": 7,
+            "sort_order": 20,
+            "badge": "Популярно",
+            "recurring_stars_enabled": False,
+        },
+        "month": {
+            "enabled": True,
+            "title": "Premium на 30 дней",
+            "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+            "price_minor_units": 49900,
+            "access_duration_days": 30,
+            "sort_order": 30,
+            "badge": "Основной",
+            "recurring_stars_enabled": True,
+        },
+        "year": {
+            "enabled": True,
+            "title": "Premium на 365 дней",
+            "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+            "price_minor_units": 399000,
+            "access_duration_days": 365,
+            "sort_order": 40,
+            "badge": "Выгодно",
+            "recurring_stars_enabled": False,
+        },
+    }
 
     def __init__(
         self,
@@ -32,42 +72,130 @@ class PaymentService:
 
     def get_payment_settings(self) -> dict:
         runtime = self.settings_service.get_runtime_settings()
-        payment = runtime["payment"].copy()
+        payment = deepcopy(runtime["payment"])
 
-        if not payment["provider_token"]:
+        if not payment.get("provider_token"):
             payment["provider_token"] = self.settings.payment_provider_token
-        if not payment["currency"]:
+        if not payment.get("currency"):
             payment["currency"] = self.settings.payment_currency or "RUB"
-        if not payment["price_minor_units"]:
+        if not payment.get("price_minor_units"):
             payment["price_minor_units"] = self.settings.premium_price_minor_units
-        if not payment["product_title"]:
+        if not payment.get("product_title"):
             payment["product_title"] = self.settings.premium_product_title
-        if not payment["product_description"]:
+        if not payment.get("product_description"):
             payment["product_description"] = self.settings.premium_product_description
-        return payment
+
+        return self._normalize_payment_settings(payment)
+
+    def get_enabled_packages(self, payment_settings: dict | None = None) -> list[dict]:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        packages = [
+            dict(package)
+            for package in payment["packages"].values()
+            if bool(package.get("enabled"))
+        ]
+        packages.sort(
+            key=lambda item: (
+                int(item.get("sort_order", 0)),
+                str(item.get("title") or item.get("key") or "").lower(),
+            )
+        )
+        return packages
+
+    def get_default_package_key(self, payment_settings: dict | None = None) -> str:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        default_key = str(payment.get("default_package_key") or "").strip().lower()
+        if default_key in payment["packages"] and payment["packages"][default_key].get("enabled"):
+            return default_key
+
+        for package in self.get_enabled_packages(payment):
+            if package.get("is_default"):
+                return str(package["key"])
+
+        enabled = self.get_enabled_packages(payment)
+        if enabled:
+            return str(enabled[0]["key"])
+        return "month"
+
+    def get_default_package(self, payment_settings: dict | None = None) -> dict | None:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        return self.get_package(self.get_default_package_key(payment), payment)
+
+    def get_package(self, package_key: str | None, payment_settings: dict | None = None) -> dict | None:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        normalized_key = str(package_key or "").strip().lower() or self.get_default_package_key(payment)
+        package = payment["packages"].get(normalized_key)
+        if not package or not package.get("enabled"):
+            return None
+        return dict(package)
 
     def is_enabled(self) -> bool:
         payment = self.get_payment_settings()
+        if not self.get_enabled_packages(payment):
+            return False
         if payment["currency"].upper() == "XTR":
-            return int(payment["price_minor_units"]) > 0
-        return bool(payment["provider_token"].strip())
+            return any(int(package.get("price_minor_units", 0)) > 0 for package in self.get_enabled_packages(payment))
+        return bool(str(payment.get("provider_token") or "").strip())
 
-    def build_invoice_payload(self, user_id: int) -> str:
-        return f"premium:{user_id}"
+    def build_invoice_payload(self, user_id: int, package_key: str | None = None) -> str:
+        safe_package_key = str(package_key or self.get_default_package_key()).strip().lower()
+        return f"premium:{user_id}:{safe_package_key}"
 
     def validate_invoice_payload(self, payload: str, user_id: int) -> bool:
-        return payload == self.build_invoice_payload(user_id)
+        parsed = self.parse_invoice_payload(payload)
+        if not parsed:
+            return False
+        if parsed["user_id"] != int(user_id):
+            return False
+        return self.get_package(parsed["package_key"]) is not None
 
-    def build_prices(self) -> list[LabeledPrice]:
-        payment = self.get_payment_settings()
-        return [LabeledPrice(label=payment["product_title"], amount=payment["price_minor_units"])]
+    def parse_invoice_payload(self, payload: str | None) -> dict | None:
+        raw = str(payload or "").strip()
+        if not raw.startswith("premium:"):
+            return None
 
-    def uses_recurring_stars_subscription(self) -> bool:
+        parts = raw.split(":")
+        if len(parts) == 2:
+            try:
+                return {
+                    "user_id": int(parts[1]),
+                    "package_key": self.get_default_package_key(),
+                }
+            except ValueError:
+                return None
+
+        if len(parts) != 3:
+            return None
+
+        try:
+            return {
+                "user_id": int(parts[1]),
+                "package_key": str(parts[2]).strip().lower(),
+            }
+        except ValueError:
+            return None
+
+    def build_prices(self, package_key: str | None = None) -> list[LabeledPrice]:
         payment = self.get_payment_settings()
+        package = self.get_package(package_key, payment)
+        if package is None:
+            return []
+        return [
+            LabeledPrice(
+                label=str(package.get("title") or payment["product_title"]).strip(),
+                amount=int(package["price_minor_units"]),
+            )
+        ]
+
+    def uses_recurring_stars_subscription(self, package_key: str | None = None) -> bool:
+        payment = self.get_payment_settings()
+        package = self.get_package(package_key, payment)
+        if package is None:
+            return False
         return (
-            bool(payment.get("recurring_stars_enabled"))
+            bool(package.get("recurring_stars_enabled"))
             and payment["currency"].upper() == "XTR"
-            and int(payment.get("access_duration_days", 30)) == 30
+            and int(package.get("access_duration_days", 30)) == 30
         )
 
     def build_subscription_status_text(self, user: dict | None) -> str:
@@ -88,19 +216,27 @@ class PaymentService:
             return f"{status_text}\nPremium активен до {expires_text}."
         return f"Premium активен до {expires_text}."
 
-    async def send_premium_invoice(self, message: Message) -> bool:
+    async def send_premium_invoice(self, message: Message, package_key: str | None = None) -> bool:
         payment = self.get_payment_settings()
-        if not self.is_enabled():
+        package = self.get_package(package_key, payment)
+        if not self.is_enabled() or package is None:
             return False
 
-        if self.uses_recurring_stars_subscription():
+        title = str(package.get("title") or payment["product_title"]).strip()
+        description = str(package.get("description") or payment["product_description"]).strip()
+        payload = self.build_invoice_payload(message.from_user.id, package["key"])
+        prices = self.build_prices(package["key"])
+        if not prices:
+            return False
+
+        if self.uses_recurring_stars_subscription(package["key"]):
             invoice_link = await message.bot.create_invoice_link(
-                title=payment["product_title"],
-                description=payment["product_description"],
-                payload=self.build_invoice_payload(message.from_user.id),
+                title=title,
+                description=description,
+                payload=payload,
                 provider_token="",
                 currency="XTR",
-                prices=self.build_prices(),
+                prices=prices,
                 subscription_period=self.RECURRING_STARS_PERIOD_SECONDS,
             )
             await message.answer(
@@ -109,7 +245,7 @@ class PaymentService:
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(
-                                text=payment["recurring_button_text"],
+                                text=str(payment.get("recurring_button_text") or "Открыть оплату").strip(),
                                 url=invoice_link,
                             )
                         ]
@@ -118,19 +254,19 @@ class PaymentService:
             )
             return True
 
-        provider_token = payment["provider_token"]
+        provider_token = str(payment.get("provider_token") or "").strip()
         if payment["currency"].upper() == "XTR":
             provider_token = ""
         if payment["currency"].upper() != "XTR" and not provider_token:
             return False
 
         await message.answer_invoice(
-            title=payment["product_title"],
-            description=payment["product_description"],
-            payload=self.build_invoice_payload(message.from_user.id),
+            title=title,
+            description=description,
+            payload=payload,
             provider_token=provider_token,
             currency=payment["currency"],
-            prices=self.build_prices(),
+            prices=prices,
         )
         return True
 
@@ -176,11 +312,16 @@ class PaymentService:
             return None
 
         user_id = message.from_user.id
-        if not self.validate_invoice_payload(payment.invoice_payload, user_id):
+        payload = self.parse_invoice_payload(payment.invoice_payload)
+        if payload is None or not self.validate_invoice_payload(payment.invoice_payload, user_id):
             raise ValueError("Invalid invoice payload")
 
+        package = self.get_package(payload["package_key"])
+        if package is None:
+            raise ValueError("Unknown premium package")
+
         amount = self._to_major_units(payment.total_amount, payment.currency)
-        premium_expires_at = await self._apply_premium_access(user_id, payment)
+        premium_expires_at = await self._apply_premium_access(user_id, payment, package)
         payment_info = await self.payment_repository.save_payment(
             user_id=user_id,
             provider="telegram",
@@ -197,7 +338,10 @@ class PaymentService:
                 "is_recurring": bool(payment.is_recurring),
                 "is_first_recurring": bool(payment.is_first_recurring),
                 "premium_expires_at": premium_expires_at,
-                "access_duration_days": int(self.get_payment_settings().get("access_duration_days", 30)),
+                "package_key": package["key"],
+                "package_title": package["title"],
+                "access_duration_days": int(package.get("access_duration_days", 30)),
+                "package_price_minor_units": int(package.get("price_minor_units", 0)),
             },
         )
 
@@ -211,6 +355,7 @@ class PaymentService:
             user_id=user_id,
             payment=payment,
             payment_info=payment_info,
+            package=package,
         )
         return {
             "payment": payment_info,
@@ -218,6 +363,8 @@ class PaymentService:
             "premium_expires_at": premium_expires_at,
             "is_recurring": bool(payment.is_recurring),
             "is_first_recurring": bool(payment.is_first_recurring),
+            "package_key": package["key"],
+            "package_title": package["title"],
         }
 
     def build_success_message(self, result: dict | None) -> str:
@@ -227,6 +374,10 @@ class PaymentService:
             return base_message
 
         parts = [base_message] if base_message else []
+        package_title = str(result.get("package_title") or "").strip()
+        if package_title:
+            parts.append(f"Тариф: {package_title}.")
+
         premium_expires_at = str(result.get("premium_expires_at") or "").strip()
         if premium_expires_at:
             expires_text = self.format_expiry_text(premium_expires_at)
@@ -236,14 +387,14 @@ class PaymentService:
             parts.append("Подписка будет продлеваться через Telegram Stars, пока она активна.")
         return "\n\n".join(parts)
 
-    async def _apply_premium_access(self, user_id: int, payment) -> str | None:
+    async def _apply_premium_access(self, user_id: int, payment, package: dict) -> str | None:
         subscription_expiration_date = getattr(payment, "subscription_expiration_date", None)
         if subscription_expiration_date:
             expires_at = datetime.fromtimestamp(subscription_expiration_date, tz=timezone.utc)
             await self.user_service.set_premium_until(user_id, expires_at)
             return expires_at.strftime("%Y-%m-%d %H:%M:%S")
 
-        access_duration_days = int(self.get_payment_settings().get("access_duration_days", 30))
+        access_duration_days = int(package.get("access_duration_days", 30))
         return await self.user_service.grant_premium_days(user_id, access_duration_days)
 
     def format_expiry_text(self, value: str | None) -> str:
@@ -260,7 +411,14 @@ class PaymentService:
             return float(total_amount)
         return float(total_amount) / 100.0
 
-    async def _track_successful_payment_event(self, *, user_id: int, payment, payment_info: dict) -> None:
+    async def _track_successful_payment_event(
+        self,
+        *,
+        user_id: int,
+        payment,
+        payment_info: dict,
+        package: dict,
+    ) -> None:
         if self.monetization_repository is None:
             return
 
@@ -277,5 +435,89 @@ class PaymentService:
                 "total_amount": payment.total_amount,
                 "is_recurring": bool(getattr(payment, "is_recurring", False)),
                 "is_first_payment": bool(payment_info.get("is_first_payment")),
+                "package_key": package["key"],
+                "package_title": package["title"],
             },
         )
+
+    def _normalize_payment_settings(self, payment_settings: dict) -> dict:
+        payment = deepcopy(payment_settings)
+        payment["provider_token"] = str(payment.get("provider_token") or "").strip()
+        payment["currency"] = str(payment.get("currency") or "RUB").strip().upper() or "RUB"
+        payment["product_title"] = str(payment.get("product_title") or "Premium").strip() or "Premium"
+        payment["product_description"] = str(payment.get("product_description") or "").strip()
+        payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
+
+        normalized_packages: dict[str, dict] = {}
+        raw_packages = payment.get("packages")
+        if not isinstance(raw_packages, dict) or not raw_packages:
+            raw_packages = self._build_legacy_packages(payment)
+
+        for package_key, defaults in self.DEFAULT_PACKAGE_CATALOG.items():
+            raw_value = raw_packages.get(package_key, {})
+            if not isinstance(raw_value, dict):
+                raw_value = {}
+
+            package = deepcopy(defaults)
+            package.update(raw_value)
+            package["key"] = package_key
+            package["enabled"] = bool(package.get("enabled", True))
+            package["title"] = str(package.get("title") or defaults["title"]).strip() or defaults["title"]
+            package["description"] = str(package.get("description") or "").strip()
+            package["price_minor_units"] = max(1, int(package.get("price_minor_units", defaults["price_minor_units"])))
+            package["access_duration_days"] = max(
+                1,
+                int(package.get("access_duration_days", defaults["access_duration_days"])),
+            )
+            package["sort_order"] = int(package.get("sort_order", defaults["sort_order"]))
+            package["badge"] = str(package.get("badge") or "").strip()
+            package["is_default"] = bool(package.get("is_default", False))
+            package["recurring_stars_enabled"] = bool(
+                package.get("recurring_stars_enabled", payment["recurring_stars_enabled"])
+            )
+            normalized_packages[package_key] = package
+
+        payment["packages"] = normalized_packages
+        payment["default_package_key"] = self._resolve_default_package_key(payment)
+        default_package = payment["packages"][payment["default_package_key"]]
+        payment["price_minor_units"] = int(default_package["price_minor_units"])
+        payment["access_duration_days"] = int(default_package["access_duration_days"])
+        return payment
+
+    def _resolve_default_package_key(self, payment: dict) -> str:
+        requested_key = str(payment.get("default_package_key") or "").strip().lower()
+        if requested_key in payment["packages"] and payment["packages"][requested_key].get("enabled"):
+            return requested_key
+
+        for package_key, package in payment["packages"].items():
+            if package.get("enabled") and package.get("is_default"):
+                return package_key
+
+        for package in sorted(
+            payment["packages"].values(),
+            key=lambda item: (int(item.get("sort_order", 0)), item["key"]),
+        ):
+            if package.get("enabled"):
+                return str(package["key"])
+        return "month"
+
+    def _build_legacy_packages(self, payment: dict) -> dict:
+        packages = deepcopy(self.DEFAULT_PACKAGE_CATALOG)
+        default_key = str(payment.get("default_package_key") or "month").strip().lower()
+        if default_key not in packages:
+            default_key = "month"
+
+        packages[default_key]["price_minor_units"] = max(1, int(payment.get("price_minor_units", 49900) or 49900))
+        packages[default_key]["access_duration_days"] = max(
+            1,
+            int(payment.get("access_duration_days", 30) or 30),
+        )
+        packages[default_key]["title"] = str(
+            payment.get("product_title") or packages[default_key]["title"]
+        ).strip() or packages[default_key]["title"]
+        packages[default_key]["description"] = str(
+            payment.get("product_description") or packages[default_key]["description"]
+        ).strip()
+        packages[default_key]["is_default"] = True
+        packages[default_key]["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
+        return packages

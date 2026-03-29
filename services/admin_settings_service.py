@@ -15,6 +15,48 @@ class AdminSettingsService:
         "free_talk": {"warmth": 8, "flirt": 1, "depth": 8, "structure": 2, "dominance": 1, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
         "dominant": {"warmth": 3, "flirt": 3, "depth": 4, "structure": 8, "dominance": 9, "initiative": 7, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
     }
+    DEFAULT_PAYMENT_PACKAGES = {
+        "day": {
+            "enabled": True,
+            "title": "Premium на 1 день",
+            "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+            "price_minor_units": 7900,
+            "access_duration_days": 1,
+            "sort_order": 10,
+            "badge": "Тест",
+            "recurring_stars_enabled": False,
+        },
+        "week": {
+            "enabled": True,
+            "title": "Premium на 7 дней",
+            "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+            "price_minor_units": 24900,
+            "access_duration_days": 7,
+            "sort_order": 20,
+            "badge": "Популярно",
+            "recurring_stars_enabled": False,
+        },
+        "month": {
+            "enabled": True,
+            "title": "Premium на 30 дней",
+            "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+            "price_minor_units": 49900,
+            "access_duration_days": 30,
+            "sort_order": 30,
+            "badge": "Основной",
+            "recurring_stars_enabled": True,
+        },
+        "year": {
+            "enabled": True,
+            "title": "Premium на 365 дней",
+            "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+            "price_minor_units": 399000,
+            "access_duration_days": 365,
+            "sort_order": 40,
+            "badge": "Выгодно",
+            "recurring_stars_enabled": False,
+        },
+    }
 
     DEFAULT_RUNTIME_SETTINGS = {
         "ai": {
@@ -235,10 +277,15 @@ class AdminSettingsService:
             "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium снова откроет этот режим и даст лимит до {premium_limit} сообщений в день на {access_days} дней.",
             "provider_token": "",
             "currency": "RUB",
+            "default_package_key": "month",
             "price_minor_units": 49900,
             "access_duration_days": 30,
             "recurring_stars_enabled": True,
+            "packages": deepcopy(DEFAULT_PAYMENT_PACKAGES),
             "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
+            "premium_menu_packages_title": "Выбери подходящий вариант доступа:",
+            "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
+            "premium_menu_package_button_template": "{title} • {price_label}",
             "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
             "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
             "premium_menu_back_button_text": "← К режимам",
@@ -742,9 +789,12 @@ class AdminSettingsService:
         payment = current["payment"]
         payment["provider_token"] = str(payment["provider_token"]).strip()
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
-        payment["price_minor_units"] = max(1, int(payment["price_minor_units"]))
-        payment["access_duration_days"] = max(1, int(payment.get("access_duration_days", 30)))
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
+        payment["default_package_key"] = str(payment.get("default_package_key") or "month").strip().lower() or "month"
+        payment["packages"] = self._normalize_payment_packages(payment)
+        default_package = payment["packages"][payment["default_package_key"]]
+        payment["price_minor_units"] = int(default_package["price_minor_units"])
+        payment["access_duration_days"] = int(default_package["access_duration_days"])
         payment["renewal_reminder_days"] = self._normalize_int_list(
             payment.get("renewal_reminder_days"),
             minimum=1,
@@ -763,6 +813,9 @@ class AdminSettingsService:
             "offer_locked_mode_template",
             "offer_preview_exhausted_template",
             "premium_menu_description_template",
+            "premium_menu_packages_title",
+            "premium_menu_package_line_template",
+            "premium_menu_package_button_template",
             "premium_menu_preview_template",
             "premium_menu_buy_button_template",
             "premium_menu_back_button_text",
@@ -783,6 +836,52 @@ class AdminSettingsService:
                 ui[key] = self._normalize_text(ui[key], multiline=True)
 
         return current
+
+    def _normalize_payment_packages(self, payment: dict[str, Any]) -> dict[str, Any]:
+        merged = deepcopy(self.DEFAULT_PAYMENT_PACKAGES)
+        raw_packages = payment.get("packages")
+        if isinstance(raw_packages, dict):
+            self._deep_merge(merged, raw_packages)
+
+        requested_key = str(payment.get("default_package_key") or "month").strip().lower() or "month"
+        if requested_key not in merged:
+            requested_key = "month"
+
+        if not isinstance(raw_packages, dict) or not raw_packages:
+            merged[requested_key]["price_minor_units"] = max(1, int(payment.get("price_minor_units", 49900) or 49900))
+            merged[requested_key]["access_duration_days"] = max(
+                1,
+                int(payment.get("access_duration_days", 30) or 30),
+            )
+            if str(payment.get("product_description") or "").strip():
+                merged[requested_key]["description"] = str(payment["product_description"]).strip()
+
+        for package_key, package in merged.items():
+            package["enabled"] = bool(package.get("enabled", True))
+            package["title"] = self._normalize_text(package.get("title") or package_key)
+            package["description"] = self._normalize_text(package.get("description") or "", multiline=True)
+            package["price_minor_units"] = max(1, int(package.get("price_minor_units", 100)))
+            package["access_duration_days"] = max(1, int(package.get("access_duration_days", 30)))
+            package["sort_order"] = int(package.get("sort_order", 0))
+            package["badge"] = self._normalize_text(package.get("badge") or "")
+            package["recurring_stars_enabled"] = bool(
+                package.get("recurring_stars_enabled", payment.get("recurring_stars_enabled", True))
+            )
+
+        enabled_keys = [key for key, package in merged.items() if package.get("enabled")]
+        if not enabled_keys:
+            merged[requested_key]["enabled"] = True
+            enabled_keys = [requested_key]
+
+        if requested_key not in enabled_keys:
+            enabled_keys.sort(key=lambda key: (merged[key]["sort_order"], key))
+            requested_key = enabled_keys[0]
+
+        for package_key, package in merged.items():
+            package["is_default"] = package_key == requested_key
+
+        payment["default_package_key"] = requested_key
+        return merged
 
     def _normalize_mode_scales(self, payload: dict[str, Any]) -> dict[str, Any]:
         merged = deepcopy(self.DEFAULT_MODE_SCALES)
