@@ -169,6 +169,7 @@ async def chat_handler(
     referral_service,
     admin_settings_service,
     conversation_summary_service,
+    chat_session_service,
     mode_access_service,
     db,
 ):
@@ -205,7 +206,7 @@ async def chat_handler(
         return
 
     if user_text == ui_settings["premium_button_text"]:
-        await send_premium_offer(message, payment_service)
+        await send_premium_offer(message, payment_service, user_service)
         return
 
     if user_text.lower() in {"/ref", "рефералка", "реферальная ссылка"} and referral_settings["enabled"]:
@@ -219,127 +220,130 @@ async def chat_handler(
         )
         return
 
-    limits_bypass_for_admins = limits_settings.get("admins_bypass_daily_limits", True)
-    should_apply_limits = user is not None and (
-        not user.get("is_admin") or not limits_bypass_for_admins
-    )
+    async with chat_session_service.user_session(user_id):
+        limits_bypass_for_admins = limits_settings.get("admins_bypass_daily_limits", True)
+        should_apply_limits = user is not None and (
+            not user.get("is_admin") or not limits_bypass_for_admins
+        )
 
-    if should_apply_limits:
-        today_count = await message_repository.get_user_messages_count_today(user_id)
+        if should_apply_limits:
+            today_count = await message_repository.get_user_messages_count_today(user_id)
 
-        if user.get("is_premium"):
-            if (
-                limits_settings.get("premium_daily_messages_enabled")
-                and today_count >= limits_settings["premium_daily_messages_limit"]
+            if user.get("is_premium"):
+                if (
+                    limits_settings.get("premium_daily_messages_enabled")
+                    and today_count >= limits_settings["premium_daily_messages_limit"]
+                ):
+                    await message.answer(limits_settings["premium_daily_limit_message"])
+                    return
+            elif (
+                limits_settings["free_daily_messages_enabled"]
+                and today_count >= limits_settings["free_daily_messages_limit"]
             ):
-                await message.answer(limits_settings["premium_daily_limit_message"])
+                await message.answer(limits_settings["free_daily_limit_message"])
+                await send_premium_offer(message, payment_service, user_service)
                 return
-        elif (
-            limits_settings["free_daily_messages_enabled"]
-            and today_count >= limits_settings["free_daily_messages_limit"]
-        ):
-            await message.answer(limits_settings["free_daily_limit_message"])
-            return
 
-    state = await state_repository.get(user_id)
-    logger.debug("[STATE] Loaded for user %s", user_id)
-    active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
-    ai_profile = resolve_ai_profile(ai_settings, active_mode)
-    selection_status = mode_access_service.get_selection_status(
-        user=user or {},
-        mode_key=active_mode,
-        state=state,
-        runtime_settings=runtime_settings,
-        mode_catalog=mode_catalog,
-    )
-
-    if not selection_status["allowed"]:
-        mode = get_mode(active_mode)
-        await message.answer(
-            limits_settings["mode_preview_exhausted_message"].format(
-                mode_name=mode.name,
-                daily_limit=selection_status["daily_limit"],
-            )
-        )
-        return
-
-    history = await message_repository.get_last_messages(
-        user_id=user_id,
-        limit=ai_profile["history_message_limit"],
-    )
-
-    if chat_settings["typing_action_enabled"]:
-        await message.bot.send_chat_action(user_id, "typing")
-
-    async def remember_user_message() -> None:
-        try:
-            await long_term_memory_service.capture_from_message(user_id, user_text)
-        except Exception:
-            logger.exception("LONG TERM MEMORY ERROR")
-
-    try:
-        result = await ai_service.generate_response(
-            user_id=user_id,
-            history=history,
-            user_message=user_text,
-            state=state,
-        )
-    except AIBackpressureError:
-        await message_repository.save(user_id, "user", user_text)
-        await remember_user_message()
-        await message.answer(chat_settings["busy_message"])
-        return
-    except Exception:
-        logger.exception("AI ERROR")
-        await message_repository.save(user_id, "user", user_text)
-        await remember_user_message()
-        await message.answer(chat_settings["ai_error_message"])
-        return
-
-    response = result.response
-    new_state = result.new_state
-
-    if new_state is None:
-        logger.warning(
-            "[STATE] AI returned None for user %s, keeping previous state",
-            user_id,
-        )
-        new_state = state
-
-    response_mode = str(new_state.get("adaptive_mode") or new_state.get("active_mode") or active_mode)
-    mode_config = admin_settings_service.get_modes().get(response_mode, {})
-    formatting_options = TelegramFormattingOptions(
-        allow_bold=bool(mode_config.get("allow_bold", False)),
-        allow_italic=bool(mode_config.get("allow_italic", False)),
-    )
-    formatted_response = format_model_response_for_telegram(response, formatting_options)
-
-    try:
-        new_state = mode_access_service.register_successful_message(
-            new_state,
-            mode_key=active_mode,
+        state = await state_repository.get(user_id)
+        logger.debug("[STATE] Loaded for user %s", user_id)
+        active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
+        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        selection_status = mode_access_service.get_selection_status(
             user=user or {},
+            mode_key=active_mode,
+            state=state,
             runtime_settings=runtime_settings,
             mode_catalog=mode_catalog,
         )
-        async with db.transaction():
-            await message_repository.save(user_id, "user", user_text, commit=False)
-            await state_repository.save(user_id, new_state, commit=False)
-            await message_repository.save(user_id, "assistant", response, commit=False)
-    except Exception:
-        logger.exception("DB ERROR while saving chat exchange")
-        await message.answer(chat_settings["ai_error_message"])
-        return
 
-    await remember_user_message()
+        if not selection_status["allowed"]:
+            mode = get_mode(active_mode)
+            await message.answer(
+                limits_settings["mode_preview_exhausted_message"].format(
+                    mode_name=mode.name,
+                    daily_limit=selection_status["daily_limit"],
+                )
+            )
+            await send_premium_offer(message, payment_service, user_service)
+            return
 
-    try:
-        conversation_summary_service.schedule_refresh(user_id, new_state)
-    except Exception:
-        logger.exception("SUMMARY SCHEDULER ERROR")
+        history = await message_repository.get_last_messages(
+            user_id=user_id,
+            limit=ai_profile["history_message_limit"],
+        )
 
-    try:
-        await message.answer(formatted_response or escape_plain_text_for_telegram(response))
-    except TelegramBadRequest:
-        logger.exception("TELEGRAM FORMAT ERROR")
-        await message.answer(escape_plain_text_for_telegram(response))
+        if chat_settings["typing_action_enabled"]:
+            await message.bot.send_chat_action(user_id, "typing")
+
+        async def remember_user_message() -> None:
+            try:
+                await long_term_memory_service.capture_from_message(user_id, user_text)
+            except Exception:
+                logger.exception("LONG TERM MEMORY ERROR")
+
+        try:
+            result = await ai_service.generate_response(
+                user_id=user_id,
+                history=history,
+                user_message=user_text,
+                state=state,
+            )
+        except AIBackpressureError:
+            await message_repository.save(user_id, "user", user_text)
+            await remember_user_message()
+            await message.answer(chat_settings["busy_message"])
+            return
+        except Exception:
+            logger.exception("AI ERROR")
+            await message_repository.save(user_id, "user", user_text)
+            await remember_user_message()
+            await message.answer(chat_settings["ai_error_message"])
+            return
+
+        response = result.response
+        new_state = result.new_state
+
+        if new_state is None:
+            logger.warning(
+                "[STATE] AI returned None for user %s, keeping previous state",
+                user_id,
+            )
+            new_state = state
+
+        response_mode = str(new_state.get("adaptive_mode") or new_state.get("active_mode") or active_mode)
+        mode_config = admin_settings_service.get_modes().get(response_mode, {})
+        formatting_options = TelegramFormattingOptions(
+            allow_bold=bool(mode_config.get("allow_bold", False)),
+            allow_italic=bool(mode_config.get("allow_italic", False)),
+        )
+        formatted_response = format_model_response_for_telegram(response, formatting_options)
+
+        try:
+            new_state = mode_access_service.register_successful_message(
+                new_state,
+                mode_key=active_mode,
+                user=user or {},
+                runtime_settings=runtime_settings,
+                mode_catalog=mode_catalog,
+            )
+            async with db.transaction():
+                await message_repository.save(user_id, "user", user_text, commit=False)
+                await state_repository.save(user_id, new_state, commit=False)
+                await message_repository.save(user_id, "assistant", response, commit=False)
+        except Exception:
+            logger.exception("DB ERROR while saving chat exchange")
+            await message.answer(chat_settings["ai_error_message"])
+            return
+
+        await remember_user_message()
+
+        try:
+            conversation_summary_service.schedule_refresh(user_id, new_state)
+        except Exception:
+            logger.exception("SUMMARY SCHEDULER ERROR")
+
+        try:
+            await message.answer(formatted_response or escape_plain_text_for_telegram(response))
+        except TelegramBadRequest:
+            logger.exception("TELEGRAM FORMAT ERROR")
+            await message.answer(escape_plain_text_for_telegram(response))

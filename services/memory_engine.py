@@ -79,15 +79,18 @@ class MemoryFormatter:
 
 class MemoryEngine:
     def __init__(self, max_tokens: int = 1500):
-        self.limiter = MemoryLimiter(max_tokens)
+        self.default_max_tokens = max(100, int(max_tokens))
         self.formatter = MemoryFormatter()
 
-    def set_max_tokens(self, max_tokens: int) -> None:
-        self.limiter.max_tokens = max(100, int(max_tokens))
-
-    async def build_context(self, history: list[ChatMessage]) -> list[dict[str, str]]:
+    async def build_context(
+        self,
+        history: list[ChatMessage],
+        *,
+        max_tokens: int | None = None,
+    ) -> list[dict[str, str]]:
         if not history:
             return []
 
-        trimmed = self.limiter.trim(history)
+        limiter = MemoryLimiter(max_tokens=max_tokens or self.default_max_tokens)
+        trimmed = limiter.trim(history)
         return self.formatter.to_openai_format(trimmed)

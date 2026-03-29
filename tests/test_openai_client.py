@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 
 import httpx
@@ -100,3 +101,42 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(text, "done")
         self.assertIn("reasoning_effort", fake_client.chat.completions.payloads[0])
         self.assertNotIn("reasoning_effort", fake_client.chat.completions.payloads[1])
+
+    async def test_generate_tracks_global_openai_waiters(self):
+        class SlowCompletions:
+            def __init__(self):
+                self.payloads = []
+
+            async def create(self, **payload):
+                self.payloads.append(dict(payload))
+                await asyncio.sleep(0.05)
+                return FakeResponse("ok")
+
+        class SlowChat:
+            def __init__(self):
+                self.completions = SlowCompletions()
+
+        class SlowAsyncOpenAI:
+            def __init__(self):
+                self.chat = SlowChat()
+
+            async def close(self):
+                return None
+
+        client = OpenAIClient(api_key="test-key", max_parallel_requests=1)
+        client.client = SlowAsyncOpenAI()
+
+        first = asyncio.create_task(client.generate(messages=[{"role": "user", "content": "one"}]))
+        await asyncio.sleep(0.01)
+        second = asyncio.create_task(client.generate(messages=[{"role": "user", "content": "two"}]))
+        await asyncio.sleep(0.01)
+
+        stats_while_running = client.get_runtime_stats()
+        self.assertEqual(stats_while_running["in_flight_requests"], 1)
+        self.assertEqual(stats_while_running["waiting_requests"], 1)
+
+        await asyncio.gather(first, second)
+
+        final_stats = client.get_runtime_stats()
+        self.assertEqual(final_stats["total_requests"], 2)
+        self.assertGreater(final_stats["max_wait_ms"], 0)

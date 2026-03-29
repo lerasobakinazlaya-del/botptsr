@@ -16,6 +16,7 @@ from database.user_state_repository import UserStateRepository
 from services.access_engine import AccessEngine
 from services.ai_service import AIService
 from services.admin_settings_service import AdminSettingsService
+from services.chat_session_service import ChatSessionService
 from services.conversation_summary_service import ConversationSummaryService
 from services.human_memory_service import HumanMemoryService
 from services.keyword_memory_service import KeywordMemoryService
@@ -55,6 +56,7 @@ class Container:
         self.state_repository = UserStateRepository(self.db)
 
         self.admin_settings_service = AdminSettingsService()
+        self.chat_session_service = ChatSessionService()
         self.state_engine = StateEngine(self.admin_settings_service)
         self.memory_engine = MemoryEngine()
         self.keyword_memory_service = KeywordMemoryService()
@@ -68,7 +70,10 @@ class Container:
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
         self.access_engine = AccessEngine(self.admin_settings_service)
 
-        self.openai_client = OpenAIClient(api_key=self.settings.openai_api_key)
+        self.openai_client = OpenAIClient(
+            api_key=self.settings.openai_api_key,
+            max_parallel_requests=self.settings.openai_max_parallel_requests,
+        )
         self.ai_service = AIService(
             client=self.openai_client,
             state_engine=self.state_engine,
@@ -84,6 +89,7 @@ class Container:
             debug_prompt_user_id=self.settings.ai_debug_prompt_user_id,
             max_parallel_requests=self.settings.openai_max_parallel_requests,
             queue_size=self.settings.openai_queue_size,
+            queue_wait_timeout_seconds=self.settings.openai_queue_wait_timeout_seconds,
         )
         self.conversation_summary_service = ConversationSummaryService(
             client=self.openai_client,

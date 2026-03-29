@@ -17,6 +17,7 @@ class AdminMetricsService:
         referral_service,
         state_repository,
         ai_service,
+        chat_session_service,
         proactive_repository,
         user_preference_repository,
         redis=None,
@@ -28,6 +29,7 @@ class AdminMetricsService:
         self.referral_service = referral_service
         self.state_repository = state_repository
         self.ai_service = ai_service
+        self.chat_session_service = chat_session_service
         self.proactive_repository = proactive_repository
         self.user_preference_repository = user_preference_repository
         self.redis = redis
@@ -41,7 +43,10 @@ class AdminMetricsService:
 
         return {
             **cached_payload,
-            "runtime": self.ai_service.get_runtime_stats(),
+            "runtime": {
+                **self.ai_service.get_runtime_stats(),
+                "chat_sessions": self.chat_session_service.get_runtime_stats(),
+            },
         }
 
     async def invalidate_cache(self) -> None:

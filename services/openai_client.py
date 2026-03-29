@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import time
 from typing import Any, Dict, List, Tuple
 
 from openai import AsyncOpenAI, BadRequestError
@@ -13,6 +15,7 @@ class OpenAIClient:
         api_key: str,
         model: str = "gpt-4o-mini",
         temperature: float = 0.9,
+        max_parallel_requests: int | None = None,
     ):
         if not api_key:
             raise ValueError("OpenAI API key is required")
@@ -20,6 +23,20 @@ class OpenAIClient:
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         self.temperature = temperature
+        self.max_parallel_requests = max_parallel_requests or 0
+        self._semaphore = (
+            asyncio.Semaphore(self.max_parallel_requests)
+            if self.max_parallel_requests > 0
+            else None
+        )
+        self._in_flight_requests = 0
+        self._waiting_requests = 0
+        self._total_requests = 0
+        self._failed_requests = 0
+        self._last_wait_ms = 0.0
+        self._max_wait_ms = 0.0
+        self._last_latency_ms = 0.0
+        self._max_latency_ms = 0.0
 
     async def generate(
         self,
@@ -54,12 +71,57 @@ class OpenAIClient:
         if user:
             payload["user"] = user
 
-        response = await self._create_completion_with_fallback(payload)
+        response = await self._run_with_limits(payload)
 
         text = response.choices[0].message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else None
 
         return text.strip(), tokens_used
+
+    def get_runtime_stats(self) -> Dict[str, int | float]:
+        return {
+            "configured_limit": self.max_parallel_requests,
+            "in_flight_requests": self._in_flight_requests,
+            "waiting_requests": self._waiting_requests,
+            "total_requests": self._total_requests,
+            "failed_requests": self._failed_requests,
+            "last_wait_ms": self._last_wait_ms,
+            "max_wait_ms": self._max_wait_ms,
+            "last_latency_ms": self._last_latency_ms,
+            "max_latency_ms": self._max_latency_ms,
+        }
+
+    async def _run_with_limits(self, payload: Dict[str, Any]):
+        wait_started = time.perf_counter()
+        acquired = False
+        self._waiting_requests += 1
+
+        try:
+            if self._semaphore is not None:
+                await self._semaphore.acquire()
+                acquired = True
+        finally:
+            wait_ms = round((time.perf_counter() - wait_started) * 1000, 1)
+            self._last_wait_ms = wait_ms
+            self._max_wait_ms = max(self._max_wait_ms, wait_ms)
+            self._waiting_requests = max(0, self._waiting_requests - 1)
+
+        started = time.perf_counter()
+        self._in_flight_requests += 1
+        self._total_requests += 1
+
+        try:
+            return await self._create_completion_with_fallback(payload)
+        except Exception:
+            self._failed_requests += 1
+            raise
+        finally:
+            latency_ms = round((time.perf_counter() - started) * 1000, 1)
+            self._last_latency_ms = latency_ms
+            self._max_latency_ms = max(self._max_latency_ms, latency_ms)
+            self._in_flight_requests = max(0, self._in_flight_requests - 1)
+            if acquired and self._semaphore is not None:
+                self._semaphore.release()
 
     async def _create_completion_with_fallback(self, payload: Dict[str, Any]):
         request_payload = dict(payload)

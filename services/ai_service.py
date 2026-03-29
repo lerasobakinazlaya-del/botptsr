@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
@@ -24,6 +25,8 @@ class AIRequest:
     user_message: str
     state: Dict[str, Any]
     future: asyncio.Future
+    started_event: asyncio.Event
+    enqueued_at: float
 
 
 class AIBackpressureError(RuntimeError):
@@ -53,6 +56,7 @@ class AIService:
         max_retries: int = 2,
         max_parallel_requests: int = 4,
         queue_size: int = 100,
+        queue_wait_timeout_seconds: int = 25,
     ):
         self.client = client
         self.state_engine = state_engine
@@ -70,10 +74,21 @@ class AIService:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
         self.max_parallel_requests = max_parallel_requests
+        self.queue_wait_timeout_seconds = queue_wait_timeout_seconds
 
         self._queue: asyncio.Queue[AIRequest | None] = asyncio.Queue(maxsize=queue_size)
         self._workers: list[asyncio.Task] = []
         self._started = False
+        self._busy_workers = 0
+        self._requests_started = 0
+        self._requests_completed = 0
+        self._requests_failed = 0
+        self._requests_rejected = 0
+        self._requests_queue_timed_out = 0
+        self._last_queue_wait_ms = 0.0
+        self._max_queue_wait_ms = 0.0
+        self._last_run_ms = 0.0
+        self._max_run_ms = 0.0
 
     async def start(self) -> None:
         if self._started:
@@ -96,14 +111,29 @@ class AIService:
         self._workers.clear()
         self._started = False
 
-    def get_runtime_stats(self) -> dict[str, int | bool]:
-        return {
+    def get_runtime_stats(self) -> dict[str, int | float | bool]:
+        stats: dict[str, int | float | bool] = {
             "started": self._started,
             "queue_size": self._queue.qsize(),
             "queue_capacity": self._queue.maxsize,
             "workers": len(self._workers),
+            "busy_workers": self._busy_workers,
             "max_parallel_requests": self.max_parallel_requests,
+            "queue_wait_timeout_seconds": self.queue_wait_timeout_seconds,
+            "requests_started": self._requests_started,
+            "requests_completed": self._requests_completed,
+            "requests_failed": self._requests_failed,
+            "requests_rejected": self._requests_rejected,
+            "requests_queue_timed_out": self._requests_queue_timed_out,
+            "last_queue_wait_ms": self._last_queue_wait_ms,
+            "max_queue_wait_ms": self._max_queue_wait_ms,
+            "last_run_ms": self._last_run_ms,
+            "max_run_ms": self._max_run_ms,
         }
+        if hasattr(self.client, "get_runtime_stats"):
+            for key, value in self.client.get_runtime_stats().items():
+                stats[f"openai_{key}"] = value
+        return stats
 
     async def generate_response(
         self,
@@ -116,6 +146,7 @@ class AIService:
             raise RuntimeError("AI service is not started")
 
         if self._queue.full():
+            self._requests_rejected += 1
             raise AIBackpressureError("AI request queue is full")
 
         loop = asyncio.get_running_loop()
@@ -126,8 +157,19 @@ class AIService:
             state=state,
             user_id=user_id,
             future=future,
+            started_event=asyncio.Event(),
+            enqueued_at=time.perf_counter(),
         )
         self._queue.put_nowait(request)
+        try:
+            await asyncio.wait_for(
+                request.started_event.wait(),
+                timeout=self.queue_wait_timeout_seconds,
+            )
+        except asyncio.TimeoutError as exc:
+            self._requests_queue_timed_out += 1
+            future.cancel()
+            raise AIBackpressureError("AI request queue wait timed out") from exc
         return await future
 
     async def _worker(self) -> None:
@@ -138,6 +180,18 @@ class AIService:
                 self._queue.task_done()
                 return
 
+            if request.future.cancelled():
+                self._queue.task_done()
+                continue
+
+            queue_wait_ms = round((time.perf_counter() - request.enqueued_at) * 1000, 1)
+            self._last_queue_wait_ms = queue_wait_ms
+            self._max_queue_wait_ms = max(self._max_queue_wait_ms, queue_wait_ms)
+            request.started_event.set()
+            started = time.perf_counter()
+            self._busy_workers += 1
+            self._requests_started += 1
+
             try:
                 result = await self._generate_response_impl(
                     history=request.history,
@@ -145,12 +199,18 @@ class AIService:
                     state=request.state,
                     user_id=request.user_id,
                 )
+                self._requests_completed += 1
                 if not request.future.done():
                     request.future.set_result(result)
             except Exception as exc:
+                self._requests_failed += 1
                 if not request.future.done():
                     request.future.set_exception(exc)
             finally:
+                run_ms = round((time.perf_counter() - started) * 1000, 1)
+                self._last_run_ms = run_ms
+                self._max_run_ms = max(self._max_run_ms, run_ms)
+                self._busy_workers = max(0, self._busy_workers - 1)
                 self._queue.task_done()
 
     async def _generate_response_impl(
@@ -170,9 +230,11 @@ class AIService:
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
         active_mode = self._resolve_effective_mode(new_state, runtime_settings)
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
-        self.memory_engine.set_max_tokens(ai_profile["memory_max_tokens"])
         access_level = self.access_engine.update_access_level(new_state)
-        memory_messages = await self.memory_engine.build_context(history)
+        memory_messages = await self.memory_engine.build_context(
+            history,
+            max_tokens=ai_profile["memory_max_tokens"],
+        )
         memory_context = await self._build_memory_context(
             new_state,
             user_id=user_id,
@@ -264,9 +326,11 @@ class AIService:
         engagement_settings = runtime_settings["engagement"]
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
         ai_profile = resolve_ai_profile(ai_settings, active_mode)
-        self.memory_engine.set_max_tokens(ai_profile["memory_max_tokens"])
         access_level = self.access_engine.update_access_level(state)
-        memory_messages = await self.memory_engine.build_context(history)
+        memory_messages = await self.memory_engine.build_context(
+            history,
+            max_tokens=ai_profile["memory_max_tokens"],
+        )
         memory_context = await self._build_memory_context(
             state,
             user_id=user_id,

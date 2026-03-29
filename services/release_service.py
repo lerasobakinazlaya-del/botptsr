@@ -84,4 +84,31 @@ def build_health_warnings(
             }
         )
 
+    if int(runtime_stats.get("requests_rejected") or 0) > 0:
+        warnings.append(
+            {
+                "severity": "high",
+                "code": "ai_backpressure_rejections",
+                "message": "Часть AI-запросов уже была отклонена из-за заполненной очереди. Это прямой сигнал, что текущей емкости не хватает.",
+            }
+        )
+
+    if int(runtime_stats.get("requests_queue_timed_out") or 0) > 0:
+        warnings.append(
+            {
+                "severity": "medium",
+                "code": "ai_queue_wait_timeout",
+                "message": "Запросы успевали застревать в очереди AI дольше допустимого времени. Под нагрузкой пользователи будут чаще видеть busy-ответы.",
+            }
+        )
+
+    if int(runtime_stats.get("openai_waiting_requests") or 0) > 0:
+        warnings.append(
+            {
+                "severity": "medium",
+                "code": "openai_global_waiters",
+                "message": "Есть ожидание на общем лимите OpenAI. Чат и фоновые задачи конкурируют за один и тот же пул запросов.",
+            }
+        )
+
     return warnings
