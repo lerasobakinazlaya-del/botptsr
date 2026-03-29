@@ -34,6 +34,8 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `/api/logs` использует in-memory кеш с автоматической инвалидацией при изменении файла
 - полные промпты логируются только при `DEBUG=true`
 - входящие сообщения больше не пишутся в лог с текстовым preview
+- AI-очередь теперь ограничивает время ожидания через `OPENAI_QUEUE_WAIT_TIMEOUT_SECONDS`, а админка показывает queue wait, reject/timeout и глобальный OpenAI pool
+- обработка сообщений одного пользователя сериализована, чтобы под нагрузкой не было гонок состояния и перемешивания ответов
 - рассылка из Telegram-админки отправляется батчами
 - рассылка из веб-админки теперь проходит через preview и `confirmation_token`, чтобы избежать случайной массовой отправки
 - в health добавлены `release.json`, предупреждения по окружению и отображение текущего релиза в админке
@@ -83,6 +85,13 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - re-engagement и adaptive mode switching
 - шаблоны сообщений, ручную отправку и массовую рассылку
 
+В разделе `Health` сейчас дополнительно видно:
+
+- статус Redis с `mode`, `endpoint`, `DB`, `URL` и `latency`
+- давление на AI-очередь: `queue_size`, `busy_workers`, queue wait, reject и timeout
+- глобальный OpenAI-пул: `in_flight`, `waiting_requests`, wait и latency
+- сериализацию пользовательских чатов: `active_sessions`, `tracked_users`, `wait_events`
+
 ## Быстрый старт
 
 ```powershell
@@ -117,6 +126,7 @@ AI_LOG_FULL_PROMPT=false
 AI_DEBUG_PROMPT_USER_ID=
 OPENAI_MAX_PARALLEL_REQUESTS=8
 OPENAI_QUEUE_SIZE=500
+OPENAI_QUEUE_WAIT_TIMEOUT_SECONDS=25
 
 ADMIN_DASHBOARD_HOST=127.0.0.1
 ADMIN_DASHBOARD_PORT=8080
@@ -281,6 +291,8 @@ ADMIN_DASHBOARD_BIND=0.0.0.0
 
 - workflow запускается вручную через `workflow_dispatch`, а не на каждый `push`
 - workflow деплоит содержимое ветки из GitHub, а не локальные незакоммиченные изменения
+- после выкладки workflow дополнительно проверяет `redis-cli ping` и делает авторизованный запрос к `http://127.0.0.1:8080/api/health`
+- post-deploy шаг валидирует `db.ok`, `redis.ok` и совпадение `release.commit` с выкачанным коммитом
 - если вы правили проект локально, перед деплоем нужно как минимум закоммитить и отправить изменения в нужную ветку
 - альтернативный путь — прямой SSH-деплой на сервер с запуском `deploy/systemd/update_bot.sh`
 - на практике сервер может быть развернут не как полноценный git checkout; в таком случае возможен ручной SSH-выкат файлов с последующим `systemctl restart`
@@ -336,4 +348,5 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 
 - `redis-cli ping` отвечает `PONG`
 - оба сервиса в состоянии `active (running)`
-- `http://127.0.0.1:8080/api/health` отдает `200` и показывает актуальный `release.json`
+- `http://127.0.0.1:8080/api/health` отдает `200`, показывает актуальный `release.json` и `redis.mode=connected`
+- в `Health` админки видны актуальные метрики `AI queue`, `OpenAI pool` и `Chat sessions`
