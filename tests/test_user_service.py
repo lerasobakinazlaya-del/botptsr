@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from database.db import Database
@@ -14,6 +15,14 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
         await self.db.connect()
         self.user_service = UserService(self.db)
         await self.user_service.init_table()
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        soon_expiry = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+        later_expiry = (now + timedelta(days=12)).strftime("%Y-%m-%d %H:%M:%S")
+        expired_at = (now - timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
+        created_basic = (now - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")
+        created_soon = (now - timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+        created_later = (now - timedelta(days=3)).strftime("%Y-%m-%d %H:%M:%S")
+        created_expired = (now - timedelta(days=6)).strftime("%Y-%m-%d %H:%M:%S")
 
         await self.db.connection.executemany(
             """
@@ -30,10 +39,10 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                (1, "basic", "Basic", "base", 0, None, 0, "2026-03-25 10:00:00"),
-                (2, "soon", "Soon", "base", 1, "2026-03-30 10:00:00", 0, "2026-03-26 10:00:00"),
-                (3, "later", "Later", "base", 1, "2026-04-10 10:00:00", 0, "2026-03-27 10:00:00"),
-                (4, "expired", "Expired", "base", 1, "2026-03-20 10:00:00", 0, "2026-03-24 10:00:00"),
+                (1, "basic", "Basic", "base", 0, None, 0, created_basic),
+                (2, "soon", "Soon", "base", 1, soon_expiry, 0, created_soon),
+                (3, "later", "Later", "base", 1, later_expiry, 0, created_later),
+                (4, "expired", "Expired", "base", 1, expired_at, 0, created_expired),
             ],
         )
         await self.db.connection.commit()
