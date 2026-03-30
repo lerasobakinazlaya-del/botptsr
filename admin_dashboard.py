@@ -1667,7 +1667,7 @@ def _dashboard_html() -> str:
       setValue('#chat_busy_message',c.busy_message);
       setValue('#chat_ai_error_message',c.ai_error_message);
       setValue('#chat_write_prompt_message',c.write_prompt_message);
-      setValue('#chat_response_guardrail_blocked_phrases',(c.response_guardrail_blocked_phrases||[]).join('\n'));
+      setValue('#chat_response_guardrail_blocked_phrases',(c.response_guardrail_blocked_phrases||[]).join('\\n'));
       setChecked('#proactive_enabled',p.enabled);
       setValue('#proactive_scan_interval_seconds',p.scan_interval_seconds);
       setValue('#proactive_min_inactive_hours',p.min_inactive_hours);
