@@ -1,15 +1,14 @@
 import unittest
-
-import admin_dashboard
+from pathlib import Path
 
 
 class AdminDashboardTemplateTests(unittest.TestCase):
     def test_runtime_guardrail_phrases_use_escaped_newline_in_script(self):
-        html = admin_dashboard._dashboard_html()
+        source = Path("admin_dashboard.py").read_text(encoding="utf-8")
 
         self.assertIn(
-            "setValue('#chat_response_guardrail_blocked_phrases',(c.response_guardrail_blocked_phrases||[]).join('\\n'));",
-            html,
+            "setValue('#chat_response_guardrail_blocked_phrases',(c.response_guardrail_blocked_phrases||[]).join('\\\\n'));",
+            source,
         )
 
 
