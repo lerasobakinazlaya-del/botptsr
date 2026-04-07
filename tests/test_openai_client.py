@@ -13,8 +13,9 @@ class FakeMessage:
 
 
 class FakeChoice:
-    def __init__(self, content):
+    def __init__(self, content, finish_reason="stop"):
         self.message = FakeMessage(content)
+        self.finish_reason = finish_reason
 
 
 class FakeUsage:
@@ -23,8 +24,8 @@ class FakeUsage:
 
 
 class FakeResponse:
-    def __init__(self, content, total_tokens=42):
-        self.choices = [FakeChoice(content)]
+    def __init__(self, content, total_tokens=42, finish_reason="stop"):
+        self.choices = [FakeChoice(content, finish_reason=finish_reason)]
         self.usage = FakeUsage(total_tokens)
 
 
@@ -140,3 +141,16 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         final_stats = client.get_runtime_stats()
         self.assertEqual(final_stats["total_requests"], 2)
         self.assertGreater(final_stats["max_wait_ms"], 0)
+
+    async def test_generate_with_meta_returns_finish_reason(self):
+        client = OpenAIClient(api_key="test-key")
+        fake_client = FakeAsyncOpenAI([FakeResponse("partial", finish_reason="length")])
+        client.client = fake_client
+
+        text, tokens, finish_reason = await client.generate_with_meta(
+            messages=[{"role": "user", "content": "hi"}],
+        )
+
+        self.assertEqual(text, "partial")
+        self.assertEqual(tokens, 42)
+        self.assertEqual(finish_reason, "length")

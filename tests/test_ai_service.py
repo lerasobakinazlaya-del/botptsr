@@ -13,6 +13,19 @@ class FakeClient:
         return self.text, 42
 
 
+class FakeTruncatingClient:
+    def __init__(self):
+        self.model = "gpt-4o-mini"
+        self.temperature = 0.7
+        self.calls = []
+
+    async def generate_with_meta(self, **kwargs):
+        self.calls.append(dict(kwargs))
+        if len(self.calls) == 1:
+            return "Для начала важно", 42, "length"
+        return "Для начала важно создать спокойный и естественный контакт.", 84, "stop"
+
+
 class FakeStateEngine:
     def update_state(self, state, user_message):
         return dict(state)
@@ -152,3 +165,36 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("слышу, как тебе тяжело", lowered)
         self.assertIn("твоя реакция понятна", lowered)
         self.assertEqual(result.response.count("?"), 1)
+
+    async def test_call_with_retry_retries_once_when_response_was_truncated(self):
+        client = FakeTruncatingClient()
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        text, tokens_used = await service._call_with_retry(
+            [{"role": "user", "content": "hi"}],
+            ai_settings=FakeSettingsService().get_runtime_settings()["ai"],
+            ai_profile={
+                "model": "gpt-4o-mini",
+                "temperature": 0.8,
+                "max_completion_tokens": 200,
+                "timeout_seconds": 5,
+                "max_retries": 0,
+            },
+            user_id=1,
+        )
+
+        self.assertEqual(text, "Для начала важно создать спокойный и естественный контакт.")
+        self.assertEqual(tokens_used, 84)
+        self.assertEqual(len(client.calls), 2)
+        self.assertEqual(client.calls[0]["max_completion_tokens"], 200)
+        self.assertEqual(client.calls[1]["max_completion_tokens"], 400)

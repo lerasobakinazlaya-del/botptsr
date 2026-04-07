@@ -42,6 +42,9 @@ class AIService:
     EMPTY_RESPONSE_FALLBACK = (
         "Я рядом. Попробуй написать это чуть иначе, и я отвечу точнее."
     )
+    MAX_TRUNCATION_RETRIES = 1
+    TRUNCATION_TOKEN_MULTIPLIER = 2
+    MAX_TRUNCATION_COMPLETION_TOKENS = 1200
 
     def __init__(
         self,
@@ -502,11 +505,13 @@ class AIService:
         )
         reasoning_effort = str(ai_settings.get("reasoning_effort") or "").strip() or None
         verbosity = str(ai_settings.get("verbosity") or "").strip() or None
+        truncation_retries = 0
 
-        for attempt in range(max_retries + 1):
+        attempt = 0
+        while attempt <= max_retries:
             try:
-                return await asyncio.wait_for(
-                    self.client.generate(
+                response_text, tokens_used, finish_reason = await asyncio.wait_for(
+                    self._generate_with_optional_meta(
                         messages=messages,
                         model=model,
                         temperature=temperature,
@@ -520,14 +525,67 @@ class AIService:
                     ),
                     timeout=timeout_seconds,
                 )
+                if (
+                    finish_reason == "length"
+                    and truncation_retries < self.MAX_TRUNCATION_RETRIES
+                    and max_completion_tokens < self.MAX_TRUNCATION_COMPLETION_TOKENS
+                ):
+                    next_limit = min(
+                        self.MAX_TRUNCATION_COMPLETION_TOKENS,
+                        max_completion_tokens * self.TRUNCATION_TOKEN_MULTIPLIER,
+                    )
+                    if next_limit > max_completion_tokens:
+                        logger.warning(
+                            "[AI] user_id=%s response truncated at %s tokens, retrying with %s",
+                            user_id,
+                            max_completion_tokens,
+                            next_limit,
+                        )
+                        max_completion_tokens = next_limit
+                        truncation_retries += 1
+                        continue
+                return response_text, tokens_used
             except asyncio.TimeoutError as exc:
                 last_exception = exc
             except Exception as exc:
                 last_exception = exc
 
             await asyncio.sleep(0.5 * (attempt + 1))
+            attempt += 1
 
         raise RuntimeError("AI call failed after retries") from last_exception
+
+    async def _generate_with_optional_meta(
+        self,
+        *,
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        top_p: float,
+        frequency_penalty: float,
+        presence_penalty: float,
+        max_completion_tokens: int,
+        reasoning_effort: str | None,
+        verbosity: str | None,
+        user: str,
+    ) -> tuple[str, int | None, str | None]:
+        payload = {
+            "messages": messages,
+            "model": model,
+            "temperature": temperature,
+            "top_p": top_p,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
+            "max_completion_tokens": max_completion_tokens,
+            "reasoning_effort": reasoning_effort,
+            "verbosity": verbosity,
+            "user": user,
+        }
+        if hasattr(self.client, "generate_with_meta"):
+            return await self.client.generate_with_meta(**payload)
+
+        text, tokens_used = await self.client.generate(**payload)
+        return text, tokens_used, None
 
     async def _build_memory_context(
         self,

@@ -78,6 +78,48 @@ class OpenAIClient:
 
         return text.strip(), tokens_used
 
+    async def generate_with_meta(
+        self,
+        messages: List[Dict[str, str]],
+        model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
+        max_completion_tokens: int | None = None,
+        reasoning_effort: str | None = None,
+        verbosity: str | None = None,
+        user: str | None = None,
+    ) -> Tuple[str, int | None, str | None]:
+        payload = {
+            "model": model or self.model,
+            "messages": messages,
+            "temperature": self.temperature if temperature is None else temperature,
+        }
+        if top_p is not None:
+            payload["top_p"] = top_p
+        if frequency_penalty is not None:
+            payload["frequency_penalty"] = frequency_penalty
+        if presence_penalty is not None:
+            payload["presence_penalty"] = presence_penalty
+        if max_completion_tokens is not None:
+            payload["max_completion_tokens"] = max_completion_tokens
+        if reasoning_effort:
+            payload["reasoning_effort"] = reasoning_effort
+        if verbosity:
+            payload["verbosity"] = verbosity
+        if user:
+            payload["user"] = user
+
+        response = await self._run_with_limits(payload)
+
+        choice = response.choices[0]
+        text = choice.message.content or ""
+        tokens_used = response.usage.total_tokens if response.usage else None
+        finish_reason = getattr(choice, "finish_reason", None)
+
+        return text.strip(), tokens_used, finish_reason
+
     def get_runtime_stats(self) -> Dict[str, int | float]:
         return {
             "configured_limit": self.max_parallel_requests,
