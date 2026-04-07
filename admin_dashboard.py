@@ -924,7 +924,7 @@ def _dashboard_html() -> str:
     label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:104px;resize:vertical}
     .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
-    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
     .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.overview-hero-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.overview-table table{min-width:0}.overview-details .panel{background:rgba(255,255,255,.02)}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
     @media (max-width:1380px){.users-layout,.conversations-layout{grid-template-columns:1fr}}
@@ -1000,6 +1000,7 @@ def _dashboard_html() -> str:
         <div class="cols users-layout">
           <div class="panel">
             <h3>Карточка пользователя</h3>
+            <p class="muted section-note">Ручное управление конкретным пользователем: права, premium и активный режим.</p>
             <div class="two">
               <label>ID пользователя<input id="user_user_id" type="number" min="1" placeholder="Например, 123456789"></label>
               <label>Активный режим<select id="user_active_mode"></select></label>
@@ -1017,6 +1018,7 @@ def _dashboard_html() -> str:
           </div>
           <div class="panel">
             <h3>Поиск и список</h3>
+            <p class="muted section-note">Быстрый поиск, сегменты premium и действия по выбранным пользователям.</p>
             <div class="toolbar users-search-toolbar">
               <input id="user-search" placeholder="ID, имя пользователя или имя">
               <select id="user-sort">
@@ -1345,8 +1347,11 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="payments">
-        <div><h2>Оплата</h2><p class="muted">Управление токеном провайдера, ценой, валютой и сообщениями по премиум-доступу.</p></div>
-        <div class="panel">
+        <div><h2>Оплата</h2><p class="muted">Управление провайдером, тарифами, текстами paywall и реферальной программой в одном разделе.</p></div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Основное</h3>
+            <p class="muted section-note">Базовые настройки провайдера, валюты и продукта, которые влияют на весь premium-flow.</p>
             <div class="two">
               <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
               <label>Режим оплаты
@@ -1366,29 +1371,49 @@ def _dashboard_html() -> str:
               </label>
               <label>Название<input id="payment_product_title"></label>
             </div>
-          <label class="checkbox"><input id="payment_recurring_stars_enabled" type="checkbox">Автопродление через Stars при валюте XTR</label>
-          <label>Описание<textarea id="payment_product_description"></textarea></label>
-          <label>Преимущества премиум-доступа<textarea id="payment_premium_benefits_text"></textarea></label>
-          <label>CTA оплаты<input id="payment_buy_cta_text"></label>
-          <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
-          <label>Описание premium-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
-          <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
-          <label>Шаблон строки тарифа<input id="payment_premium_menu_package_line_template"></label>
-          <label>Шаблон кнопки тарифа<input id="payment_premium_menu_package_button_template"></label>
-          <label>Текст preview в premium-меню<textarea id="payment_premium_menu_preview_template"></textarea></label>
-          <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
-          <label>Текст виртуальной оплаты<textarea id="payment_virtual_payment_description_template"></textarea></label>
-          <label>Кнопка виртуальной оплаты<input id="payment_virtual_payment_button_template"></label>
-          <label>Текст после подтверждения<input id="payment_virtual_payment_completed_message"></label>
-          <label>Текст кнопки подписки<input id="payment_recurring_button_text"></label>
-          <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
-          <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
-          <label>Успешная оплата<textarea id="payment_success_message"></textarea></label>
+            <label class="checkbox"><input id="payment_recurring_stars_enabled" type="checkbox">Автопродление через Stars при валюте XTR</label>
+            <label>Описание<textarea id="payment_product_description"></textarea></label>
+          </div>
+          <div class="panel">
+            <h3>Короткий оффер</h3>
+            <p class="muted section-note">Главные тексты, которые чаще всего видит пользователь при покупке и ошибках оплаты.</p>
+            <label>Преимущества премиум-доступа<textarea id="payment_premium_benefits_text"></textarea></label>
+            <label>CTA оплаты<input id="payment_buy_cta_text"></label>
+            <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
+            <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
+            <label>Успешная оплата<textarea id="payment_success_message"></textarea></label>
+          </div>
         </div>
+        <details class="panel details-panel">
+          <summary>Тексты premium-меню и paywall</summary>
+          <div class="details-content stack">
+            <div class="soft-panel">
+              <h3>Premium-меню</h3>
+              <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
+              <label>Описание premium-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
+              <div class="two">
+                <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
+                <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
+                <label>Шаблон строки тарифа<input id="payment_premium_menu_package_line_template"></label>
+                <label>Шаблон кнопки тарифа<input id="payment_premium_menu_package_button_template"></label>
+              </div>
+              <label>Текст preview в premium-меню<textarea id="payment_premium_menu_preview_template"></textarea></label>
+            </div>
+            <div class="soft-panel">
+              <h3>Виртуальная и recurring-оплата</h3>
+              <label>Текст виртуальной оплаты<textarea id="payment_virtual_payment_description_template"></textarea></label>
+              <div class="two">
+                <label>Кнопка виртуальной оплаты<input id="payment_virtual_payment_button_template"></label>
+                <label>Текст после подтверждения<input id="payment_virtual_payment_completed_message"></label>
+                <label>Текст кнопки подписки<input id="payment_recurring_button_text"></label>
+              </div>
+            </div>
+          </div>
+        </details>
         <div class="panel">
           <h3>Пакеты Premium</h3>
-          <p class="muted">Именно эти варианты увидит пользователь в едином Premium-меню.</p>
-          <div class="cols">
+          <p class="muted section-note">Именно эти варианты увидит пользователь в едином Premium-меню.</p>
+          <div class="package-grid">
             <div class="mode-card">
               <div class="mode-head"><strong>1 день</strong><span class="badge">day</span></div>
               <label class="checkbox"><input id="payment_package_day_enabled" type="checkbox">Показывать пакет</label>
@@ -1443,25 +1468,31 @@ def _dashboard_html() -> str:
             </div>
           </div>
         </div>
-        <div class="panel">
-          <h3>Реферальная программа</h3>
-          <label class="checkbox"><input id="referral_enabled" type="checkbox">Включить реферальную программу</label>
-          <div class="two">
-            <label>Префикс для /start<input id="referral_start_parameter_prefix"></label>
-            <label>Заголовок<input id="referral_program_title"></label>
+        <div class="cols">
+          <div class="panel">
+            <h3>Реферальная программа</h3>
+            <p class="muted section-note">Настройки приглашений и условий начисления бонусов за первую оплату.</p>
+            <label class="checkbox"><input id="referral_enabled" type="checkbox">Включить реферальную программу</label>
+            <div class="two">
+              <label>Префикс для /start<input id="referral_start_parameter_prefix"></label>
+              <label>Заголовок<input id="referral_program_title"></label>
+            </div>
+            <label class="checkbox"><input id="referral_allow_self_referral" type="checkbox">Разрешить приглашать самого себя</label>
+            <label class="checkbox"><input id="referral_require_first_paid_invoice" type="checkbox">Засчитывать только после первой оплаты</label>
+            <label class="checkbox"><input id="referral_award_referrer_premium" type="checkbox">Выдавать премиум рефереру</label>
+            <label class="checkbox"><input id="referral_award_referred_user_premium" type="checkbox">Выдавать премиум приглашенному</label>
+            <label>Описание<textarea id="referral_program_description"></textarea></label>
+            <label>Шаблон ссылки (`{ref_link}`)<textarea id="referral_share_text_template"></textarea></label>
+            <label>Текст для приглашенного<textarea id="referral_referred_welcome_message"></textarea></label>
+            <label>Текст награды<textarea id="referral_referrer_reward_message"></textarea></label>
           </div>
-          <label class="checkbox"><input id="referral_allow_self_referral" type="checkbox">Разрешить приглашать самого себя</label>
-          <label class="checkbox"><input id="referral_require_first_paid_invoice" type="checkbox">Засчитывать только после первой оплаты</label>
-          <label class="checkbox"><input id="referral_award_referrer_premium" type="checkbox">Выдавать премиум рефереру</label>
-          <label class="checkbox"><input id="referral_award_referred_user_premium" type="checkbox">Выдавать премиум приглашенному</label>
-          <label>Описание<textarea id="referral_program_description"></textarea></label>
-          <label>Шаблон ссылки (`{ref_link}`)<textarea id="referral_share_text_template"></textarea></label>
-          <label>Текст для приглашенного<textarea id="referral_referred_welcome_message"></textarea></label>
-          <label>Текст награды<textarea id="referral_referrer_reward_message"></textarea></label>
-          <h3>Последние рефералы</h3>
-          <pre id="recent-referrals"></pre>
-          <div class="actions"><button class="primary" id="save-payments">Сохранить раздел</button></div>
+          <div class="panel">
+            <h3>Последние рефералы</h3>
+            <p class="muted section-note">Быстрая проверка, как реферальная программа выглядит в живых данных.</p>
+            <pre id="recent-referrals" class="memory-box">Здесь появятся последние рефералы.</pre>
+          </div>
         </div>
+        <div class="actions"><button class="primary" id="save-payments">Сохранить раздел</button></div>
       </section>
 
       <section class="page" data-view="testing">
