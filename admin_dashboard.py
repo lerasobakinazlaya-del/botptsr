@@ -1146,10 +1146,11 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="runtime">
-        <div><h2>ИИ и интерфейс</h2><p class="muted">Модель, память, сообщения ошибок и тексты Telegram-интерфейса.</p></div>
+        <div><h2>ИИ и интерфейс</h2><p class="muted">Основная модель, тексты чата, инициативные сообщения и всё, что пользователь видит в Telegram.</p></div>
         <div class="cols">
           <div class="panel">
-            <h3>ИИ</h3>
+            <h3>Ядро ИИ</h3>
+            <p class="muted section-note">Базовые параметры ответа, памяти и ретраев. Это общие настройки, которые влияют почти на все режимы.</p>
             <div class="two">
               <label>Модель<input id="ai_openai_model"></label>
               <label>Язык ответа<input id="ai_response_language"></label>
@@ -1168,148 +1169,206 @@ def _dashboard_html() -> str:
               <label>Мягкий лимит долгой памяти<input id="ai_long_term_memory_soft_limit" type="number" min="12"></label>
               <label>Debug user ID<input id="ai_debug_prompt_user_id" type="number"></label>
             </div>
-            <label class="checkbox"><input id="ai_long_term_memory_enabled" type="checkbox">Включить долговременную память</label>
-            <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых записей памяти</label>
-            <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить episodic summary</label>
-            <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
-            <div class="muted">Даже при включении логирования чувствительные блоки памяти и state summary в логах редактируются, но на проде этот режим лучше держать выключенным.</div>
-            <h3>ИИ по режимам</h3>
-            <p class="muted">Можно назначить отдельную модель, память, температуру и доп. инструкцию на каждый режим.</p>
-            <div id="ai-mode-overrides"></div>
+            <div class="soft-panel">
+              <label class="checkbox"><input id="ai_long_term_memory_enabled" type="checkbox">Включить долговременную память</label>
+              <label class="checkbox"><input id="ai_long_term_memory_auto_prune_enabled" type="checkbox">Автоочистка слабых записей памяти</label>
+              <label class="checkbox"><input id="ai_episodic_summary_enabled" type="checkbox">Включить episodic summary</label>
+              <label class="checkbox"><input id="ai_log_full_prompt" type="checkbox">Логировать системный промпт</label>
+              <div class="muted">Даже при включённом логировании чувствительные блоки памяти и state summary редактируются, но на проде этот режим лучше держать выключенным.</div>
+            </div>
           </div>
           <div class="panel">
-            <h3>Чат</h3>
-            <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать индикатор набора</label>
-            <label class="checkbox"><input id="chat_response_guardrails_enabled" type="checkbox">Включить PTSD/anti-canned response guardrails</label>
-            <label>Не-текстовое сообщение<textarea id="chat_non_text_message"></textarea></label>
-            <label>Перегрузка<textarea id="chat_busy_message"></textarea></label>
-            <label>Ошибка ИИ<textarea id="chat_ai_error_message"></textarea></label>
-            <label>Текст кнопки «Написать»<textarea id="chat_write_prompt_message"></textarea></label>
+            <h3>Чат и ответы</h3>
+            <p class="muted section-note">Пользовательские сообщения, тексты ошибок и поведение бота во время ответа.</p>
+            <div class="soft-panel">
+              <label class="checkbox"><input id="chat_typing_action_enabled" type="checkbox">Показывать индикатор набора</label>
+              <label class="checkbox"><input id="chat_response_guardrails_enabled" type="checkbox">Включить PTSD/anti-canned response guardrails</label>
+            </div>
+            <div class="two">
+              <label>Не-текстовое сообщение<textarea id="chat_non_text_message"></textarea></label>
+              <label>Перегрузка<textarea id="chat_busy_message"></textarea></label>
+              <label>Ошибка ИИ<textarea id="chat_ai_error_message"></textarea></label>
+              <label>Текст кнопки «Написать»<textarea id="chat_write_prompt_message"></textarea></label>
+            </div>
             <label>Фразы, которые лучше переписывать<textarea id="chat_response_guardrail_blocked_phrases"></textarea></label>
             <div class="muted">По одной фразе на строку. Эти фразы автоматически смягчаются в уязвимых состояниях вместо шаблонной терапевтичной подачи.</div>
           </div>
         </div>
-        <div class="panel">
-          <h3>Инициативные сообщения бота</h3>
-          <label class="checkbox"><input id="proactive_enabled" type="checkbox">Бот может иногда написать первым</label>
-          <div class="three">
-            <label>Скан, сек<input id="proactive_scan_interval_seconds" type="number" min="30"></label>
-            <label>Тишина перед сообщением, часов<input id="proactive_min_inactive_hours" type="number" min="1"></label>
-            <label>Макс. давность диалога, дней<input id="proactive_max_inactive_days" type="number" min="1"></label>
-            <label>Cooldown, часов<input id="proactive_cooldown_hours" type="number" min="1"></label>
-            <label>Мин. user-сообщений<input id="proactive_min_user_messages" type="number" min="1"></label>
-            <label>Мин. interaction count<input id="proactive_min_interaction_count" type="number" min="1"></label>
-            <label>Кандидатов за цикл<input id="proactive_candidate_batch_size" type="number" min="1"></label>
-            <label>Отправок за цикл<input id="proactive_max_messages_per_cycle" type="number" min="1"></label>
-            <label>Лимит истории<input id="proactive_history_limit" type="number" min="2"></label>
-            <label>Задержка между отправками, сек<input id="proactive_per_message_delay_seconds" type="number" min="0" step="0.1"></label>
-            <label>Температура<input id="proactive_temperature" type="number" min="0" max="2" step="0.1"></label>
-            <label>Max output tokens<input id="proactive_max_completion_tokens" type="number" min="48"></label>
-            <label>Reasoning effort<input id="proactive_reasoning_effort"></label>
-            <label>Мин. interest<input id="proactive_min_interest" type="number" min="0" max="1" step="0.05"></label>
-            <label>Макс. irritation<input id="proactive_max_irritation" type="number" min="0" max="1" step="0.05"></label>
-            <label>Макс. fatigue<input id="proactive_max_fatigue" type="number" min="0" max="1" step="0.05"></label>
-            <label>Начало тихих часов<input id="proactive_quiet_hours_start" type="number" min="0" max="23"></label>
-            <label>Конец тихих часов<input id="proactive_quiet_hours_end" type="number" min="0" max="23"></label>
+        <div class="cols">
+          <div class="panel">
+            <h3>Переопределения по режимам</h3>
+            <p class="muted section-note">Здесь можно задать отдельную модель, память, температуру и доп. инструкцию только для конкретного режима.</p>
+            <div id="ai-mode-overrides"></div>
           </div>
-          <label class="checkbox"><input id="proactive_quiet_hours_enabled" type="checkbox">Не писать в quiet hours</label>
-          <label>Часовой пояс для тихих часов<input id="proactive_timezone"></label>
-          <label>Модель (пусто = основная)<input id="proactive_model"></label>
+          <div class="panel">
+            <h3>Инициативные сообщения</h3>
+            <p class="muted section-note">Когда бот может написать первым, как часто он это делает и какими сигналами руководствуется.</p>
+            <div class="soft-panel">
+              <label class="checkbox"><input id="proactive_enabled" type="checkbox">Бот может иногда написать первым</label>
+            </div>
+            <div class="three">
+              <label>Скан, сек<input id="proactive_scan_interval_seconds" type="number" min="30"></label>
+              <label>Тишина перед сообщением, часов<input id="proactive_min_inactive_hours" type="number" min="1"></label>
+              <label>Макс. давность диалога, дней<input id="proactive_max_inactive_days" type="number" min="1"></label>
+              <label>Cooldown, часов<input id="proactive_cooldown_hours" type="number" min="1"></label>
+              <label>Мин. user-сообщений<input id="proactive_min_user_messages" type="number" min="1"></label>
+              <label>Мин. interaction count<input id="proactive_min_interaction_count" type="number" min="1"></label>
+              <label>Кандидатов за цикл<input id="proactive_candidate_batch_size" type="number" min="1"></label>
+              <label>Отправок за цикл<input id="proactive_max_messages_per_cycle" type="number" min="1"></label>
+              <label>Лимит истории<input id="proactive_history_limit" type="number" min="2"></label>
+              <label>Задержка между отправками, сек<input id="proactive_per_message_delay_seconds" type="number" min="0" step="0.1"></label>
+              <label>Температура<input id="proactive_temperature" type="number" min="0" max="2" step="0.1"></label>
+              <label>Max output tokens<input id="proactive_max_completion_tokens" type="number" min="48"></label>
+              <label>Reasoning effort<input id="proactive_reasoning_effort"></label>
+              <label>Мин. interest<input id="proactive_min_interest" type="number" min="0" max="1" step="0.05"></label>
+              <label>Макс. irritation<input id="proactive_max_irritation" type="number" min="0" max="1" step="0.05"></label>
+              <label>Макс. fatigue<input id="proactive_max_fatigue" type="number" min="0" max="1" step="0.05"></label>
+              <label>Начало тихих часов<input id="proactive_quiet_hours_start" type="number" min="0" max="23"></label>
+              <label>Конец тихих часов<input id="proactive_quiet_hours_end" type="number" min="0" max="23"></label>
+            </div>
+            <div class="two">
+              <label class="checkbox"><input id="proactive_quiet_hours_enabled" type="checkbox">Не писать в quiet hours</label>
+              <label>Часовой пояс для тихих часов<input id="proactive_timezone"></label>
+              <label>Модель (пусто = основная)<input id="proactive_model"></label>
+            </div>
+          </div>
         </div>
         <div class="panel">
           <h3>Интерфейс Telegram</h3>
-          <div class="three">
-            <label>Кнопка написать<input id="ui_write_button_text"></label>
-            <label>Кнопка режимов<input id="ui_modes_button_text"></label>
-            <label>Кнопка Премиум<input id="ui_premium_button_text"></label>
+          <p class="muted section-note">Кнопки, заголовки, системные тексты и приветствия. Всё, что формирует оболочку диалога.</p>
+          <div class="cols">
+            <div class="soft-panel">
+              <h3>Кнопки и навигация</h3>
+              <div class="three">
+                <label>Кнопка написать<input id="ui_write_button_text"></label>
+                <label>Кнопка режимов<input id="ui_modes_button_text"></label>
+                <label>Кнопка Premium<input id="ui_premium_button_text"></label>
+              </div>
+              <div class="two">
+                <label>Плейсхолдер<input id="ui_input_placeholder"></label>
+                <label>Заголовок режимов<input id="ui_modes_title"></label>
+                <label>Маркер premium-режима<input id="ui_modes_premium_marker"></label>
+                <label>Всплывающее уведомление<input id="ui_mode_saved_toast"></label>
+              </div>
+              <label>Шаблон смены режима<textarea id="ui_mode_saved_template"></textarea></label>
+            </div>
+            <div class="soft-panel">
+              <h3>Системные тексты</h3>
+              <div class="two">
+                <label>Пользователь не найден<textarea id="ui_user_not_found_text"></textarea></label>
+                <label>Неизвестный режим<textarea id="ui_unknown_mode_text"></textarea></label>
+                <label>Текст блокировки premium-режима<textarea id="ui_mode_locked_text"></textarea></label>
+                <label>Приветствие пользователя<textarea id="ui_welcome_user_text"></textarea></label>
+              </div>
+              <label>Приветствие администратора<textarea id="ui_welcome_admin_text"></textarea></label>
+            </div>
           </div>
-          <div class="two">
-            <label>Плейсхолдер<input id="ui_input_placeholder"></label>
-            <label>Заголовок режимов<input id="ui_modes_title"></label>
-            <label>Маркер premium-режима<input id="ui_modes_premium_marker"></label>
-            <label>Пользователь не найден<textarea id="ui_user_not_found_text"></textarea></label>
-            <label>Неизвестный режим<textarea id="ui_unknown_mode_text"></textarea></label>
-            <label>Текст блокировки премиум-режима<textarea id="ui_mode_locked_text"></textarea></label>
-            <label>Всплывающее уведомление<input id="ui_mode_saved_toast"></label>
-          </div>
-          <label>Шаблон смены режима<textarea id="ui_mode_saved_template"></textarea></label>
-          <label>Приветствие пользователя<textarea id="ui_welcome_user_text"></textarea></label>
-          <label>Приветствие администратора<textarea id="ui_welcome_admin_text"></textarea></label>
           <div class="actions"><button class="primary" id="save-runtime">Сохранить раздел</button></div>
         </div>
       </section>
-
       <section class="page" data-view="safety">
-        <div><h2>Безопасность и движок состояния</h2><p class="muted">Антиспам, лимиты и коэффициенты изменения состояния диалога.</p></div>
+        <div><h2>Безопасность и движок состояния</h2><p class="muted">Антиспам, поведенческие лимиты, уровни доступа и коэффициенты изменения состояния диалога.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Антиспам</h3>
-            <div class="two">
-              <label>Rate limit, сек<input id="safety_throttle_rate_limit_seconds" type="number" step="0.1"></label>
-              <label>Интервал предупреждений<input id="safety_throttle_warning_interval_seconds" type="number" step="0.1"></label>
-              <label>Макс длина<input id="safety_max_message_length" type="number"></label>
+            <p class="muted section-note">Быстрые ограничения на входящие сообщения и тексты, которые видит пользователь при отказе.</p>
+            <div class="soft-panel">
+              <div class="two">
+                <label>Rate limit, сек<input id="safety_throttle_rate_limit_seconds" type="number" step="0.1"></label>
+                <label>Интервал предупреждений<input id="safety_throttle_warning_interval_seconds" type="number" step="0.1"></label>
+                <label>Макс длина<input id="safety_max_message_length" type="number"></label>
+              </div>
+              <label class="checkbox"><input id="safety_reject_suspicious_messages" type="checkbox">Включить фильтр ссылок</label>
             </div>
-            <label class="checkbox"><input id="safety_reject_suspicious_messages" type="checkbox">Включить фильтр ссылок</label>
-            <label>Предупреждение<textarea id="safety_throttle_warning_text"></textarea></label>
-            <label>Слишком длинное сообщение<textarea id="safety_message_too_long_text"></textarea></label>
-            <label>Отклонение фильтром<textarea id="safety_suspicious_rejection_text"></textarea></label>
-            <label>Ключевые слова<textarea id="safety_suspicious_keywords"></textarea></label>
+            <div class="two">
+              <label>Предупреждение<textarea id="safety_throttle_warning_text"></textarea></label>
+              <label>Слишком длинное сообщение<textarea id="safety_message_too_long_text"></textarea></label>
+              <label>Отклонение фильтром<textarea id="safety_suspicious_rejection_text"></textarea></label>
+              <label>Ключевые слова<textarea id="safety_suspicious_keywords"></textarea></label>
+            </div>
           </div>
           <div class="panel">
-            <h3>Состояние</h3>
-            <div id="state-defaults-grid" class="two"></div>
-            <label>Позитивные слова<textarea id="state_positive_keywords"></textarea></label>
-            <label>Негативные слова<textarea id="state_negative_keywords"></textarea></label>
+            <h3>Состояние диалога</h3>
+            <p class="muted section-note">Стартовые значения и словари сигналов, из которых собирается внутренняя модель состояния пользователя.</p>
+            <div class="soft-panel">
+              <div id="state-defaults-grid" class="two"></div>
+            </div>
+            <div class="two">
+              <label>Позитивные слова<textarea id="state_positive_keywords"></textarea></label>
+              <label>Негативные слова<textarea id="state_negative_keywords"></textarea></label>
+            </div>
             <label>Слова близости<textarea id="state_attraction_keywords"></textarea></label>
           </div>
         </div>
-        <div class="panel">
-          <h3>Коэффициенты</h3>
-          <div id="state-effects-grid" class="three"></div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Уровни доступа</h3>
+            <p class="muted section-note">Пороговые значения, которые переводят пользователя между observation, analysis, tension и другими слоями.</p>
+            <div class="two">
+              <label>Принудительный уровень<input id="access_forced_level"></label>
+              <label>Уровень по умолчанию<input id="access_default_level"></label>
+              <label>Порог observation по interest<input id="access_interest_observation_threshold" type="number" step="0.01"></label>
+              <label>Порог rare_layer по instability<input id="access_rare_layer_instability_threshold" type="number" step="0.01"></label>
+              <label>Порог rare_layer по attraction<input id="access_rare_layer_attraction_threshold" type="number" step="0.01"></label>
+              <label>Порог personal_focus по attraction<input id="access_personal_focus_attraction_threshold" type="number" step="0.01"></label>
+              <label>Порог personal_focus по interest<input id="access_personal_focus_interest_threshold" type="number" step="0.01"></label>
+              <label>Порог tension по attraction<input id="access_tension_attraction_threshold" type="number" step="0.01"></label>
+              <label>Порог tension по control<input id="access_tension_control_threshold" type="number" step="0.01"></label>
+              <label>Порог analysis по interest<input id="access_analysis_interest_threshold" type="number" step="0.01"></label>
+              <label>Порог analysis по control<input id="access_analysis_control_threshold" type="number" step="0.01"></label>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Лимиты сообщений</h3>
+            <p class="muted section-note">Бесплатный и premium-лимиты, preview premium-режимов и тексты paywall после исчерпания доступа.</p>
+            <div class="soft-panel">
+              <label class="checkbox"><input id="limits_free_daily_messages_enabled" type="checkbox">Включить дневной лимит для бесплатных пользователей</label>
+              <label class="checkbox"><input id="limits_premium_daily_messages_enabled" type="checkbox">Включить дневной лимит для premium-пользователей</label>
+              <label class="checkbox"><input id="limits_admins_bypass_daily_limits" type="checkbox">Админы обходят лимиты сообщений</label>
+            </div>
+            <div class="two">
+              <label>Лимит бесплатных сообщений в день<input id="limits_free_daily_messages_limit" type="number" min="1"></label>
+              <label>Лимит premium-сообщений в день<input id="limits_premium_daily_messages_limit" type="number" min="1"></label>
+              <label>Текст при исчерпании бесплатного лимита<textarea id="limits_free_daily_limit_message"></textarea></label>
+              <label>Текст при исчерпании premium-лимита<textarea id="limits_premium_daily_limit_message"></textarea></label>
+            </div>
+            <div class="soft-panel">
+              <label class="checkbox"><input id="limits_mode_preview_enabled" type="checkbox">Разрешить бесплатный предпросмотр платных режимов</label>
+              <div class="two">
+                <label>Лимит preview по умолчанию<input id="limits_mode_preview_default_limit" type="number" min="0"></label>
+                <label>Текст при исчерпании предпросмотра<textarea id="limits_mode_preview_exhausted_message"></textarea></label>
+              </div>
+              <label>Лимиты по режимам
+                <textarea id="limits_mode_daily_limits" placeholder="passion=5&#10;mentor=3"></textarea>
+              </label>
+            </div>
+          </div>
         </div>
-        <div class="panel">
-          <h3>Уровни доступа и лимиты</h3>
-          <div class="two">
-            <label>Принудительный уровень<input id="access_forced_level"></label>
-            <label>Уровень по умолчанию<input id="access_default_level"></label>
-            <label>Порог observation по interest<input id="access_interest_observation_threshold" type="number" step="0.01"></label>
-            <label>Порог rare_layer по instability<input id="access_rare_layer_instability_threshold" type="number" step="0.01"></label>
-            <label>Порог rare_layer по attraction<input id="access_rare_layer_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог personal_focus по attraction<input id="access_personal_focus_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог personal_focus по interest<input id="access_personal_focus_interest_threshold" type="number" step="0.01"></label>
-            <label>Порог tension по attraction<input id="access_tension_attraction_threshold" type="number" step="0.01"></label>
-            <label>Порог tension по control<input id="access_tension_control_threshold" type="number" step="0.01"></label>
-            <label>Порог analysis по interest<input id="access_analysis_interest_threshold" type="number" step="0.01"></label>
-            <label>Порог analysis по control<input id="access_analysis_control_threshold" type="number" step="0.01"></label>
+        <details class="panel details-panel">
+          <summary>Дополнительная динамика состояния и вовлечения</summary>
+          <div class="details-content stack">
+            <div class="soft-panel">
+              <h3>Коэффициенты</h3>
+              <p class="muted section-note">Как именно входящее сообщение меняет interest, attraction, instability и другие внутренние сигналы.</p>
+              <div id="state-effects-grid" class="three"></div>
+            </div>
+            <div class="soft-panel">
+              <h3>Мягкая адаптация и re-engagement</h3>
+              <p class="muted section-note">Редкие настройки, которые влияют на повторное вовлечение пользователя после паузы.</p>
+              <div class="two">
+                <label class="checkbox"><input id="engagement_adaptive_mode_enabled" type="checkbox">Включить мягкую адаптацию режима</label>
+                <label class="checkbox"><input id="engagement_reengagement_enabled" type="checkbox">Включить инициативные сообщения после паузы</label>
+                <label>Пауза до инициативы, часов<input id="engagement_reengagement_idle_hours" type="number" min="1"></label>
+                <label>Пауза между инициативами, часов<input id="engagement_reengagement_min_hours_between" type="number" min="1"></label>
+                <label>Окно активности, дней<input id="engagement_reengagement_recent_window_days" type="number" min="1"></label>
+                <label>Проверка воркера, секунд<input id="engagement_reengagement_poll_seconds" type="number" min="30"></label>
+                <label>Макс сообщений за цикл<input id="engagement_reengagement_batch_size" type="number" min="1"></label>
+              </div>
+            </div>
           </div>
-          <label class="checkbox"><input id="limits_free_daily_messages_enabled" type="checkbox">Включить дневной лимит для бесплатных пользователей</label>
-          <label class="checkbox"><input id="limits_premium_daily_messages_enabled" type="checkbox">Включить дневной лимит для премиум-пользователей</label>
-          <label class="checkbox"><input id="limits_admins_bypass_daily_limits" type="checkbox">Админы обходят лимиты сообщений</label>
-          <div class="two">
-            <label>Лимит бесплатных сообщений в день<input id="limits_free_daily_messages_limit" type="number" min="1"></label>
-            <label>Лимит премиум-сообщений в день<input id="limits_premium_daily_messages_limit" type="number" min="1"></label>
-          </div>
-          <label>Текст при исчерпании бесплатного лимита<textarea id="limits_free_daily_limit_message"></textarea></label>
-          <label>Текст при исчерпании премиум-лимита<textarea id="limits_premium_daily_limit_message"></textarea></label>
-          <label class="checkbox"><input id="limits_mode_preview_enabled" type="checkbox">Разрешить бесплатный предпросмотр платных режимов</label>
-          <label>Лимит preview по умолчанию<input id="limits_mode_preview_default_limit" type="number" min="0"></label>
-          <label>Лимиты по режимам
-            <textarea id="limits_mode_daily_limits" placeholder="passion=5&#10;mentor=3"></textarea>
-          </label>
-          <label>Текст при исчерпании предпросмотра<textarea id="limits_mode_preview_exhausted_message"></textarea></label>
-          <div class="two">
-            <label class="checkbox"><input id="engagement_adaptive_mode_enabled" type="checkbox">Включить мягкую адаптацию режима</label>
-            <label class="checkbox"><input id="engagement_reengagement_enabled" type="checkbox">Включить инициативные сообщения после паузы</label>
-            <label>Пауза до инициативы, часов<input id="engagement_reengagement_idle_hours" type="number" min="1"></label>
-            <label>Пауза между инициативами, часов<input id="engagement_reengagement_min_hours_between" type="number" min="1"></label>
-            <label>Окно активности, дней<input id="engagement_reengagement_recent_window_days" type="number" min="1"></label>
-            <label>Проверка воркера, секунд<input id="engagement_reengagement_poll_seconds" type="number" min="30"></label>
-            <label>Макс сообщений за цикл<input id="engagement_reengagement_batch_size" type="number" min="1"></label>
-          </div>
-          <div class="actions"><button class="primary" id="save-safety">Сохранить раздел</button></div>
-        </div>
+        </details>
+        <div class="actions"><button class="primary" id="save-safety">Сохранить раздел</button></div>
       </section>
-
       <section class="page" data-view="prompts">
         <div><h2>Промпты</h2><p class="muted">Редактор характера, рамок и правил доступа.</p></div>
         <div class="panel">
