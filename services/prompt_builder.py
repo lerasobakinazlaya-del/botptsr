@@ -15,6 +15,7 @@ class PromptBuilder:
         memory_context: str = "",
         user_message: str = "",
         extra_instruction: str = "",
+        intent_snapshot: dict | None = None,
     ) -> str:
         templates = self.settings_service.get_prompt_templates()
         runtime_settings = self.settings_service.get_runtime_settings()

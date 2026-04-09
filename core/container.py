@@ -15,7 +15,7 @@ from database.repository import MessageRepository
 from database.user_preference_repository import UserPreferenceRepository
 from database.user_state_repository import UserStateRepository
 from services.access_engine import AccessEngine
-from services.ai_service import AIService
+from services.ai_service_v2 import AIServiceV2
 from services.admin_settings_service import AdminSettingsService
 from services.chat_session_service import ChatSessionService
 from services.conversation_summary_service import ConversationSummaryService
@@ -27,7 +27,7 @@ from services.mode_access_service import ModeAccessService
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
 from services.proactive_message_service import ProactiveMessageService
-from services.prompt_builder import PromptBuilder
+from services.prompt_builder_v2 import PromptBuilderV2
 from services.referral_service import ReferralService
 from services.reengagement_service import ReengagementService
 from services.state_engine import StateEngine
@@ -69,14 +69,14 @@ class Container:
         )
         self.human_memory_service = HumanMemoryService()
         self.mode_access_service = ModeAccessService()
-        self.prompt_builder = PromptBuilder(self.admin_settings_service)
+        self.prompt_builder = PromptBuilderV2(self.admin_settings_service)
         self.access_engine = AccessEngine(self.admin_settings_service)
 
         self.openai_client = OpenAIClient(
             api_key=self.settings.openai_api_key,
             max_parallel_requests=self.settings.openai_max_parallel_requests,
         )
-        self.ai_service = AIService(
+        self.ai_service = AIServiceV2(
             client=self.openai_client,
             state_engine=self.state_engine,
             memory_engine=self.memory_engine,

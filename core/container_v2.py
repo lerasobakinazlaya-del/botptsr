@@ -1,13 +1,11 @@
-# Updated container using AIServiceV2 and PromptBuilderV2
+"""Compatibility import for the v2 AI chain.
 
-from services.ai_service_v2 import AIServiceV2 as AIService
-from services.prompt_builder_v2 import PromptBuilderV2 as PromptBuilder
+The primary container now wires PromptBuilderV2 and AIServiceV2 directly.
+This module remains only to avoid breaking older imports while the rollout
+finishes across scripts and local tooling.
+"""
 
-# import rest from original container
-from core.container import *
+from core.container import Container
 
-# NOTE:
-# This file overrides AIService and PromptBuilder with v2 versions.
-# To activate, change import in main.py:
-# from core.container import Container
-# -> from core.container_v2 import Container
+
+__all__ = ["Container"]

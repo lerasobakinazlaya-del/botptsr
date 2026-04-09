@@ -243,6 +243,13 @@ class AIService:
         )
         new_state = self.state_engine.update_state(memory_enriched_state, user_message)
         active_mode = self._resolve_effective_mode(new_state, runtime_settings)
+        intent_snapshot = self._build_intent_snapshot(
+            user_message=user_message,
+            state=new_state,
+            history=history,
+            active_mode=active_mode,
+            source="reply",
+        )
         crisis_signal = detect_crisis_signal(user_message)
         if crisis_signal == "direct_self_harm":
             logger.warning("[AI] user_id=%s crisis_signal=%s", user_id, crisis_signal)
@@ -299,6 +306,7 @@ class AIService:
             memory_context=memory_context,
             user_message=user_message,
             extra_instruction=ai_profile["prompt_suffix"],
+            intent_snapshot=intent_snapshot,
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -337,6 +345,13 @@ class AIService:
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
             response_text = self.EMPTY_RESPONSE_FALLBACK
+        response_text = self._postprocess_model_response(
+            response_text,
+            intent_snapshot=intent_snapshot,
+            active_mode=active_mode,
+            state=new_state,
+            source="reply",
+        )
 
         chat_settings = runtime_settings.get("chat", {})
         response_text = apply_ptsd_response_guardrails(
@@ -396,6 +411,13 @@ class AIService:
         hours_silent = self.human_memory_service.hours_since_iso(last_user_message_at, fallback=24)
         callback_context = self.human_memory_service.get_reengagement_context(state)
         callback_topic = callback_context.get("callback_hint") or callback_context.get("topic") or ""
+        intent_snapshot = self._build_intent_snapshot(
+            user_message=callback_topic,
+            state=state,
+            history=history,
+            active_mode=active_mode,
+            source="reengagement",
+        )
 
         system_prompt = self.prompt_builder.build_system_prompt(
             state=state,
@@ -410,6 +432,7 @@ class AIService:
                 hours_silent=hours_silent,
                 active_mode=active_mode,
             ),
+            intent_snapshot=intent_snapshot,
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -432,6 +455,13 @@ class AIService:
         )
         if not response_text.strip():
             response_text = self.EMPTY_RESPONSE_FALLBACK
+        response_text = self._postprocess_model_response(
+            response_text,
+            intent_snapshot=intent_snapshot,
+            active_mode=active_mode,
+            state=state,
+            source="reengagement",
+        )
         chat_settings = runtime_settings.get("chat", {})
         response_text = apply_ptsd_response_guardrails(
             response_text,
@@ -600,6 +630,28 @@ class AIService:
             self.human_memory_service.build_prompt_context(state),
         ]
         return "\n".join(part.strip() for part in parts if part and part.strip())
+
+    def _build_intent_snapshot(
+        self,
+        *,
+        user_message: str,
+        state: dict[str, Any],
+        history: list[dict[str, str]],
+        active_mode: str,
+        source: str,
+    ) -> dict[str, Any] | None:
+        return None
+
+    def _postprocess_model_response(
+        self,
+        response_text: str,
+        *,
+        intent_snapshot: dict[str, Any] | None,
+        active_mode: str,
+        state: dict[str, Any],
+        source: str,
+    ) -> str:
+        return response_text
 
     def _resolve_effective_mode(
         self,
