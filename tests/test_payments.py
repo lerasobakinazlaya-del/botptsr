@@ -248,7 +248,7 @@ class FakeAdminSettingsServiceForOffer:
             },
             "free_talk": {
                 "key": "free_talk",
-                "name": "Свободный",
+                "name": "Открытый",
                 "icon": "🌘",
                 "is_premium": True,
                 "sort_order": 40,
@@ -361,10 +361,10 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(message.answers), 1)
         text = message.answers[0]["text"]
         self.assertIn("Режим Наставник доступен только в Premium.", text)
-        self.assertIn("Premium открывает: 🔥 Близость, 🧠 Наставник, 🌘 Свободный.", text)
+        self.assertIn("Premium открывает: 🔥 Близость, 🧠 Наставник, 🌘 Открытый.", text)
         self.assertIn("Выбери пакет:", text)
         self.assertIn("Premium на 30 дней — 499.00 RUB на 30 дней", text)
-        self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день, 🌘 Свободный — 2/день.", text)
+        self.assertIn("Пробно: 🔥 Близость — 2/день, 🧠 Наставник — 1/день, 🌘 Открытый — 2/день.", text)
         keyboard = message.answers[0]["reply_markup"]
         self.assertEqual(
             keyboard.inline_keyboard[0][0].callback_data,
@@ -388,12 +388,12 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             user_service,
             admin_settings_service,
             trigger=OFFER_TRIGGER_PREVIEW_EXHAUSTED,
-            mode_name="Свободный",
+            mode_name="Открытый",
             premium_limit=120,
         )
 
         self.assertTrue(result)
-        self.assertIn("Пробный доступ к режиму Свободный", message.answers[0]["text"])
+        self.assertIn("Пробный доступ к режиму Открытый", message.answers[0]["text"])
         keyboard = message.answers[0]["reply_markup"]
         self.assertEqual(
             keyboard.inline_keyboard[0][0].callback_data,
