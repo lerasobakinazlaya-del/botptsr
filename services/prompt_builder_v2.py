@@ -73,7 +73,9 @@ class PromptBuilderV2(PromptBuilder):
             )
         )
 
-        if active_mode in {"comfort", "free_talk", "ptsd"} and templates.get("ptsd_mode_prompt", "").strip():
+        effective_mode = "ptsd" if active_mode == "comfort" else active_mode
+
+        if effective_mode in {"free_talk", "ptsd"} and templates.get("ptsd_mode_prompt", "").strip():
             parts.append(templates["ptsd_mode_prompt"])
 
         parts.append(f"{templates['state_intro']}\n{state_summary}")

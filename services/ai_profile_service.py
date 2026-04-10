@@ -3,7 +3,17 @@ from typing import Any
 
 def resolve_ai_profile(ai_settings: dict[str, Any], active_mode: str) -> dict[str, Any]:
     mode_overrides = ai_settings.get("mode_overrides", {})
-    override = mode_overrides.get(active_mode, {}) if isinstance(mode_overrides, dict) else {}
+    override = {}
+    if isinstance(mode_overrides, dict):
+        candidate_keys = [str(active_mode or "")]
+        if active_mode == "comfort":
+            candidate_keys.append("ptsd")
+        elif active_mode == "ptsd":
+            candidate_keys.append("comfort")
+        for candidate in candidate_keys:
+            if candidate in mode_overrides:
+                override = mode_overrides.get(candidate, {}) or {}
+                break
 
     model = str(override.get("model") or ai_settings.get("openai_model") or "gpt-4o-mini").strip()
     prompt_suffix = str(override.get("prompt_suffix") or "").strip()

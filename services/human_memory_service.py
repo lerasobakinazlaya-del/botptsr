@@ -160,21 +160,21 @@ class HumanMemoryService:
         return "\n".join(lines)
 
     def suggest_mode(self, state: dict[str, Any], current_mode: str) -> str:
-        if current_mode not in {"base", "comfort"}:
+        if current_mode not in {"base", "ptsd", "comfort"}:
             return current_mode
 
-        if current_mode == "comfort":
-            return "comfort"
+        if current_mode in {"ptsd", "comfort"}:
+            return "ptsd"
 
         relationship = self._normalize_relationship((state or {}).get("relationship_state"))
         mood = str(relationship.get("last_user_mood") or "")
         topic = str(relationship.get("last_user_topic") or "")
 
         if mood in {"тревога или внутреннее напряжение", "усталость или перегруз", "нужда в контакте или тепле"}:
-            return "comfort"
+            return "ptsd"
 
         if topic in {"работа и дела", "саморазвитие"} and relationship.get("trust", 0.0) > 0.32:
-            return "comfort"
+            return "ptsd"
 
         return "base"
 

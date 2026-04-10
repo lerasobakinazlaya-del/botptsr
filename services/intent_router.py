@@ -104,7 +104,7 @@ class IntentRouter:
         if desired_length == "brief" and intent == "direct_answer":
             should_end_with_question = False
 
-        use_memory = intent in {"support", "flirty", "discussion"} or active_mode in {"comfort", "free_talk"}
+        use_memory = intent in {"support", "flirty", "discussion"} or active_mode in {"comfort", "ptsd", "free_talk"}
 
         return {
             "intent": intent,

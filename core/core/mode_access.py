@@ -1,4 +1,4 @@
-FREE_MODES = ["base", "comfort"]
+FREE_MODES = ["base", "ptsd", "comfort"]
 PREMIUM_MODES = ["passion", "mentor", "night", "dominant"]
 
 

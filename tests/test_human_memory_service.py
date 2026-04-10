@@ -8,7 +8,7 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
     def setUp(self):
         self.service = HumanMemoryService()
 
-    def test_base_can_adapt_to_comfort_for_heavy_mood(self):
+    def test_base_can_adapt_to_ptsd_for_heavy_mood(self):
         suggested = self.service.suggest_mode(
             {
                 "relationship_state": {
@@ -19,9 +19,9 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
             "base",
         )
 
-        self.assertEqual(suggested, "comfort")
+        self.assertEqual(suggested, "ptsd")
 
-    def test_explicit_comfort_mode_is_not_silently_downgraded(self):
+    def test_explicit_ptsd_mode_is_not_silently_downgraded(self):
         suggested = self.service.suggest_mode(
             {
                 "relationship_state": {
@@ -29,10 +29,10 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
                     "last_user_topic": "отдых",
                 }
             },
-            "comfort",
+            "ptsd",
         )
 
-        self.assertEqual(suggested, "comfort")
+        self.assertEqual(suggested, "ptsd")
 
     def test_inactivity_decay_reduces_relationship_metrics(self):
         state = {

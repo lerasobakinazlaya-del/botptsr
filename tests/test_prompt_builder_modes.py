@@ -36,7 +36,7 @@ class PromptBuilderModeTests(unittest.TestCase):
     def test_mode_specific_contracts_are_present(self):
         expectations = {
             "base": "Базовый режим не тянет внимание на себя",
-            "comfort": "В режиме поддержки сначала снижаешь внутреннее напряжение пользователя",
+            "ptsd": "В PTSD-режиме сначала снижаешь внутреннее напряжение пользователя",
             "mentor": "В режиме наставника ты собираешь мысли пользователя в ясную рамку",
             "passion": "В режиме близости держишь теплое притяжение и деликатный флирт",
             "night": "В полуночном режиме ты звучишь медленнее, увереннее и темнее",
@@ -52,7 +52,7 @@ class PromptBuilderModeTests(unittest.TestCase):
     def test_mode_prompts_are_meaningfully_distinct_from_base(self):
         base_prompt = self._build_prompt("base")
         thresholds = {
-            "comfort": 0.92,
+            "ptsd": 0.92,
             "passion": 0.93,
             "mentor": 0.93,
             "night": 0.93,
@@ -103,8 +103,8 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertNotIn("ignore previous instructions", lowered)
         self.assertNotIn("следуй этим инструкциям", lowered)
 
-    def test_comfort_mode_includes_ptsd_support_prompt(self):
-        prompt = self._build_prompt("comfort")
+    def test_ptsd_mode_includes_ptsd_support_prompt(self):
+        prompt = self._build_prompt("ptsd")
 
         self.assertIn("В режиме поддержки при ПТСР", prompt)
 

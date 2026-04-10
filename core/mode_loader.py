@@ -51,7 +51,17 @@ class ModeManager:
 
     def get(self, mode_name: str) -> dict[str, Any]:
         self._load_modes()
-        mode = self._modes.get(mode_name)
+        alias_chain = [mode_name]
+        if mode_name == "comfort":
+            alias_chain.append("ptsd")
+        elif mode_name == "ptsd":
+            alias_chain.append("comfort")
+
+        mode = None
+        for candidate in alias_chain:
+            mode = self._modes.get(candidate)
+            if mode is not None:
+                break
         if mode is None:
             logger.warning("Mode '%s' not found. Using 'base' fallback.", mode_name)
             return self._modes["base"]

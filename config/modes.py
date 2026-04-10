@@ -45,7 +45,13 @@ def get_modes() -> dict[str, ModeConfig]:
 
 def get_mode(mode_key: str) -> ModeConfig:
     modes = get_modes()
-    return modes.get(mode_key, modes["base"])
+    if mode_key in modes:
+        return modes[mode_key]
+    if mode_key == "comfort" and "ptsd" in modes:
+        return modes["ptsd"]
+    if mode_key == "ptsd" and "comfort" in modes:
+        return modes["comfort"]
+    return modes["base"]
 
 
 def get_ordered_modes() -> list[ModeConfig]:

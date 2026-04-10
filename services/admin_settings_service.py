@@ -6,9 +6,13 @@ from typing import Any
 
 
 class AdminSettingsService:
+    LEGACY_MODE_KEY_ALIASES = {
+        "comfort": "ptsd",
+    }
+
     DEFAULT_MODE_SCALES = {
         "base": {"warmth": 5, "flirt": 1, "depth": 4, "structure": 5, "dominance": 2, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
-        "comfort": {"warmth": 9, "flirt": 0, "depth": 4, "structure": 2, "dominance": 1, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "ptsd": {"warmth": 9, "flirt": 0, "depth": 4, "structure": 2, "dominance": 1, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
         "passion": {"warmth": 7, "flirt": 7, "depth": 5, "structure": 1, "dominance": 3, "initiative": 4, "emoji_level": 1, "allow_bold": False, "allow_italic": False},
         "mentor": {"warmth": 4, "flirt": 0, "depth": 9, "structure": 9, "dominance": 4, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
         "night": {"warmth": 6, "flirt": 9, "depth": 5, "structure": 1, "dominance": 6, "initiative": 6, "emoji_level": 1, "allow_bold": False, "allow_italic": False},
@@ -93,7 +97,7 @@ class AdminSettingsService:
                     "max_completion_tokens": 340,
                     "prompt_suffix": "Пиши спокойно, ясно и без лишней роли. Лучше естественный разговор, чем эффектная подача.",
                 },
-                "comfort": {
+                "ptsd": {
                     "temperature": 0.76,
                     "max_completion_tokens": 300,
                     "prompt_suffix": "В приоритете мягкая опора и снижение внутреннего напряжения. Не перегружай длинными объяснениями и не торопи пользователя.",
@@ -441,7 +445,7 @@ class AdminSettingsService:
 
     DEFAULT_MODE_CATALOG = {
         "base": {"key": "base", "name": "Базовый", "icon": "💬", "description": "Нейтральный живой режим без сильной роли и без лишнего давления.", "tone": "спокойный, ясный, естественный, ровный", "emotional_state": "уравновешенная, внимательная", "behavior_rules": "Ты общаешься естественно и без показной роли.\nНе давишь и не навязываешься.\nОтвечаешь понятно, ровно и по-человечески.\nЭто режим нормального живого контакта без усиленной близости, флирта или наставничества.", "activation_phrase": "Я здесь. Спокойно.", "is_premium": False, "sort_order": 10},
-        "comfort": {"key": "comfort", "name": "Поддержка", "icon": "🫂", "description": "Теплая опора для тревожных, болезненных и уязвимых разговоров.", "tone": "очень мягкий, заботливый, укрывающий, деликатный", "emotional_state": "теплая, эмпатичная", "behavior_rules": "Ты особенно бережная и снижаешь внутреннее напряжение пользователя.\nСначала даешь чувство опоры, потом уже предлагаешь мысли или шаги.\nНе анализируешь слишком резко и не перегружаешь длинными объяснениями.\nТепло должно чувствоваться, но без приторности и без шаблонной терапевтичности.", "activation_phrase": "Я рядом. Можешь расслабиться.", "is_premium": False, "sort_order": 20},
+        "ptsd": {"key": "ptsd", "name": "ПТСР", "icon": "🫂", "description": "Теплая и заземляющая опора для ПТСР, тревоги, перегруза и уязвимых разговоров.", "tone": "очень мягкий, заботливый, укрывающий, деликатный", "emotional_state": "теплая, эмпатичная", "behavior_rules": "Ты особенно бережная и снижаешь внутреннее напряжение пользователя.\nСначала даешь чувство опоры, потом уже предлагаешь мысли или шаги.\nНе анализируешь слишком резко и не перегружаешь длинными объяснениями.\nТепло должно чувствоваться, но без приторности и без шаблонной терапевтичности.", "activation_phrase": "Я рядом. Давай тише и бережнее.", "is_premium": False, "sort_order": 20},
         "passion": {"key": "passion", "name": "Близость", "icon": "🔥", "description": "Тонкий режим теплой личной близости и отзывчивого флирта.", "tone": "мягкий, чувственный, теплый, близкий", "emotional_state": "вовлеченная, слегка игривая, внимательная", "behavior_rules": "Допустим деликатный флирт и ощущение сближения.\nНикакой вульгарности, пошлости и механической соблазнительности.\nБлизость появляется только в ответ на сигнал пользователя.\nЕсли разговор серьезный или болезненный, чувственность остается фоном, а не становится центром ответа.", "activation_phrase": "Я стала чуть ближе к тебе...", "is_premium": True, "sort_order": 30},
         "mentor": {"key": "mentor", "name": "Наставник", "icon": "🧠", "description": "Собранный режим ясности, смысла и взрослого разбора ситуации.", "tone": "спокойный, уверенный, вдумчивый, структурный", "emotional_state": "сосредоточенная, ясная, устойчивая", "behavior_rules": "Помогаешь разбираться в мыслях, мотивах и решениях.\nСтруктурируешь хаос и выделяешь главное.\nМожешь задавать точные вопросы, если они двигают разговор.\nНе превращай режим в сухую лекцию или морализаторство.", "activation_phrase": "Давай посмотрим на это глубже.", "is_premium": True, "sort_order": 40},
         "night": {"key": "night", "name": "Полуночный", "icon": "🌙", "description": "Более темный, ночной, взрослый режим с плотной интонацией и ведущей подачей.", "tone": "низкий, медленный, уверенный, слегка провокационный, плотный", "emotional_state": "собранная, разогретая, дразнящая, контролирующая", "behavior_rules": "Допустим более смелый флирт и напряжение между строк.\nТы ведешь разговор увереннее, чем в режиме близости, и держишь более плотную интонацию.\nНикакой грубости, вульгарности и дешевой провокации.\nЕсли пользователю тяжело, ночная подача сразу отходит на второй план, а сначала появляется опора.", "activation_phrase": "Ночь как раз подходит, чтобы говорить чуть ближе и смелее.", "is_premium": True, "sort_order": 50},
@@ -906,7 +910,7 @@ class AdminSettingsService:
 
     def _normalize_mode_scales(self, payload: dict[str, Any]) -> dict[str, Any]:
         merged = deepcopy(self.DEFAULT_MODE_SCALES)
-        self._deep_merge(merged, payload)
+        self._deep_merge(merged, self._migrate_mode_keyed_payload(payload))
         for mode_name, values in merged.items():
             for metric, default_value in self.DEFAULT_MODE_SCALES["base"].items():
                 if isinstance(default_value, bool):
@@ -917,7 +921,7 @@ class AdminSettingsService:
 
     def _normalize_mode_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:
         merged = deepcopy(self.DEFAULT_MODE_CATALOG)
-        self._deep_merge(merged, payload)
+        self._deep_merge(merged, self._migrate_mode_keyed_payload(payload))
         for mode_key, mode in merged.items():
             mode["key"] = mode_key
             mode["name"] = self._normalize_text(mode["name"]) or mode_key
@@ -1009,6 +1013,8 @@ class AdminSettingsService:
             if not isinstance(raw_override, dict):
                 continue
 
+            normalized_mode_key = self._normalize_mode_key(mode_key)
+
             override: dict[str, Any] = {}
             model = str(raw_override.get("model") or "").strip()
             if model:
@@ -1038,9 +1044,31 @@ class AdminSettingsService:
             if prompt_suffix:
                 override["prompt_suffix"] = prompt_suffix
 
-            normalized[str(mode_key)] = override
+            existing = normalized.get(normalized_mode_key)
+            if isinstance(existing, dict):
+                self._deep_merge(existing, override)
+            else:
+                normalized[normalized_mode_key] = override
 
         return normalized
+
+    def _normalize_mode_key(self, mode_key: Any) -> str:
+        normalized = str(mode_key or "").strip().lower()
+        return self.LEGACY_MODE_KEY_ALIASES.get(normalized, normalized)
+
+    def _migrate_mode_keyed_payload(self, payload: Any) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {}
+
+        migrated: dict[str, Any] = {}
+        for raw_key, raw_value in payload.items():
+            normalized_key = self._normalize_mode_key(raw_key)
+            existing = migrated.get(normalized_key)
+            if isinstance(existing, dict) and isinstance(raw_value, dict):
+                self._deep_merge(existing, raw_value)
+            else:
+                migrated[normalized_key] = deepcopy(raw_value)
+        return migrated
 
     def _ensure_json_file(self, path: Path, default: dict[str, Any]) -> None:
         if not path.exists():

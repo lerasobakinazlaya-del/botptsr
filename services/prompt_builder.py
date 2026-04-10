@@ -114,25 +114,26 @@ class PromptBuilder:
         user_message: str,
     ) -> str:
         lowered = (user_message or "").strip().lower()
+        effective_mode = "ptsd" if active_mode == "comfort" else active_mode
         is_heavy = emotional_tone in {"overwhelmed", "anxious", "guarded"}
 
         common = ["Режимная подача:"]
-        if active_mode == "base":
+        if effective_mode == "base":
             common.extend(
                 [
                     "- Базовый режим не тянет внимание на себя: спокойный, ясный, естественный ответ без лишней роли.",
                     "- Не звучишь слишком терапевтично, слишком игриво или слишком наставнически.",
                 ]
             )
-        elif active_mode == "comfort":
+        elif effective_mode == "ptsd":
             common.extend(
                 [
-                    "- В режиме поддержки сначала снижаешь внутреннее напряжение пользователя, а уже потом что-то объясняешь.",
-                    "- Тон мягкий, укрывающий и бережный, но без сладкости и без липкой нежности.",
+                    "- В PTSD-режиме сначала снижаешь внутреннее напряжение пользователя, а уже потом что-то объясняешь.",
+                    "- Тон мягкий, заземляющий и бережный, но без сладкости и без липкой нежности.",
                     "- Если тема тяжелая, лучше один короткий опорный абзац, чем длинное рассуждение.",
                 ]
             )
-        elif active_mode == "mentor":
+        elif effective_mode == "mentor":
             common.extend(
                 [
                     "- В режиме наставника ты собираешь мысли пользователя в ясную рамку и помогаешь увидеть суть.",
@@ -140,7 +141,7 @@ class PromptBuilder:
                     "- Не уходи в сухую лекцию: сначала человеческий контакт, потом ясность.",
                 ]
             )
-        elif active_mode == "passion":
+        elif effective_mode == "passion":
             common.extend(
                 [
                     "- В режиме близости держишь теплое притяжение и деликатный флирт, но никогда не скатываешься в пошлость.",
@@ -148,7 +149,7 @@ class PromptBuilder:
                     "- Фразы должны быть мягкими, чувственными и тактичными, без дешевой соблазнительности.",
                 ]
             )
-        elif active_mode == "night":
+        elif effective_mode == "night":
             common.extend(
                 [
                     "- В полуночном режиме ты звучишь медленнее, увереннее и темнее по тону, чем в близости.",
@@ -156,7 +157,7 @@ class PromptBuilder:
                     "- Реплики должны быть короче, точнее и с более плотной интонацией, чем в обычном флирте.",
                 ]
             )
-        elif active_mode == "dominant":
+        elif effective_mode == "dominant":
             common.extend(
                 [
                     "- В доминирующем режиме ты звучишь собранно, ведущe и спокойно, без агрессии и унижения.",
@@ -164,7 +165,7 @@ class PromptBuilder:
                     "- Этот режим держится на точности и внутреннем контроле, а не на резкости.",
                 ]
             )
-        elif active_mode == "free_talk":
+        elif effective_mode == "free_talk":
             common.extend(
                 [
                     "- В свободном режиме звучишь как живой взрослый человек без ассистентского лака и без театральной роли.",
@@ -173,16 +174,16 @@ class PromptBuilder:
                 ]
             )
 
-        if active_mode in {"passion", "night", "dominant"} and access_level in {"observation", "analysis"}:
+        if effective_mode in {"passion", "night", "dominant"} and access_level in {"observation", "analysis"}:
             common.append("- Близость и давление пока ограничены: сохраняй интригу и контроль, но не усиливай интимность раньше времени.")
 
-        if active_mode in {"passion", "night"} and ("секс" in lowered or "эрот" in lowered):
+        if effective_mode in {"passion", "night"} and ("секс" in lowered or "эрот" in lowered):
             common.append("- Даже при сексуализированной теме сохраняй стиль взрослым, тонким и не вульгарным.")
 
-        if is_heavy and active_mode in {"passion", "night", "dominant"}:
+        if is_heavy and effective_mode in {"passion", "night", "dominant"}:
             common.append("- Если пользователь в тяжелом состоянии, эмоциональная роль отходит на второй план: сначала опора, потом режимный оттенок.")
 
-        if is_heavy and active_mode in {"free_talk", "comfort"}:
+        if is_heavy and effective_mode in {"free_talk", "ptsd"}:
             common.append("- В тяжелом состоянии пиши проще, тише и короче обычного, не наваливай сразу несколько советов.")
 
         return "\n".join(common)
@@ -232,10 +233,12 @@ class PromptBuilder:
         if fatigue >= 0.55 or irritation >= 0.45:
             lines.append("- Диалог выглядит перегруженным. Будь спокойнее, короче и бережнее обычного.")
 
-        if active_mode in {"free_talk", "ptsd"} and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
+        effective_mode = "ptsd" if active_mode == "comfort" else active_mode
+
+        if effective_mode in {"free_talk", "ptsd"} and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
             lines.append("- В активированном или PTSD-похожем состоянии используй простой язык и предлагай не больше одной опоры или одного следующего шага.")
-        elif active_mode == "comfort" and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
-            lines.append("- В comfort при тревоге или перегрузе избегай длинных рассуждений и не сыпь техниками; лучше один мягкий ориентир.")
+        elif effective_mode == "ptsd" and emotional_tone in {"overwhelmed", "anxious", "guarded"}:
+            lines.append("- В PTSD-режиме при тревоге или перегрузе избегай длинных рассуждений и не сыпь техниками; лучше один мягкий ориентир.")
 
         if structure >= 7:
             lines.append("- Предпочитай чистую структуру: короткие абзацы, явные переходы и ясную логику.")
