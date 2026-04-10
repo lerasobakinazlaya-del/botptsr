@@ -1,0 +1,90 @@
+name: Diagnose Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_dir:
+        description: "Server project directory"
+        required: false
+        default: "/opt/bot"
+      journal_lines:
+        description: "How many journal lines to print"
+        required: false
+        default: "120"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start SSH agent
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "${DEPLOY_SSH_KEY}" | tr -d '\r' | ssh-add -
+          echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "${GITHUB_ENV}"
+          echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "${GITHUB_ENV}"
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Collect runtime diagnostics
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          APP_DIR: ${{ github.event.inputs.app_dir }}
+          JOURNAL_LINES: ${{ github.event.inputs.journal_lines }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- "${APP_DIR}" "${JOURNAL_LINES}" <<'REMOTE'
+          set -euo pipefail
+          APP_DIR="$1"
+          JOURNAL_LINES="$2"
+
+          echo "==> release.json"
+          cat "${APP_DIR}/config/release.json" || true
+
+          echo
+          echo "==> bot.service status"
+          sudo systemctl --no-pager --full status bot.service || true
+
+          echo
+          echo "==> admin-dashboard.service status"
+          sudo systemctl --no-pager --full status admin-dashboard.service || true
+
+          echo
+          echo "==> recent bot journal"
+          sudo journalctl -u bot.service -n "${JOURNAL_LINES}" --no-pager || true
+
+          echo
+          echo "==> recent admin dashboard journal"
+          sudo journalctl -u admin-dashboard.service -n 80 --no-pager || true
+
+          echo
+          echo "==> local admin health"
+          ENV_FILE="${APP_DIR}/.env"
+          mapfile -t ADMIN_AUTH < <(/usr/bin/env python3 - "$ENV_FILE" <<'PY'
+          import sys
+          from pathlib import Path
+
+          env_path = Path(sys.argv[1])
+          values = {}
+          for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+              line = raw_line.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              key, value = line.split("=", 1)
+              values[key.strip()] = value.strip().strip('"').strip("'")
+
+          print(values.get("ADMIN_DASHBOARD_USERNAME", ""))
+          print(values.get("ADMIN_DASHBOARD_PASSWORD", ""))
+          PY
+          )
+
+          curl --silent --show-error \
+            --user "${ADMIN_AUTH[0]}:${ADMIN_AUTH[1]}" \
+            "http://127.0.0.1:8080/api/health" || true
+          REMOTE
