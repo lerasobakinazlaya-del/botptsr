@@ -108,6 +108,13 @@ class PromptBuilderModeTests(unittest.TestCase):
 
         self.assertIn("В режиме поддержки при ПТСР", prompt)
 
+    def test_prompt_instructs_feminine_self_reference_without_gender_switch(self):
+        prompt = self._build_prompt("base")
+
+        self.assertIn("используй женский род", prompt)
+        self.assertIn("не переключайся на мужской", prompt)
+        self.assertIn("характер Лиры", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

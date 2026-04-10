@@ -51,6 +51,11 @@ class PromptBuilderV2Tests(unittest.TestCase):
         self.assertNotIn("tea and books", prompt)
         self.assertNotIn(self.templates["memory_intro"], prompt)
 
+    def test_prompt_templates_default_to_feminine_self_reference(self):
+        self.assertIn("используй женский род", self.templates["personality_core"])
+        self.assertIn("используй женский род", self.templates["final_instruction"])
+        self.assertIn("характер Лиры", self.templates["final_instruction"])
+
 
 if __name__ == "__main__":
     unittest.main()
