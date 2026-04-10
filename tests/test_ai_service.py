@@ -1,6 +1,7 @@
 import unittest
 
 from services.ai_service import AIService
+from services.memory_engine import ChatMessage
 
 
 class FakeClient:
@@ -389,3 +390,23 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client.calls), 2)
         self.assertEqual(client.calls[0]["max_completion_tokens"], 200)
         self.assertEqual(client.calls[1]["max_completion_tokens"], 400)
+
+    def test_assistant_question_heavy_supports_chat_message_objects(self):
+        service = AIService(
+            client=FakeClient("ok"),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        history = [
+            ChatMessage(role="assistant", content="Как ты на это смотришь?", timestamp=1.0),
+            ChatMessage(role="assistant", content="Что думаешь дальше?", timestamp=2.0),
+        ]
+
+        self.assertTrue(service._assistant_has_been_question_heavy(history))

@@ -857,14 +857,20 @@ class AIService:
 
     def _assistant_has_been_question_heavy(self, history: list[dict[str, str]]) -> bool:
         assistant_messages = [
-            str(item.get("content") or "")
+            str(self._history_item_field(item, "content") or "")
             for item in history or []
-            if str(item.get("role") or "") == "assistant"
+            if str(self._history_item_field(item, "role") or "") == "assistant"
         ]
         recent = assistant_messages[-2:]
         if not recent:
             return False
         return sum(message.count("?") for message in recent) >= 2
+
+    @staticmethod
+    def _history_item_field(item: Any, field: str) -> Any:
+        if isinstance(item, dict):
+            return item.get(field)
+        return getattr(item, field, None)
 
     def _resolve_effective_mode(
         self,
