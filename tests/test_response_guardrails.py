@@ -2,6 +2,7 @@ import unittest
 
 from services.response_guardrails import (
     analyze_response_style,
+    apply_human_style_guardrails,
     apply_ptsd_response_guardrails,
     build_crisis_support_response,
     detect_crisis_signal,
@@ -64,6 +65,18 @@ class ResponseGuardrailsTests(unittest.TestCase):
 
         self.assertLessEqual(len(result), 340)
         self.assertLessEqual(result.count("."), 4)
+
+    def test_human_style_guardrails_strip_low_value_opener_and_generic_question(self):
+        result = apply_human_style_guardrails(
+            "Это хороший подход. Лучше заранее договориться о стоп-сигнале и утре после. Как ты на это смотришь?",
+            answer_first=True,
+            allow_follow_up_question=False,
+        )
+
+        self.assertEqual(
+            result,
+            "Лучше заранее договориться о стоп-сигнале и утре после.",
+        )
 
     def test_detect_crisis_signal_for_self_harm(self):
         crisis = detect_crisis_signal("Я не хочу жить и хочу покончить с собой.")

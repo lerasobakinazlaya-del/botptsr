@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -8,6 +9,7 @@ from services.ai_profile_service import resolve_ai_profile
 from services.prompt_safety import redact_prompt_for_log
 from services.response_guardrails import (
     analyze_response_style,
+    apply_human_style_guardrails,
     apply_ptsd_response_guardrails,
     build_crisis_support_response,
     detect_crisis_signal,
@@ -300,7 +302,11 @@ class AIService:
             active_mode=active_mode,
             memory_context=memory_context,
             user_message=user_message,
-            extra_instruction=ai_profile["prompt_suffix"],
+            extra_instruction=self._compose_reply_instruction(
+                base_instruction=ai_profile["prompt_suffix"],
+                user_message=user_message,
+                history=history,
+            ),
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -349,6 +355,10 @@ class AIService:
             blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
             user_id=user_id,
             source="reply",
+        )
+        response_text = self._apply_human_companion_guardrails(
+            response_text,
+            user_message=user_message,
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -445,6 +455,10 @@ class AIService:
             blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
             user_id=user_id,
             source="reengagement",
+        )
+        response_text = self._apply_human_companion_guardrails(
+            response_text,
+            user_message="сформулируй одно живое сообщение первой инициативы",
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -607,6 +621,146 @@ class AIService:
         ]
         return "\n".join(part.strip() for part in parts if part and part.strip())
 
+    def _compose_reply_instruction(
+        self,
+        *,
+        base_instruction: str,
+        user_message: str,
+        history: list[dict[str, str]],
+    ) -> str:
+        extra_parts = [str(base_instruction or "").strip()]
+
+        continuation_instruction = self._build_continuation_instruction(
+            user_message=user_message,
+            history=history,
+        )
+        if continuation_instruction:
+            extra_parts.append(continuation_instruction)
+
+        risky_topic_instruction = self._build_risky_topic_instruction(user_message)
+        if risky_topic_instruction:
+            extra_parts.append(risky_topic_instruction)
+
+        human_companion_instruction = self._build_human_companion_instruction(
+            user_message=user_message,
+            history=history,
+        )
+        if human_companion_instruction:
+            extra_parts.append(human_companion_instruction)
+
+        return "\n\n".join(part for part in extra_parts if part)
+
+    def _build_continuation_instruction(
+        self,
+        *,
+        user_message: str,
+        history: list[dict[str, str]],
+    ) -> str:
+        lowered = " ".join(str(user_message or "").lower().split())
+        if not lowered:
+            return ""
+
+        if not re.fullmatch(r"(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше)", lowered):
+            return ""
+
+        last_assistant_message = ""
+        for item in reversed(history or []):
+            if str(item.get("role") or "") == "assistant":
+                last_assistant_message = str(item.get("content") or "")
+                break
+
+        if not last_assistant_message.strip():
+            return (
+                "Пользователь просит продолжить предыдущую мысль. Продолжи её без прелюдии, "
+                "не начинай тему заново и не задавай встречный вопрос в первой строке."
+            )
+
+        matches = re.findall(r"(?m)^\s*(\d+)[.)]\s+", last_assistant_message)
+        if not matches:
+            return (
+                "Пользователь просит продолжить предыдущий ответ. Продолжи его без прелюдии, "
+                "не начинай тему заново и не задавай встречный вопрос в первой строке."
+            )
+
+        next_number = max(int(value) for value in matches) + 1
+        return (
+            "Пользователь просит продолжить уже начатый нумерованный список. "
+            f"Продолжи прямо с пункта {next_number}, не повторяй предыдущие пункты, "
+            "не начинай список заново и по возможности закончи оставшиеся пункты в этом ответе."
+        )
+
+    def _build_risky_topic_instruction(self, user_message: str) -> str:
+        lowered = " ".join(str(user_message or "").lower().split())
+        if not lowered:
+            return ""
+
+        drug_hints = (
+            "меф",
+            "мефедрон",
+            "2cb",
+            "2-cb",
+            "наркот",
+            "веществ",
+            "под ",
+            "употребля",
+        )
+        sexual_hints = (
+            "секс",
+            "группов",
+            "оргия",
+            "тройнич",
+        )
+        if not any(hint in lowered for hint in drug_hints):
+            return ""
+        if not any(hint in lowered for hint in sexual_hints):
+            return ""
+
+        return (
+            "Если тема связана с сексом на фоне веществ, не романтизируй сочетание и не давай "
+            "пошаговую инструкцию по употреблению или миксу. Сфокусируйся на harm reduction: "
+            "согласие, границы, стоп-сигнал, трезвый контроль, риски смешивания, план если кому-то станет плохо и утро после."
+        )
+
+    def _build_human_companion_instruction(
+        self,
+        *,
+        user_message: str,
+        history: list[dict[str, str]],
+    ) -> str:
+        lowered = " ".join(str(user_message or "").lower().split())
+        if not lowered:
+            return ""
+
+        instructions = [
+            "Звучишь как живой собеседник, а не как осторожный интервьюер или терапевтический скрипт.",
+            "Не начинай ответ с дежурных подводок вроде 'это естественно', 'понимаю, что это непросто', 'это хороший подход', если можно сразу перейти к сути.",
+        ]
+
+        if self._user_explicitly_invites_questions(lowered):
+            instructions.append(
+                "Пользователь сам разрешил тебе спрашивать. Можно задать один точный вопрос, но только после своей мысли, а не вместо неё."
+            )
+        else:
+            instructions.append(
+                "По умолчанию не задавай встречный вопрос, если без него можно ответить содержательно."
+            )
+
+        if self._looks_like_answer_first_request(lowered):
+            instructions.extend(
+                [
+                    "Пользователь ждёт ответ по существу. Первая строка должна содержать сам ответ, совет, позицию или продолжение мысли.",
+                    "Не заканчивай ответ шаблонным вопросом вроде 'как ты на это смотришь?' или 'что думаешь?'.",
+                    "Если уместно, можно говорить прямее: 'я бы делал так', 'лучше вот так', 'тут риск в этом'.",
+                ]
+            )
+
+        if self._assistant_has_been_question_heavy(history):
+            instructions.append(
+                "В последних сообщениях было слишком много вопросительного ведения. В этом ответе держи инициативу у себя и не переводи всё обратно в опрос."
+            )
+
+        return " ".join(instructions)
+
     def _apply_ptsd_response_contract(
         self,
         text: str,
@@ -656,6 +810,61 @@ class AIService:
             enabled=enabled,
             blocked_phrases=blocked_phrases,
         )
+
+    def _apply_human_companion_guardrails(
+        self,
+        text: str,
+        *,
+        user_message: str,
+    ) -> str:
+        lowered = " ".join(str(user_message or "").lower().split())
+        return apply_human_style_guardrails(
+            text,
+            answer_first=self._looks_like_answer_first_request(lowered),
+            allow_follow_up_question=self._user_explicitly_invites_questions(lowered),
+        )
+
+    def _looks_like_answer_first_request(self, text: str) -> bool:
+        answer_hints = (
+            "как",
+            "что делать",
+            "что лучше",
+            "что думаешь",
+            "расскажи",
+            "объясни",
+            "составь",
+            "распиши",
+            "продолж",
+            "далее",
+            "дальше",
+            "подскажи",
+            "помоги",
+            "план",
+            "инструкция",
+            "дале",
+        )
+        return any(hint in text for hint in answer_hints)
+
+    def _user_explicitly_invites_questions(self, text: str) -> bool:
+        question_hints = (
+            "спрашивай",
+            "задавай вопросы",
+            "можешь спрашивать",
+            "спроси меня",
+            "поспрашивай",
+        )
+        return any(hint in text for hint in question_hints)
+
+    def _assistant_has_been_question_heavy(self, history: list[dict[str, str]]) -> bool:
+        assistant_messages = [
+            str(item.get("content") or "")
+            for item in history or []
+            if str(item.get("role") or "") == "assistant"
+        ]
+        recent = assistant_messages[-2:]
+        if not recent:
+            return False
+        return sum(message.count("?") for message in recent) >= 2
 
     def _resolve_effective_mode(
         self,

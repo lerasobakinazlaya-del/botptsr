@@ -135,6 +135,17 @@ class PromptBuilderModeTests(unittest.TestCase):
 
         self.assertIn("В режиме поддержки при ПТСР", prompt)
 
+    def test_plan_request_adds_answer_first_rules(self):
+        prompt = self._build_prompt(
+            "free_talk",
+            state_override={"emotional_tone": "neutral"},
+            user_message="Составь план и распиши, как лучше сделать.",
+        )
+
+        self.assertIn("первая фраза должна содержать сам ответ", prompt)
+        self.assertIn("Не завершай ответ автоматическим вопросом", prompt)
+        self.assertIn("Не превращайся в интервьюера", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

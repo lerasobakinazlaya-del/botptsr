@@ -14,6 +14,21 @@ PTSD_GUARDED_MODES = {"free_talk", "ptsd", "comfort"}
 PTSD_HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
 PTSD_MAX_SENTENCES = 4
 PTSD_MAX_CHARS = 340
+LOW_VALUE_OPENERS = (
+    "Понимаю, что это может быть непросто.",
+    "Это вполне естественно.",
+    "Это хороший подход.",
+    "Хорошо, давай попробуем рассмотреть это.",
+    "Поняла.",
+    "Понимаю.",
+)
+GENERIC_TRAILING_QUESTIONS = (
+    "Как ты на это смотришь?",
+    "Что ты думаешь об этом?",
+    "Что думаешь?",
+    "Как тебе такая идея?",
+    "Как тебе такой вариант?",
+)
 
 DIRECT_SELF_HARM_PATTERNS = [
     "хочу умереть",
@@ -154,6 +169,39 @@ def tighten_ptsd_response(
             clipped = clipped[:last_space]
 
     return clipped.rstrip(" ,;:-") + ("." if clipped and clipped[-1] not in ".!?" else "")
+
+
+def apply_human_style_guardrails(
+    text: str,
+    *,
+    answer_first: bool,
+    allow_follow_up_question: bool,
+) -> str:
+    guarded = " ".join(str(text or "").split()).strip()
+    if not guarded:
+        return guarded
+
+    if answer_first:
+        for opener in LOW_VALUE_OPENERS:
+            prefix = opener + " "
+            if guarded.startswith(prefix):
+                guarded = guarded[len(prefix):].strip()
+                break
+
+    if answer_first and not allow_follow_up_question:
+        for question in GENERIC_TRAILING_QUESTIONS:
+            suffix = " " + question
+            if guarded.endswith(suffix):
+                guarded = guarded[: -len(suffix)].rstrip(" ,;:-")
+                if guarded and guarded[-1] not in ".!?":
+                    guarded += "."
+                break
+
+    if not allow_follow_up_question and guarded.count("?") > 1:
+        first_index = guarded.find("?")
+        guarded = guarded[: first_index + 1] + guarded[first_index + 1 :].replace("?", ".")
+
+    return guarded.strip()
 
 
 def analyze_response_style(text: str, *, blocked_phrases: list[str] | None = None) -> dict[str, Any]:

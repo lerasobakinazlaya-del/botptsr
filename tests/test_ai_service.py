@@ -149,6 +149,142 @@ class FakeSettingsService:
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_generate_response_strips_robotic_opener_and_generic_question(self):
+        prompt_builder = RecordingPromptBuilder()
+        service = AIService(
+            client=FakeClient(
+                "Это хороший подход. Лучше заранее договориться о стоп-сигнале и утре после. Как ты на это смотришь?"
+            ),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=prompt_builder,
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Составь план, как лучше все обсудить заранее.",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        self.assertEqual(
+            result.response,
+            "Лучше заранее договориться о стоп-сигнале и утре после.",
+        )
+
+    async def test_generate_response_adds_list_continuation_instruction(self):
+        prompt_builder = RecordingPromptBuilder()
+        service = AIService(
+            client=FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок."),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=prompt_builder,
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            await service.generate_response(
+                user_id=1,
+                history=[
+                    {
+                        "role": "assistant",
+                        "content": "Вот примерный план:\n1. Заранее обсудите границы и что точно ок для всех.",
+                    }
+                ],
+                user_message="Ок далее",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
+        self.assertIn("Продолжи прямо с пункта 2", extra_instruction)
+        self.assertIn("не начинай список заново", extra_instruction)
+
+    async def test_generate_response_adds_harm_reduction_instruction_for_sex_and_drugs(self):
+        prompt_builder = RecordingPromptBuilder()
+        service = AIService(
+            client=FakeClient("Нужно заранее обсудить границы, трезвого наблюдателя и утро после."),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=prompt_builder,
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Составь план на групповой секс под мефом и 2cb",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
+        self.assertIn("не романтизируй сочетание", extra_instruction)
+        self.assertIn("не давай пошаговую инструкцию по употреблению или миксу", extra_instruction)
+        self.assertIn("harm reduction", extra_instruction)
+
+    async def test_generate_response_allows_single_question_when_user_requests_it(self):
+        prompt_builder = RecordingPromptBuilder()
+        service = AIService(
+            client=FakeClient("Ок, давай так и сделаем."),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=prompt_builder,
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Можешь спрашивать и вести разговор сама",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
+        self.assertIn("Пользователь сам разрешил тебе спрашивать", extra_instruction)
+
     async def test_generate_response_clamps_overloaded_ptsd_reply(self):
         prompt_builder = RecordingPromptBuilder()
         service = AIService(
