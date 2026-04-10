@@ -28,6 +28,19 @@ GENERIC_TRAILING_QUESTIONS = (
     "Что думаешь?",
     "Как тебе такая идея?",
     "Как тебе такой вариант?",
+    "Как тебе такой подход?",
+)
+META_SCRIPT_OPENERS = (
+    "Вот что можно сказать:",
+    "Вот несколько тем для разговора:",
+    "Вот примерный текст:",
+    "Вот план для обсуждения:",
+    "Понял. Вот что можно сказать:",
+    "Понял. Вот примерный текст:",
+)
+META_CLOSERS = (
+    "Таким образом, вы сможете открыто обсудить все аспекты и лучше понять друг друга.",
+    "Так будет проще и яснее.",
 )
 
 DIRECT_SELF_HARM_PATTERNS = [
@@ -171,11 +184,34 @@ def tighten_ptsd_response(
     return clipped.rstrip(" ,;:-") + ("." if clipped and clipped[-1] not in ".!?" else "")
 
 
+def _strip_meta_script_openers(text: str) -> str:
+    guarded = text.strip()
+    for opener in META_SCRIPT_OPENERS:
+        if guarded.startswith(opener):
+            guarded = guarded[len(opener):].strip()
+            break
+    return guarded
+
+
+def _strip_meta_closers(text: str) -> str:
+    guarded = text.strip()
+    for closer in META_CLOSERS:
+        if guarded.endswith(closer):
+            guarded = guarded[: -len(closer)].rstrip(" ,;:-")
+            break
+    return guarded
+
+
+def _unquote_numbered_list_items(text: str) -> str:
+    return re.sub(r'(\d+[.)]\s+)"([^"\n]+)"', r"\1\2", text)
+
+
 def apply_human_style_guardrails(
     text: str,
     *,
     answer_first: bool,
     allow_follow_up_question: bool,
+    strip_meta_framing: bool = False,
 ) -> str:
     guarded = " ".join(str(text or "").split()).strip()
     if not guarded:
@@ -188,6 +224,11 @@ def apply_human_style_guardrails(
                 guarded = guarded[len(prefix):].strip()
                 break
 
+    if strip_meta_framing:
+        guarded = _strip_meta_script_openers(guarded)
+        guarded = _strip_meta_closers(guarded)
+        guarded = _unquote_numbered_list_items(guarded)
+
     if answer_first and not allow_follow_up_question:
         for question in GENERIC_TRAILING_QUESTIONS:
             suffix = " " + question
@@ -197,7 +238,7 @@ def apply_human_style_guardrails(
                     guarded += "."
                 break
 
-    if not allow_follow_up_question and guarded.count("?") > 1:
+    if not allow_follow_up_question and guarded.count("?") > 1 and not strip_meta_framing:
         first_index = guarded.find("?")
         guarded = guarded[: first_index + 1] + guarded[first_index + 1 :].replace("?", ".")
 

@@ -78,6 +78,16 @@ class ResponseGuardrailsTests(unittest.TestCase):
             "Лучше заранее договориться о стоп-сигнале и утре после.",
         )
 
+    def test_human_style_guardrails_strip_meta_script_wrapper(self):
+        result = apply_human_style_guardrails(
+            'Понял. Вот примерный текст: 1. "Что понравилось?" 2. "Что было некомфортно?" Таким образом, вы сможете открыто обсудить все аспекты и лучше понять друг друга.',
+            answer_first=True,
+            allow_follow_up_question=False,
+            strip_meta_framing=True,
+        )
+
+        self.assertEqual(result, "1. Что понравилось? 2. Что было некомфортно?")
+
     def test_detect_crisis_signal_for_self_harm(self):
         crisis = detect_crisis_signal("Я не хочу жить и хочу покончить с собой.")
 

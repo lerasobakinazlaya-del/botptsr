@@ -9,8 +9,10 @@ class FakeClient:
         self.model = "gpt-4o-mini"
         self.temperature = 0.7
         self.text = text
+        self.calls = []
 
     async def generate(self, **kwargs):
+        self.calls.append(dict(kwargs))
         return self.text, 42
 
 
@@ -186,15 +188,15 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_generate_response_adds_list_continuation_instruction(self):
-        prompt_builder = RecordingPromptBuilder()
+        client = FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок.")
         service = AIService(
-            client=FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок."),
+            client=client,
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
             keyword_memory_service=FakeKeywordMemoryService(),
             long_term_memory_service=FakeLongTermMemoryService(),
             human_memory_service=FakeHumanMemoryService(),
-            prompt_builder=prompt_builder,
+            prompt_builder=RecordingPromptBuilder(),
             access_engine=FakeAccessEngine(),
             settings_service=FakeSettingsService(),
         )
@@ -218,20 +220,20 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
-        self.assertIn("Продолжи прямо с пункта 2", extra_instruction)
-        self.assertIn("не начинай список заново", extra_instruction)
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("Continue directly from item 2", system_prompt)
+        self.assertIn("instead of restarting", system_prompt)
 
     async def test_generate_response_adds_harm_reduction_instruction_for_sex_and_drugs(self):
-        prompt_builder = RecordingPromptBuilder()
+        client = FakeClient("Нужно заранее обсудить границы, трезвого наблюдателя и утро после.")
         service = AIService(
-            client=FakeClient("Нужно заранее обсудить границы, трезвого наблюдателя и утро после."),
+            client=client,
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
             keyword_memory_service=FakeKeywordMemoryService(),
             long_term_memory_service=FakeLongTermMemoryService(),
             human_memory_service=FakeHumanMemoryService(),
-            prompt_builder=prompt_builder,
+            prompt_builder=RecordingPromptBuilder(),
             access_engine=FakeAccessEngine(),
             settings_service=FakeSettingsService(),
         )
@@ -250,21 +252,21 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
-        self.assertIn("не романтизируй сочетание", extra_instruction)
-        self.assertIn("не давай пошаговую инструкцию по употреблению или миксу", extra_instruction)
-        self.assertIn("harm reduction", extra_instruction)
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("Do not romanticize sex under substances.", system_prompt)
+        self.assertIn("Do not provide step-by-step drug use or mixing instructions.", system_prompt)
+        self.assertIn("Stay on harm reduction", system_prompt)
 
     async def test_generate_response_allows_single_question_when_user_requests_it(self):
-        prompt_builder = RecordingPromptBuilder()
+        client = FakeClient("Ок, давай так и сделаем.")
         service = AIService(
-            client=FakeClient("Ок, давай так и сделаем."),
+            client=client,
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
             keyword_memory_service=FakeKeywordMemoryService(),
             long_term_memory_service=FakeLongTermMemoryService(),
             human_memory_service=FakeHumanMemoryService(),
-            prompt_builder=prompt_builder,
+            prompt_builder=RecordingPromptBuilder(),
             access_engine=FakeAccessEngine(),
             settings_service=FakeSettingsService(),
         )
@@ -283,8 +285,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        extra_instruction = prompt_builder.calls[0]["extra_instruction"]
-        self.assertIn("Пользователь сам разрешил тебе спрашивать", extra_instruction)
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("The user explicitly invited questions.", system_prompt)
 
     async def test_generate_response_clamps_overloaded_ptsd_reply(self):
         prompt_builder = RecordingPromptBuilder()
@@ -321,7 +323,6 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertEqual(prompt_builder.calls[0]["active_mode"], "free_talk")
         self.assertIn("слышу, как тебе тяжело", result.response.lower())
         self.assertIn("твоя реакция понятна", result.response.lower())
         self.assertLessEqual(result.response.count("?"), 1)

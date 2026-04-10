@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
+from services.conversation_engine_v2 import ConversationEngineV2
 from services.prompt_safety import redact_prompt_for_log
 from services.response_guardrails import (
     analyze_response_style,
@@ -61,6 +62,7 @@ class AIService:
         prompt_builder,
         access_engine,
         settings_service,
+        conversation_engine=None,
         debug: bool = False,
         log_full_prompt: bool = False,
         debug_prompt_user_id: int | None = None,
@@ -79,6 +81,7 @@ class AIService:
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
         self.settings_service = settings_service
+        self.conversation_engine = conversation_engine or ConversationEngineV2(settings_service)
         self.debug = debug
         self.log_full_prompt = log_full_prompt
         self.debug_prompt_user_id = debug_prompt_user_id
@@ -296,17 +299,18 @@ class AIService:
             self._queue.qsize(),
         )
 
-        system_prompt = self.prompt_builder.build_system_prompt(
+        system_prompt = self.conversation_engine.build_system_prompt(
             state=new_state,
             access_level=access_level,
             active_mode=active_mode,
             memory_context=memory_context,
             user_message=user_message,
-            extra_instruction=self._compose_reply_instruction(
+            base_instruction=self._compose_reply_instruction(
                 base_instruction=ai_profile["prompt_suffix"],
                 user_message=user_message,
                 history=history,
             ),
+            history=history,
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -356,7 +360,7 @@ class AIService:
             user_id=user_id,
             source="reply",
         )
-        response_text = self._apply_human_companion_guardrails(
+        response_text = self.conversation_engine.guard_response(
             response_text,
             user_message=user_message,
         )
@@ -411,12 +415,13 @@ class AIService:
         callback_context = self.human_memory_service.get_reengagement_context(state)
         callback_topic = callback_context.get("callback_hint") or callback_context.get("topic") or ""
 
-        system_prompt = self.prompt_builder.build_system_prompt(
+        system_prompt = self.conversation_engine.build_system_prompt(
             state=state,
             access_level=access_level,
             active_mode=active_mode,
             memory_context=memory_context,
-            extra_instruction=(
+            user_message="Сформулируй одно живое сообщение первой инициативы.",
+            base_instruction=(
                 (ai_profile["prompt_suffix"] + "\n\n") if ai_profile["prompt_suffix"] else ""
             )
             + self.human_memory_service.build_reengagement_prompt(
@@ -424,6 +429,8 @@ class AIService:
                 hours_silent=hours_silent,
                 active_mode=active_mode,
             ),
+            history=history,
+            is_reengagement=True,
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -456,9 +463,9 @@ class AIService:
             user_id=user_id,
             source="reengagement",
         )
-        response_text = self._apply_human_companion_guardrails(
+        response_text = self.conversation_engine.guard_response(
             response_text,
-            user_message="сформулируй одно живое сообщение первой инициативы",
+            user_message="Сформулируй одно живое сообщение первой инициативы.",
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -628,27 +635,9 @@ class AIService:
         user_message: str,
         history: list[dict[str, str]],
     ) -> str:
-        extra_parts = [str(base_instruction or "").strip()]
-
-        continuation_instruction = self._build_continuation_instruction(
-            user_message=user_message,
-            history=history,
-        )
-        if continuation_instruction:
-            extra_parts.append(continuation_instruction)
-
-        risky_topic_instruction = self._build_risky_topic_instruction(user_message)
-        if risky_topic_instruction:
-            extra_parts.append(risky_topic_instruction)
-
-        human_companion_instruction = self._build_human_companion_instruction(
-            user_message=user_message,
-            history=history,
-        )
-        if human_companion_instruction:
-            extra_parts.append(human_companion_instruction)
-
-        return "\n\n".join(part for part in extra_parts if part)
+        _ = user_message
+        _ = history
+        return str(base_instruction or "").strip()
 
     def _build_continuation_instruction(
         self,
