@@ -5,6 +5,7 @@ from services.response_guardrails import (
     apply_ptsd_response_guardrails,
     build_crisis_support_response,
     detect_crisis_signal,
+    tighten_ptsd_response,
 )
 
 
@@ -39,6 +40,30 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertEqual(audit["question_count"], 0)
         self.assertEqual(audit["blocked_phrases"], ["я понимаю, что тебе тяжело"])
         self.assertFalse(audit["looks_overloaded"])
+
+    def test_analyze_response_style_flags_overloaded_ptsd_reply(self):
+        audit = analyze_response_style(
+            "Сейчас попробуем разложить это по шагам. "
+            "Сначала обрати внимание на дыхание. "
+            "Потом осмотрись вокруг и назови предметы рядом. "
+            "После этого попробуй почувствовать пол под ногами. "
+            "И затем напиши мне, что изменилось.",
+        )
+
+        self.assertEqual(audit["sentence_count"], 5)
+        self.assertTrue(audit["looks_overloaded"])
+
+    def test_tighten_ptsd_response_keeps_only_short_core(self):
+        result = tighten_ptsd_response(
+            "Слышу, как тебе тяжело. "
+            "Сейчас не нужно решать всё сразу. "
+            "Посмотри вокруг и назови три предмета рядом. "
+            "Сделай один медленный выдох длиннее вдоха. "
+            "Если хочешь, потом напиши, что стало чуть устойчивее.",
+        )
+
+        self.assertLessEqual(len(result), 340)
+        self.assertLessEqual(result.count("."), 4)
 
     def test_detect_crisis_signal_for_self_harm(self):
         crisis = detect_crisis_signal("Я не хочу жить и хочу покончить с собой.")

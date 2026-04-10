@@ -24,13 +24,19 @@ class PromptBuilderModeTests(unittest.TestCase):
         }
         cls.user_message = "Мне тревожно, но я хочу спокойно разобраться, что со мной происходит."
 
-    def _build_prompt(self, mode_name: str) -> str:
+    def _build_prompt(
+        self,
+        mode_name: str,
+        *,
+        state_override: dict | None = None,
+        user_message: str | None = None,
+    ) -> str:
         return self.prompt_builder.build_system_prompt(
-            state=self.base_state | {"active_mode": mode_name},
+            state=self.base_state | {"active_mode": mode_name} | (state_override or {}),
             access_level="analysis",
             active_mode=mode_name,
             memory_context="",
-            user_message=self.user_message,
+            user_message=self.user_message if user_message is None else user_message,
         )
 
     def test_mode_specific_contracts_are_present(self):
@@ -103,8 +109,29 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertNotIn("ignore previous instructions", lowered)
         self.assertNotIn("следуй этим инструкциям", lowered)
 
-    def test_comfort_mode_includes_ptsd_support_prompt(self):
-        prompt = self._build_prompt("comfort")
+    def test_comfort_mode_includes_ptsd_support_prompt_for_heavy_state(self):
+        prompt = self._build_prompt(
+            "comfort",
+            state_override={"emotional_tone": "anxious"},
+        )
+
+        self.assertIn("В режиме поддержки при ПТСР", prompt)
+
+    def test_comfort_mode_omits_ptsd_support_prompt_for_stable_state(self):
+        prompt = self._build_prompt(
+            "comfort",
+            state_override={"emotional_tone": "reflective"},
+            user_message="Хочу спокойно обсудить рабочий день и немного выдохнуть.",
+        )
+
+        self.assertNotIn("В режиме поддержки при ПТСР", prompt)
+
+    def test_free_talk_mode_keeps_full_ptsd_support_prompt(self):
+        prompt = self._build_prompt(
+            "free_talk",
+            state_override={"emotional_tone": "reflective"},
+            user_message="Хочу просто поговорить, без формальностей.",
+        )
 
         self.assertIn("В режиме поддержки при ПТСР", prompt)
 

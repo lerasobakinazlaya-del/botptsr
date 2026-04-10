@@ -13,6 +13,10 @@ class FakeClient:
         return self.text, 42
 
 
+class FakeLongReplyClient(FakeClient):
+    pass
+
+
 class FakeTruncatingClient:
     def __init__(self):
         self.model = "gpt-4o-mini"
@@ -94,6 +98,15 @@ class FakePromptBuilder:
         return "system prompt"
 
 
+class RecordingPromptBuilder(FakePromptBuilder):
+    def __init__(self):
+        self.calls = []
+
+    def build_system_prompt(self, **kwargs):
+        self.calls.append(dict(kwargs))
+        return "system prompt"
+
+
 class FakeAccessEngine:
     def update_access_level(self, state):
         return "analysis"
@@ -136,6 +149,48 @@ class FakeSettingsService:
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_generate_response_clamps_overloaded_ptsd_reply(self):
+        prompt_builder = RecordingPromptBuilder()
+        service = AIService(
+            client=FakeLongReplyClient(
+                "Я понимаю, что тебе тяжело. Твои чувства валидны. "
+                "Сейчас попробуем разложить это на несколько частей. "
+                "Сначала обрати внимание на дыхание. "
+                "Потом осмотрись вокруг и назови пять предметов рядом. "
+                "После этого прислушайся к телу и попробуй расслабить плечи. "
+                "А затем напиши мне подробно, что происходит внутри? Чем помочь дальше?"
+            ),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=prompt_builder,
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Мне очень тревожно и трудно собраться.",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "anxious",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        self.assertEqual(prompt_builder.calls[0]["active_mode"], "free_talk")
+        self.assertIn("слышу, как тебе тяжело", result.response.lower())
+        self.assertIn("твоя реакция понятна", result.response.lower())
+        self.assertLessEqual(result.response.count("?"), 1)
+        self.assertLessEqual(len(result.response), 340)
+        self.assertEqual(result.new_state["last_assistant_source"], "reply")
+
     async def test_generate_reengagement_applies_response_guardrails(self):
         service = AIService(
             client=FakeClient(

@@ -4,6 +4,23 @@ from services.prompt_safety import sanitize_untrusted_context
 
 
 class PromptBuilder:
+    PTSD_ALWAYS_ON_MODES = {"free_talk", "ptsd"}
+    PTSD_CONDITIONAL_MODES = {"comfort"}
+    PTSD_HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
+    PTSD_SIGNAL_HINTS = (
+        "птср",
+        "триггер",
+        "флэшбек",
+        "флешбек",
+        "паника",
+        "паническая атака",
+        "оцепен",
+        "диссоциа",
+        "кошмар",
+        "не могу уснуть",
+        "не сплю",
+    )
+
     def __init__(self, settings_service):
         self.settings_service = settings_service
 
@@ -63,7 +80,11 @@ class PromptBuilder:
                 f"{templates['memory_intro']}\n{self._build_untrusted_memory_block(safe_memory_context)}"
             )
 
-        if active_mode in {"comfort", "free_talk", "ptsd"} and templates.get("ptsd_mode_prompt", "").strip():
+        if self._should_include_ptsd_prompt(
+            state=state,
+            active_mode=active_mode,
+            user_message=user_message,
+        ) and templates.get("ptsd_mode_prompt", "").strip():
             parts.append(templates["ptsd_mode_prompt"])
 
         parts.append(f"{templates['state_intro']}\n{state_summary}")
@@ -74,6 +95,25 @@ class PromptBuilder:
         parts.append(templates["final_instruction"])
 
         return "\n\n".join(part.strip() for part in parts if part and part.strip())
+
+    def _should_include_ptsd_prompt(
+        self,
+        *,
+        state: dict,
+        active_mode: str,
+        user_message: str,
+    ) -> bool:
+        if active_mode in self.PTSD_ALWAYS_ON_MODES:
+            return True
+        if active_mode not in self.PTSD_CONDITIONAL_MODES:
+            return False
+
+        emotional_tone = str((state or {}).get("emotional_tone") or "neutral")
+        if emotional_tone in self.PTSD_HEAVY_TONES:
+            return True
+
+        lowered = " ".join(str(user_message or "").lower().split())
+        return any(hint in lowered for hint in self.PTSD_SIGNAL_HINTS)
 
     def _build_untrusted_memory_block(self, memory_context: str) -> str:
         return (

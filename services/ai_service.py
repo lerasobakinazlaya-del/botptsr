@@ -7,9 +7,11 @@ from typing import Any, Dict, List
 from services.ai_profile_service import resolve_ai_profile
 from services.prompt_safety import redact_prompt_for_log
 from services.response_guardrails import (
+    analyze_response_style,
     apply_ptsd_response_guardrails,
     build_crisis_support_response,
     detect_crisis_signal,
+    tighten_ptsd_response,
 )
 
 
@@ -339,12 +341,14 @@ class AIService:
             response_text = self.EMPTY_RESPONSE_FALLBACK
 
         chat_settings = runtime_settings.get("chat", {})
-        response_text = apply_ptsd_response_guardrails(
+        response_text = self._apply_ptsd_response_contract(
             response_text,
             active_mode=active_mode,
             emotional_tone=str(new_state.get("emotional_tone") or "neutral"),
             enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
             blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+            user_id=user_id,
+            source="reply",
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -433,12 +437,14 @@ class AIService:
         if not response_text.strip():
             response_text = self.EMPTY_RESPONSE_FALLBACK
         chat_settings = runtime_settings.get("chat", {})
-        response_text = apply_ptsd_response_guardrails(
+        response_text = self._apply_ptsd_response_contract(
             response_text,
             active_mode=active_mode,
             emotional_tone=str(state.get("emotional_tone") or "neutral"),
             enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
             blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+            user_id=user_id,
+            source="reengagement",
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -600,6 +606,56 @@ class AIService:
             self.human_memory_service.build_prompt_context(state),
         ]
         return "\n".join(part.strip() for part in parts if part and part.strip())
+
+    def _apply_ptsd_response_contract(
+        self,
+        text: str,
+        *,
+        active_mode: str,
+        emotional_tone: str,
+        enabled: bool,
+        blocked_phrases: list[str],
+        user_id: int,
+        source: str,
+    ) -> str:
+        response_text = apply_ptsd_response_guardrails(
+            text,
+            active_mode=active_mode,
+            emotional_tone=emotional_tone,
+            enabled=enabled,
+            blocked_phrases=blocked_phrases,
+        )
+        if not enabled:
+            return response_text
+        if active_mode not in {"free_talk", "ptsd", "comfort"}:
+            return response_text
+        if emotional_tone not in {"overwhelmed", "anxious", "guarded"}:
+            return response_text
+
+        style_audit = analyze_response_style(
+            response_text,
+            blocked_phrases=blocked_phrases,
+        )
+        if not style_audit["looks_overloaded"]:
+            return response_text
+
+        logger.info(
+            "[AI PTSD CLAMP] user_id=%s source=%s mode=%s tone=%s length=%s sentences=%s",
+            user_id,
+            source,
+            active_mode,
+            emotional_tone,
+            style_audit["length"],
+            style_audit.get("sentence_count", 0),
+        )
+        tightened = tighten_ptsd_response(response_text)
+        return apply_ptsd_response_guardrails(
+            tightened,
+            active_mode=active_mode,
+            emotional_tone=emotional_tone,
+            enabled=enabled,
+            blocked_phrases=blocked_phrases,
+        )
 
     def _resolve_effective_mode(
         self,
