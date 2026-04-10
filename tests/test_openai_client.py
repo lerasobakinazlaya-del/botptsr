@@ -154,3 +154,51 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(text, "partial")
         self.assertEqual(tokens, 42)
         self.assertEqual(finish_reason, "length")
+
+    async def test_generate_retries_with_default_temperature_when_model_rejects_custom_value(self):
+        client = OpenAIClient(api_key="test-key")
+        fake_client = FakeAsyncOpenAI(
+            [
+                make_bad_request(
+                    "Unsupported value: 'temperature' does not support 0.2 with this model. Only the default (1) value is supported."
+                ),
+                FakeResponse("ok"),
+            ]
+        )
+        client.client = fake_client
+
+        text, tokens = await client.generate(
+            messages=[{"role": "user", "content": "hi"}],
+            temperature=0.2,
+        )
+
+        self.assertEqual(text, "ok")
+        self.assertEqual(tokens, 42)
+        self.assertEqual(fake_client.chat.completions.payloads[0]["temperature"], 0.2)
+        self.assertEqual(fake_client.chat.completions.payloads[1]["temperature"], 1)
+
+    async def test_generate_retries_with_default_sampling_penalties_when_model_rejects_them(self):
+        client = OpenAIClient(api_key="test-key")
+        fake_client = FakeAsyncOpenAI(
+            [
+                make_bad_request(
+                    "Unsupported value: 'frequency_penalty' with this model. Only the default value is supported."
+                ),
+                make_bad_request(
+                    "Unsupported value: 'presence_penalty' with this model. Only the default value is supported."
+                ),
+                FakeResponse("ok"),
+            ]
+        )
+        client.client = fake_client
+
+        text, tokens = await client.generate(
+            messages=[{"role": "user", "content": "hi"}],
+            frequency_penalty=0.2,
+            presence_penalty=0.1,
+        )
+
+        self.assertEqual(text, "ok")
+        self.assertEqual(tokens, 42)
+        self.assertEqual(fake_client.chat.completions.payloads[1]["frequency_penalty"], 0.0)
+        self.assertEqual(fake_client.chat.completions.payloads[2]["presence_penalty"], 0.0)

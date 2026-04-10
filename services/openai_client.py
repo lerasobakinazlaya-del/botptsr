@@ -183,6 +183,33 @@ class OpenAIClient:
         error_text = str(exc).lower()
         changed = False
 
+        if "temperature" in error_text:
+            changed = self._relax_temperature(payload, error_text=error_text) or changed
+
+        if "top_p" in error_text:
+            changed = self._relax_numeric_option(
+                payload,
+                key="top_p",
+                fallback=1.0,
+                error_text=error_text,
+            ) or changed
+
+        if "frequency_penalty" in error_text:
+            changed = self._relax_numeric_option(
+                payload,
+                key="frequency_penalty",
+                fallback=0.0,
+                error_text=error_text,
+            ) or changed
+
+        if "presence_penalty" in error_text:
+            changed = self._relax_numeric_option(
+                payload,
+                key="presence_penalty",
+                fallback=0.0,
+                error_text=error_text,
+            ) or changed
+
         if "verbosity" in error_text:
             changed = self._relax_named_option(
                 payload,
@@ -203,6 +230,44 @@ class OpenAIClient:
                 str(exc),
             )
         return changed
+
+    def _relax_temperature(
+        self,
+        payload: Dict[str, Any],
+        *,
+        error_text: str,
+    ) -> bool:
+        if "temperature" not in payload:
+            return False
+
+        if "default (1)" in error_text or "default value (1)" in error_text:
+            if payload.get("temperature") != 1:
+                payload["temperature"] = 1
+                return True
+            return False
+
+        payload.pop("temperature", None)
+        return True
+
+    def _relax_numeric_option(
+        self,
+        payload: Dict[str, Any],
+        *,
+        key: str,
+        fallback: float,
+        error_text: str,
+    ) -> bool:
+        if key not in payload:
+            return False
+
+        if "default" in error_text:
+            if payload.get(key) != fallback:
+                payload[key] = fallback
+                return True
+            return False
+
+        payload.pop(key, None)
+        return True
 
     def _relax_named_option(
         self,
