@@ -76,8 +76,6 @@ class FakeSettingsService:
                 "reengagement_idle_hours": 24,
                 "reengagement_recent_window_days": 14,
                 "reengagement_batch_size": 10,
-            },
-            "proactive": {
                 "quiet_hours_enabled": quiet_hours_enabled,
                 "quiet_hours_start": 0,
                 "quiet_hours_end": 8,
@@ -114,6 +112,14 @@ class FakeDB:
         return FakeTransaction()
 
 
+class FakeProactiveRepository:
+    def __init__(self):
+        self.events = []
+
+    async def log_event(self, **kwargs):
+        self.events.append(kwargs)
+
+
 class FixedDateTime:
     @classmethod
     def now(cls, tz=None):
@@ -136,6 +142,7 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
                     "updated_at": None,
                 }
             ),
+            proactive_repository=FakeProactiveRepository(),
             user_service=FakeUserService(),
             settings_service=FakeSettingsService(quiet_hours_enabled=quiet_hours_enabled),
             db=FakeDB(),
@@ -193,7 +200,7 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
 
     def test_quiet_hours_respects_timezone(self):
         service = self._build_service(quiet_hours_enabled=True)
-        settings = service.settings_service.get_runtime_settings()["proactive"]
+        settings = service.settings_service.get_runtime_settings()["engagement"]
 
         from unittest.mock import patch
 
@@ -220,6 +227,18 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(service.ai_service.calls, [])
         self.assertEqual(service._bot.messages, [])
+
+    async def test_process_candidate_logs_sent_event(self):
+        service = self._build_service()
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(len(service.proactive_repository.events), 1)
+        self.assertEqual(service.proactive_repository.events[0]["trigger_kind"], "reengagement")
+        self.assertEqual(service.proactive_repository.events[0]["status"], "sent")
 
     async def test_process_candidate_skips_when_emotional_tone_is_heavy(self):
         service = self._build_service()

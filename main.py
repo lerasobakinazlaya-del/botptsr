@@ -33,18 +33,14 @@ async def lifespan(container: Container, bot: Bot):
 
     logging.info("Starting AI workers...")
     await container.ai_service.start()
-    logging.info("Starting proactive messaging...")
-    await container.proactive_message_service.start(bot)
-    logging.info("Starting reengagement worker...")
+    logging.info("Starting initiative worker...")
     await container.reengagement_service.start(bot)
 
     try:
         yield
     finally:
-        logging.info("Stopping reengagement worker...")
+        logging.info("Stopping initiative worker...")
         await container.reengagement_service.stop()
-        logging.info("Stopping proactive messaging...")
-        await container.proactive_message_service.close()
 
         logging.info("Stopping AI workers...")
         await container.ai_service.close()

@@ -77,7 +77,7 @@
     "write_prompt_message": "Я рядом. Напиши, что у тебя на уме."
   },
   "proactive": {
-    "enabled": true,
+    "enabled": false,
     "scan_interval_seconds": 180,
     "min_inactive_hours": 12,
     "max_inactive_days": 60,
@@ -220,7 +220,11 @@
     "reengagement_min_hours_between": 72,
     "reengagement_recent_window_days": 30,
     "reengagement_poll_seconds": 300,
-    "reengagement_batch_size": 5
+    "reengagement_batch_size": 5,
+    "quiet_hours_enabled": true,
+    "quiet_hours_start": 0,
+    "quiet_hours_end": 8,
+    "timezone": "Europe/Moscow"
   },
   "referral": {
     "enabled": true,

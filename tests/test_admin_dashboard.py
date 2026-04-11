@@ -24,6 +24,15 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("modeModels[mode]={model:String(i.value||'').trim()}", source)
         self.assertIn("await api('/api/settings/runtime',{method:'PUT',body:JSON.stringify({ai:{mode_overrides:p.modeModels}})})", source)
 
+    def test_runtime_page_uses_single_initiative_settings_block(self):
+        source = Path("admin_dashboard.py").read_text(encoding="utf-8")
+
+        self.assertIn("initiative_enabled", source)
+        self.assertIn("initiative_idle_hours", source)
+        self.assertIn("initiative_timezone", source)
+        self.assertIn("engagement:{reengagement_enabled:$('#initiative_enabled').checked", source)
+        self.assertNotIn("engagement_reengagement_enabled", source)
+
     def test_state_summary_formats_memory_objects_instead_of_object_object(self):
         source = Path("admin_dashboard.py").read_text(encoding="utf-8")
 

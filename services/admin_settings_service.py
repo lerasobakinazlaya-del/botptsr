@@ -253,6 +253,10 @@ class AdminSettingsService:
             "reengagement_recent_window_days": 30,
             "reengagement_poll_seconds": 300,
             "reengagement_batch_size": 5,
+            "quiet_hours_enabled": True,
+            "quiet_hours_start": 0,
+            "quiet_hours_end": 8,
+            "timezone": "Europe/Moscow",
         },
         "referral": {
             "enabled": True,
@@ -581,6 +585,12 @@ class AdminSettingsService:
     def _migrate_runtime_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, dict):
             return deepcopy(self.DEFAULT_RUNTIME_SETTINGS)
+        if isinstance(payload.get("proactive"), dict):
+            proactive = payload["proactive"]
+            engagement = payload.setdefault("engagement", {})
+            for key in ("quiet_hours_enabled", "quiet_hours_start", "quiet_hours_end", "timezone"):
+                if engagement.get(key) in (None, "") and proactive.get(key) not in (None, ""):
+                    engagement[key] = proactive[key]
         if any(
             key in payload
             for key in (
@@ -780,6 +790,10 @@ class AdminSettingsService:
         engagement["reengagement_recent_window_days"] = max(1, int(engagement.get("reengagement_recent_window_days", 30)))
         engagement["reengagement_poll_seconds"] = max(30, int(engagement.get("reengagement_poll_seconds", 300)))
         engagement["reengagement_batch_size"] = max(1, int(engagement.get("reengagement_batch_size", 5)))
+        engagement["quiet_hours_enabled"] = bool(engagement.get("quiet_hours_enabled", True))
+        engagement["quiet_hours_start"] = max(0, min(23, int(engagement.get("quiet_hours_start", 0))))
+        engagement["quiet_hours_end"] = max(0, min(23, int(engagement.get("quiet_hours_end", 8))))
+        engagement["timezone"] = str(engagement.get("timezone") or "Europe/Moscow").strip() or "Europe/Moscow"
 
         referral = current["referral"]
         referral["enabled"] = bool(referral["enabled"])

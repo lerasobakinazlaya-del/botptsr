@@ -30,6 +30,7 @@ class ReengagementService:
         message_repository,
         state_repository,
         user_preference_repository,
+        proactive_repository,
         user_service,
         settings_service,
         db,
@@ -38,6 +39,7 @@ class ReengagementService:
         self.message_repository = message_repository
         self.state_repository = state_repository
         self.user_preference_repository = user_preference_repository
+        self.proactive_repository = proactive_repository
         self.user_service = user_service
         self.settings_service = settings_service
         self.db = db
@@ -100,7 +102,7 @@ class ReengagementService:
             return
 
         runtime_settings = self.settings_service.get_runtime_settings()
-        proactive_settings = runtime_settings["proactive"]
+        engagement_settings = runtime_settings["engagement"]
         ai_settings = runtime_settings["ai"]
         state = await self.state_repository.get(user_id)
         if str(state.get("emotional_tone") or "").strip() in self.BLOCKED_EMOTIONAL_TONES:
@@ -114,7 +116,7 @@ class ReengagementService:
             logger.info("[REENGAGE] Skip user_id=%s reason=opted_out", user_id)
             return
         if self._is_in_quiet_hours(
-            proactive_settings,
+            engagement_settings,
             timezone_name=str(proactive_preferences.get("timezone") or "").strip() or None,
         ):
             logger.info("[REENGAGE] Skip user_id=%s reason=quiet_hours", user_id)
@@ -175,6 +177,12 @@ class ReengagementService:
                 )
         except Exception:
             logger.exception("Failed to send reengagement message to user %s", user_id)
+            await self._log_event(
+                user_id=user_id,
+                status="send_failed",
+                source_last_user_message_at=last_user_message_at,
+                error_text="telegram_send_failed",
+            )
             return
 
         try:
@@ -183,7 +191,19 @@ class ReengagementService:
                 await self.message_repository.save(user_id, "assistant", result.response, commit=False)
         except Exception:
             logger.exception("Failed to persist reengagement message for user %s", user_id)
+            await self._log_event(
+                user_id=user_id,
+                status="persist_failed",
+                source_last_user_message_at=last_user_message_at,
+                error_text="db_persist_failed",
+            )
             return
+
+        await self._log_event(
+            user_id=user_id,
+            status="sent",
+            source_last_user_message_at=last_user_message_at,
+        )
 
         logger.info("[REENGAGE] sent proactive message to user_id=%s", user_id)
 
@@ -224,3 +244,22 @@ class ReengagementService:
         except ValueError:
             return None
         return parsed.replace(tzinfo=timezone.utc).isoformat()
+
+    async def _log_event(
+        self,
+        *,
+        user_id: int,
+        status: str,
+        source_last_user_message_at: str | None,
+        error_text: str | None = None,
+    ) -> None:
+        try:
+            await self.proactive_repository.log_event(
+                user_id=user_id,
+                trigger_kind="reengagement",
+                status=status,
+                source_last_user_message_at=source_last_user_message_at,
+                error_text=error_text,
+            )
+        except Exception:
+            logger.exception("Failed to log reengagement event for user %s", user_id)
