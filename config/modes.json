@@ -44,13 +44,13 @@
     "allow_italic": false
   },
   "night": {
-    "warmth": 6,
-    "flirt": 9,
-    "depth": 5,
-    "structure": 1,
-    "dominance": 6,
+    "warmth": 5,
+    "flirt": 7,
+    "depth": 6,
+    "structure": 5,
+    "dominance": 8,
     "initiative": 6,
-    "emoji_level": 1,
+    "emoji_level": 0,
     "allow_bold": false,
     "allow_italic": false
   },
@@ -66,12 +66,12 @@
     "allow_italic": false
   },
   "dominant": {
-    "warmth": 3,
-    "flirt": 3,
-    "depth": 4,
-    "structure": 8,
-    "dominance": 9,
-    "initiative": 7,
+    "warmth": 5,
+    "flirt": 7,
+    "depth": 6,
+    "structure": 5,
+    "dominance": 8,
+    "initiative": 6,
     "emoji_level": 0,
     "allow_bold": false,
     "allow_italic": false

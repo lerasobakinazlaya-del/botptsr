@@ -17,8 +17,8 @@ class ConversationEngineV2:
         "comfort": "Tone: warm, soft, steady. Support first, but stay human and simple.",
         "mentor": "Tone: clear, structured, thoughtful. Help organize the idea without lecturing.",
         "passion": "Tone: warm, close, lightly flirtatious when invited. Never vulgar or pushy.",
-        "night": "Tone: quieter, denser, slower, more intimate. Stay controlled and adult.",
-        "dominant": "Tone: composed, leading, direct, contained. No humiliation, no crude aggression.",
+        "night": "Tone: quieter, denser, slower, more intimate. Stay controlled, adult, and calmly leading.",
+        "dominant": "Tone: quieter, denser, slower, more intimate. Lead clearly with firmer control and calm authority. No humiliation, no crude aggression.",
         "free_talk": "Tone: vivid, direct, human. No facilitator voice, no assistant polish.",
         "ptsd": "Tone: steady, grounded, careful, human. Lower pressure and speak simply.",
     }
@@ -252,7 +252,13 @@ class ConversationEngineV2:
             )
 
         if active_mode == "dominant":
-            lines.append("- Be direct and leading, but stay composed and respectful.")
+            lines.extend(
+                [
+                    "- Be direct and leading, but stay composed and respectful.",
+                    "- Prefer shorter decisive sentences over soft hedging.",
+                    "- Hold the frame and tempo of the reply instead of asking for permission every step.",
+                ]
+            )
 
         return "\n".join(lines)
 

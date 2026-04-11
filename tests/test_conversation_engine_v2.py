@@ -25,6 +25,19 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertIn("Give ready-to-send lines or a ready-to-say script.", prompt)
         self.assertIn("Do not give 'themes for discussion'", prompt)
 
+    def test_dominant_mode_adds_firmer_direction_rules(self):
+        prompt = self.engine.build_system_prompt(
+            state={"active_mode": "dominant", "emotional_tone": "neutral"},
+            access_level="analysis",
+            active_mode="dominant",
+            user_message="Скажи, как лучше вести разговор.",
+            history=[],
+        )
+
+        self.assertIn("firmer control and calm authority", prompt)
+        self.assertIn("Prefer shorter decisive sentences over soft hedging.", prompt)
+        self.assertIn("Hold the frame and tempo of the reply", prompt)
+
     def test_continuation_request_uses_next_list_number_for_chat_message_objects(self):
         prompt = self.engine.build_system_prompt(
             state={"active_mode": "free_talk", "emotional_tone": "neutral"},

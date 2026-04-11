@@ -77,6 +77,7 @@ class PromptBuilderModeTests(unittest.TestCase):
 
         mentor_profile = resolve_ai_profile(ai_settings, "mentor")
         free_talk_profile = resolve_ai_profile(ai_settings, "free_talk")
+        night_profile = resolve_ai_profile(ai_settings, "night")
         dominant_profile = resolve_ai_profile(ai_settings, "dominant")
 
         self.assertEqual(mentor_profile["temperature"], 0.68)
@@ -87,8 +88,13 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertEqual(free_talk_profile["max_completion_tokens"], 420)
         self.assertIn("живой взрослый человек", free_talk_profile["prompt_suffix"])
 
-        self.assertEqual(dominant_profile["temperature"], 0.74)
-        self.assertEqual(dominant_profile["max_completion_tokens"], 260)
+        self.assertEqual(night_profile["model"], "gpt-4o-mini")
+        self.assertEqual(night_profile["temperature"], 0.82)
+        self.assertEqual(night_profile["max_completion_tokens"], 240)
+
+        self.assertEqual(dominant_profile["model"], "gpt-4o")
+        self.assertEqual(dominant_profile["temperature"], 0.82)
+        self.assertEqual(dominant_profile["max_completion_tokens"], 240)
 
     def test_memory_context_is_sanitized_and_marked_untrusted(self):
         prompt = self.prompt_builder.build_system_prompt(

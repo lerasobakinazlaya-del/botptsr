@@ -17,6 +17,20 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("container.ai_service.conversation_engine.build_system_prompt(", source)
         self.assertIn("ConversationEngineV2", source)
 
+    def test_modes_page_exposes_per_mode_gpt_model_and_saves_it(self):
+        source = Path("admin_dashboard.py").read_text(encoding="utf-8")
+
+        self.assertIn('data-mode-model="${k}"', source)
+        self.assertIn("modeModels[mode]={model:String(i.value||'').trim()}", source)
+        self.assertIn("await api('/api/settings/runtime',{method:'PUT',body:JSON.stringify({ai:{mode_overrides:p.modeModels}})})", source)
+
+    def test_state_summary_formats_memory_objects_instead_of_object_object(self):
+        source = Path("admin_dashboard.py").read_text(encoding="utf-8")
+
+        self.assertIn("function formatStateObject(value)", source)
+        self.assertIn("renderStateSection('Контекст памяти',memoryOverview)", source)
+        self.assertIn("renderStateSection('Сводка эпизода',Object.entries(episodicSummary))", source)
+
 
 if __name__ == "__main__":
     unittest.main()
