@@ -65,6 +65,22 @@ class FakeLongTermMemoryService:
         return ""
 
 
+class FakeMemoryProfileService:
+    def __init__(self, text=""):
+        self.text = text
+        self.calls = []
+
+    async def build_prompt_context(self, *, user_id, state, history=None):
+        self.calls.append(
+            {
+                "user_id": user_id,
+                "state": dict(state),
+                "history_len": len(history or []),
+            }
+        )
+        return self.text
+
+
 class FakeHumanMemoryService:
     def apply_user_message(self, state, user_message):
         return dict(state)
@@ -152,6 +168,30 @@ class FakeSettingsService:
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_build_memory_context_prefers_unified_memory_profile_service(self):
+        memory_profile_service = FakeMemoryProfileService("- Важные имена и связи: пользователя зовут Лена")
+        service = AIService(
+            client=FakeClient("ok"),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+            memory_profile_service=memory_profile_service,
+        )
+
+        context = await service._build_memory_context(
+            {"user_profile": {}, "memory_flags": {}, "relationship_state": {}},
+            user_id=1,
+            history=[],
+        )
+
+        self.assertEqual(context, "- Важные имена и связи: пользователя зовут Лена")
+        self.assertEqual(len(memory_profile_service.calls), 1)
+
     async def test_generate_response_strips_robotic_opener_and_generic_question(self):
         prompt_builder = RecordingPromptBuilder()
         service = AIService(

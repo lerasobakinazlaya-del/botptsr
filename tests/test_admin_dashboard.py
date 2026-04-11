@@ -11,6 +11,12 @@ class AdminDashboardTemplateTests(unittest.TestCase):
             source,
         )
 
+    def test_admin_test_prompt_uses_conversation_engine_v2(self):
+        source = Path("admin_dashboard.py").read_text(encoding="utf-8")
+
+        self.assertIn("container.ai_service.conversation_engine.build_system_prompt(", source)
+        self.assertIn("ConversationEngineV2", source)
+
 
 if __name__ == "__main__":
     unittest.main()

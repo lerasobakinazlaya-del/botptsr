@@ -22,7 +22,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 ## Что изменено в этой версии
 
 - добавлены per-mode AI-профили и runtime-настройка AI отдельно для каждого режима
-- режимы реально разведены по prompt-архитектуре, mode scales и runtime overrides, а не только по названиям
+- основной reply path переведен на компактный `ConversationEngineV2`: короткий character core, intent routing и меньше роботической meta-обвязки
 - добавлена humanized memory: профиль пользователя, relationship state и сбор живого memory context для промпта
 - добавлен фоновый re-engagement worker для инициативных сообщений после периода тишины
 - добавлен adaptive mode switch: бот может мягко менять effective mode по контексту общения
@@ -47,7 +47,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - добавлены PTSD response guardrails и regression-тесты на различимость режимов
 - добавлен жёсткий crisis bypass: при явных сигналах риска самоповреждения или вреда другим бот не идёт в обычную генерацию, а сразу возвращает безопасную кризисную инструкцию
 - добавлен safety clamp для близости: уровни `tension`, `personal_focus` и `rare_layer` больше не включаются без явного сигнала пользователя и не используются в тяжёлом эмоциональном состоянии
-- PTSD-ориентированный support prompt теперь применяется и в `comfort`, а не только в `free_talk`
+- PTSD-support в `free_talk`/`ptsd` остается постоянным, а в `comfort` включается только по тяжелому состоянию или PTSD-сигналам
 - adaptive mode больше не может тихо откатить явно выбранный пользователем `comfort` обратно в `base`
 - исправлены битые user-facing fallback и runtime default строки, чтобы на свежем окружении не было mojibake в лимитах и оплате
 - память для модели теперь проходит двухступенчатую защиту: instruction-like фрагменты отсекаются при сохранении и повторно санитизируются перед отправкой в OpenAI
@@ -86,7 +86,8 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `services/ai_service.py` объединяет short-term историю, старую память и human memory context перед генерацией ответа
 - `services/ai_service.py` теперь сначала проверяет crisis signals и только потом идёт в обычную модельную генерацию
 - `services/prompt_safety.py` санитизирует память, режет instruction-like payload и редактирует чувствительные части debug prompt-логов
-- `services/prompt_builder.py` собирает system prompt из personality, response style, engagement rules, mode signature, access rules и runtime-состояния
+- `services/conversation_engine_v2.py` собирает основной system prompt для reply/reengagement: короткий character core, intent contract и условный PTSD-layer
+- `services/prompt_builder.py` остается как legacy/template слой для админского prompt-редактора и совместимости со старыми настройками
 - `services/access_engine.py` теперь дополнительно зажимает интимную эскалацию без явного пользовательского сигнала и для proactive/re-engagement сообщений
 - `services/reengagement_service.py` фоном ищет пользователей с паузой в диалоге и отправляет инициативные сообщения
 - `services/mode_access_service.py` управляет preview-доступом к premium-режимам
@@ -349,7 +350,7 @@ CLI-запуск из PowerShell:
 - не включайте `AI_LOG_FULL_PROMPT` на проде
 - если временно включаете `AI_LOG_FULL_PROMPT` для отладки, помните: лог теперь безопаснее, но всё равно содержит служебный prompt-контекст и не предназначен для постоянного прод-режима
 - crisis-сообщения о немедленном вреде себе или другим теперь обрабатываются deterministic bypass без обычной генерации модели
-- PTSD-support prompt применяется и в `comfort`, и в `free_talk`
+- PTSD-support всегда активен в `free_talk`/`ptsd`, а в `comfort` включается только при тяжелом состоянии или PTSD-похожих сигналах
 - proactive и re-engagement сообщения теперь принудительно остаются в безопасном уровне близости и не должны первыми эскалировать intimacy
 - даже в режимах `passion`, `night` и `dominant` доступ к более близкой подаче дополнительно ограничен: без явного сигнала пользователя остаётся только безопасный уровень `analysis`
 - память для модели считается недоверенным источником: даже если в ней окажутся команды или псевдо-system инструкции, они должны отфильтровываться и не исполняться как промт

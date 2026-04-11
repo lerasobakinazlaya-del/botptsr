@@ -35,6 +35,7 @@ class UserStateRepository:
                 "interests": [],
                 "personality_traits": [],
                 "recurring_topics": [],
+                "identity_facts": [],
             },
             "memory_flags": {},
             "relationship_state": {

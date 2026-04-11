@@ -25,7 +25,7 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
         suggested = self.service.suggest_mode(
             {
                 "relationship_state": {
-                    "last_user_mood": "подъем или хорошее настроение",
+                    "last_user_mood": "подъём или хорошее настроение",
                     "last_user_topic": "отдых",
                 }
             },
@@ -68,6 +68,27 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
         )
 
         self.assertFalse(can_send)
+
+    def test_name_facts_are_saved_into_profile(self):
+        state = self.service.apply_user_message(
+            {},
+            "Меня зовут Лена, а мою жену зовут Оля.",
+        )
+
+        self.assertIn("пользователя зовут Лена", state["user_profile"]["identity_facts"])
+        self.assertIn("жену пользователя зовут Оля", state["user_profile"]["identity_facts"])
+
+    def test_prompt_context_mentions_saved_names(self):
+        state = self.service.apply_user_message(
+            {},
+            "Меня зовут Лена, а мою подругу зовут Маша.",
+        )
+
+        context = self.service.build_prompt_context(state)
+
+        self.assertIn("Важные имена и связи", context)
+        self.assertIn("пользователя зовут Лена", context)
+        self.assertIn("подругу пользователя зовут Маша", context)
 
 
 if __name__ == "__main__":

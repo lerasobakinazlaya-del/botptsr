@@ -792,12 +792,17 @@ async def api_invalidate_cache(_: str = Depends(require_auth)):
 async def api_test_prompt(request: Request, _: str = Depends(require_auth)):
     payload = await request.json()
     context = await _prepare_test_context(payload)
-    system_prompt = container.prompt_builder.build_system_prompt(
+    history = _parse_history(payload.get("history"))
+    runtime_settings = container.admin_settings_service.get_runtime_settings()
+    ai_profile = resolve_ai_profile(runtime_settings["ai"], context["active_mode"])
+    system_prompt = container.ai_service.conversation_engine.build_system_prompt(
         state=context["updated_state"],
         access_level=context["access_level"],
         active_mode=context["active_mode"],
         memory_context=context["memory_context"],
         user_message=context["user_message"],
+        base_instruction=ai_profile["prompt_suffix"],
+        history=history,
     )
     return {
         "prompt": system_prompt,
@@ -858,13 +863,14 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
 
     ai_settings = runtime_settings["ai"]
     ai_profile = resolve_ai_profile(ai_settings, context["active_mode"])
-    system_prompt = container.prompt_builder.build_system_prompt(
+    system_prompt = container.ai_service.conversation_engine.build_system_prompt(
         state=context["updated_state"],
         access_level=context["access_level"],
         active_mode=context["active_mode"],
         memory_context=context["memory_context"],
         user_message=context["user_message"],
-        extra_instruction=ai_profile["prompt_suffix"],
+        base_instruction=ai_profile["prompt_suffix"],
+        history=history,
     )
     messages = [{"role": "system", "content": system_prompt}] + history + [
         {"role": "user", "content": context["user_message"]},
@@ -881,12 +887,18 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
         verbosity=ai_settings["verbosity"] or None,
         user="admin-live-test",
     )
-    guarded_response = apply_ptsd_response_guardrails(
+    guarded_response = container.ai_service._apply_ptsd_response_contract(  # noqa: SLF001
         response_text,
         active_mode=context["active_mode"],
         emotional_tone=str(context["updated_state"].get("emotional_tone") or "neutral"),
         enabled=bool(chat_settings.get("response_guardrails_enabled", True)),
         blocked_phrases=list(chat_settings.get("response_guardrail_blocked_phrases") or []),
+        user_id=0,
+        source="admin-test-reply",
+    )
+    guarded_response = container.ai_service.conversation_engine.guard_response(
+        guarded_response,
+        user_message=context["user_message"],
     )
     return {
         "response": guarded_response,
@@ -1370,7 +1382,7 @@ def _dashboard_html() -> str:
         <div class="actions"><button class="primary" id="save-safety">Сохранить раздел</button></div>
       </section>
       <section class="page" data-view="prompts">
-        <div><h2>Промпты</h2><p class="muted">Редактор характера, рамок и правил доступа.</p></div>
+        <div><h2>Промпты</h2><p class="muted">Редактор legacy prompt templates и safety-блоков. Обычный reply path сейчас идет через ConversationEngineV2.</p></div>
         <div class="panel">
           <label>Личность<textarea id="prompt_personality_core"></textarea></label>
           <label>Безопасность<textarea id="prompt_safety_block"></textarea></label>

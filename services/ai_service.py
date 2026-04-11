@@ -63,6 +63,7 @@ class AIService:
         access_engine,
         settings_service,
         conversation_engine=None,
+        memory_profile_service=None,
         debug: bool = False,
         log_full_prompt: bool = False,
         debug_prompt_user_id: int | None = None,
@@ -78,6 +79,7 @@ class AIService:
         self.keyword_memory_service = keyword_memory_service
         self.long_term_memory_service = long_term_memory_service
         self.human_memory_service = human_memory_service
+        self.memory_profile_service = memory_profile_service
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
         self.settings_service = settings_service
@@ -622,9 +624,22 @@ class AIService:
         history: list[Any] | None = None,
     ) -> str:
         parts = [
-            await self.long_term_memory_service.build_prompt_context(user_id),
-            self.keyword_memory_service.build_prompt_context(state, history=history),
-            self.human_memory_service.build_prompt_context(state),
+            await self.memory_profile_service.build_prompt_context(
+                user_id=user_id,
+                state=state,
+                history=history,
+            )
+            if self.memory_profile_service is not None
+            else "",
+            await self.long_term_memory_service.build_prompt_context(user_id)
+            if self.memory_profile_service is None
+            else "",
+            self.keyword_memory_service.build_prompt_context(state, history=history)
+            if self.memory_profile_service is None
+            else "",
+            self.human_memory_service.build_prompt_context(state)
+            if self.memory_profile_service is None
+            else "",
         ]
         return "\n".join(part.strip() for part in parts if part and part.strip())
 

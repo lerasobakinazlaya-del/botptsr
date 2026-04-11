@@ -9,6 +9,7 @@ class KeywordMemoryService:
     MAX_ITEMS_PER_CATEGORY = 5
     MAX_PROFILE_ITEMS = 6
     PROMPT_ITEM_LIMITS = {
+        "identity_facts": 3,
         "traits": 2,
         "goals": 2,
         "interests": 3,
@@ -98,6 +99,7 @@ class KeywordMemoryService:
         traits = self._collect_profile_values(user_profile, "personality_traits")[: self.PROMPT_ITEM_LIMITS["traits"]]
         goals = self._collect_profile_values(user_profile, "goals")[: self.PROMPT_ITEM_LIMITS["goals"]]
         interests = self._collect_profile_values(user_profile, "interests")[: self.PROMPT_ITEM_LIMITS["interests"]]
+        identity_facts = self._collect_profile_values(user_profile, "identity_facts")[: self.PROMPT_ITEM_LIMITS["identity_facts"]]
         current_focus = self._collect_memory_values(memory_flags, "current_focus")[: self.PROMPT_ITEM_LIMITS["current_focus"]]
         open_loops = self._collect_memory_values(memory_flags, "open_loops")[: self.PROMPT_ITEM_LIMITS["open_loops"]]
         recent_topics = [
@@ -127,6 +129,8 @@ class KeywordMemoryService:
             lines.append("- Актуальные желания и цели: " + "; ".join(goals))
         if interests:
             lines.append("- Интересы и темы, которые оживляют: " + "; ".join(interests))
+        if identity_facts:
+            lines.append("- Важные имена и связи: " + "; ".join(identity_facts))
         if current_focus:
             lines.append("- Что сейчас особенно живо: " + "; ".join(current_focus))
         if open_loops:
@@ -356,6 +360,9 @@ class KeywordMemoryService:
             if value:
                 result.setdefault(category, []).append(value)
 
+        for value in self._extract_identity_facts(lowered):
+            result.setdefault("identity_facts", []).append(value)
+
         return result
 
     def _extract_episodic_memory(self, text: str) -> dict[str, list[str]]:
@@ -454,10 +461,51 @@ class KeywordMemoryService:
             "goals": list(profile.get("goals") or []),
             "interests": list(profile.get("interests") or []),
             "personality_traits": list(profile.get("personality_traits") or []),
+            "identity_facts": list(profile.get("identity_facts") or []),
         }
 
     def _collect_profile_values(self, profile: dict[str, Any], key: str) -> list[str]:
         return [value for value in list(profile.get(key) or []) if value][: self.MAX_PROFILE_ITEMS]
+
+    def _extract_identity_facts(self, lowered: str) -> list[str]:
+        results: list[str] = []
+
+        own_match = re.search(r"(?:меня зовут|моё имя|мое имя)\s+([а-яa-zё-]{2,40})", lowered, re.IGNORECASE)
+        if own_match:
+            name = self._clean_name(own_match.group(1))
+            if name:
+                results.append(f"пользователя зовут {name}")
+
+        relation_patterns = {
+            "жену пользователя зовут": r"(?:мою жену зовут)\s+([а-яa-zё-]{2,40})",
+            "девушку пользователя зовут": r"(?:мою девушку зовут)\s+([а-яa-zё-]{2,40})",
+            "парня пользователя зовут": r"(?:моего парня зовут)\s+([а-яa-zё-]{2,40})",
+            "мужа пользователя зовут": r"(?:моего мужа зовут)\s+([а-яa-zё-]{2,40})",
+            "подругу пользователя зовут": r"(?:мою подругу зовут)\s+([а-яa-zё-]{2,40})",
+            "друга пользователя зовут": r"(?:моего друга зовут)\s+([а-яa-zё-]{2,40})",
+        }
+        for label, pattern in relation_patterns.items():
+            match = re.search(pattern, lowered, re.IGNORECASE)
+            if not match:
+                continue
+            name = self._clean_name(match.group(1))
+            if name:
+                results.append(f"{label} {name}")
+
+        deduped: list[str] = []
+        for item in results:
+            if item not in deduped:
+                deduped.append(item)
+        return deduped[:3]
+
+    def _clean_name(self, value: str) -> str:
+        cleaned = sanitize_memory_value(value, max_chars=40)
+        if not cleaned:
+            return ""
+        cleaned = cleaned.strip(" ,.!?;:-")
+        if not re.fullmatch(r"[а-яa-zё-]{2,40}", cleaned, re.IGNORECASE):
+            return ""
+        return cleaned.capitalize()
 
     def _collect_memory_values(self, memory_flags: dict[str, Any], key: str) -> list[str]:
         items = list(memory_flags.get(key) or [])

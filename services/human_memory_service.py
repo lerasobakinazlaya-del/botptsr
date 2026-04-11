@@ -20,6 +20,17 @@ class HumanMemoryService:
     TRAIT_PATTERNS = [
         r"(?:я человек|я обычно|по характеру я)\s+([^.!?\n]+)",
     ]
+    NAME_PATTERNS = [
+        r"(?:меня зовут|моё имя|мое имя)\s+([а-яa-zё-]{2,40})",
+    ]
+    IMPORTANT_PERSON_PATTERNS = {
+        "жену пользователя зовут": r"(?:мою жену зовут)\s+([а-яa-zё-]{2,40})",
+        "девушку пользователя зовут": r"(?:мою девушку зовут)\s+([а-яa-zё-]{2,40})",
+        "парня пользователя зовут": r"(?:моего парня зовут)\s+([а-яa-zё-]{2,40})",
+        "мужа пользователя зовут": r"(?:моего мужа зовут)\s+([а-яa-zё-]{2,40})",
+        "подругу пользователя зовут": r"(?:мою подругу зовут)\s+([а-яa-zё-]{2,40})",
+        "друга пользователя зовут": r"(?:моего друга зовут)\s+([а-яa-zё-]{2,40})",
+    }
 
     TOPIC_KEYWORDS = {
         "работа и дела": ["работа", "проект", "задача", "клиент", "дедлайн", "учеб", "экзамен"],
@@ -66,6 +77,9 @@ class HumanMemoryService:
 
         for value in self._extract_patterns(lowered, self.TRAIT_PATTERNS):
             profile["personality_traits"] = self._remember(profile["personality_traits"], value)
+
+        for value in self._extract_name_facts(lowered):
+            profile["identity_facts"] = self._remember(profile["identity_facts"], value)
 
         detected_topics = self._detect_topics(lowered)
         for topic in detected_topics:
@@ -139,6 +153,8 @@ class HumanMemoryService:
             lines.append("- Черты пользователя: " + "; ".join(profile["personality_traits"]))
         if profile["recurring_topics"]:
             lines.append("- Повторяющиеся темы: " + "; ".join(profile["recurring_topics"]))
+        if profile["identity_facts"]:
+            lines.append("- Важные имена и связи: " + "; ".join(profile["identity_facts"]))
         if relationship["shared_threads"]:
             lines.append("- Нити прошлых разговоров: " + "; ".join(relationship["shared_threads"]))
         if relationship["callback_candidates"]:
@@ -271,6 +287,7 @@ class HumanMemoryService:
             "interests": list(profile.get("interests") or []),
             "personality_traits": list(profile.get("personality_traits") or []),
             "recurring_topics": list(profile.get("recurring_topics") or []),
+            "identity_facts": list(profile.get("identity_facts") or []),
         }
 
     def _normalize_relationship(self, raw: Any) -> dict[str, Any]:
@@ -396,6 +413,38 @@ class HumanMemoryService:
         updated = [item for item in (items or []) if item != normalized]
         updated.insert(0, normalized)
         return updated[: self.MAX_CALLBACK_CANDIDATES]
+
+    def _extract_name_facts(self, lowered: str) -> list[str]:
+        facts: list[str] = []
+
+        for value in self._extract_patterns(lowered, self.NAME_PATTERNS):
+            cleaned = self._clean_name(value)
+            if cleaned:
+                facts.append(f"пользователя зовут {cleaned}")
+
+        for relation, pattern in self.IMPORTANT_PERSON_PATTERNS.items():
+            match = re.search(pattern, lowered, re.IGNORECASE)
+            if not match:
+                continue
+            cleaned = self._clean_name(match.group(1))
+            if not cleaned:
+                continue
+            facts.append(f"{relation} {cleaned}")
+
+        deduped: list[str] = []
+        for fact in facts:
+            if fact not in deduped:
+                deduped.append(fact)
+        return deduped[:3]
+
+    def _clean_name(self, value: str) -> str:
+        cleaned = sanitize_memory_value(value, max_chars=40)
+        if not cleaned:
+            return ""
+        cleaned = cleaned.strip(" ,.!?;:-")
+        if not re.fullmatch(r"[а-яa-zё-]{2,40}", cleaned, re.IGNORECASE):
+            return ""
+        return cleaned.capitalize()
 
     def _contains_any(self, text: str, markers: list[str]) -> bool:
         return any(marker in text for marker in markers)

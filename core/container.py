@@ -23,6 +23,7 @@ from services.human_memory_service import HumanMemoryService
 from services.keyword_memory_service import KeywordMemoryService
 from services.long_term_memory_service import LongTermMemoryService
 from services.memory_engine import MemoryEngine
+from services.memory_profile_service import MemoryProfileService
 from services.mode_access_service import ModeAccessService
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
@@ -68,6 +69,10 @@ class Container:
             settings_service=self.admin_settings_service,
         )
         self.human_memory_service = HumanMemoryService()
+        self.memory_profile_service = MemoryProfileService(
+            long_term_memory_service=self.long_term_memory_service,
+            redis=self.redis,
+        )
         self.mode_access_service = ModeAccessService()
         self.prompt_builder = PromptBuilder(self.admin_settings_service)
         self.access_engine = AccessEngine(self.admin_settings_service)
@@ -83,6 +88,7 @@ class Container:
             keyword_memory_service=self.keyword_memory_service,
             long_term_memory_service=self.long_term_memory_service,
             human_memory_service=self.human_memory_service,
+            memory_profile_service=self.memory_profile_service,
             prompt_builder=self.prompt_builder,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
@@ -123,6 +129,7 @@ class Container:
             state_repository=self.state_repository,
             long_term_memory_service=self.long_term_memory_service,
             keyword_memory_service=self.keyword_memory_service,
+            memory_profile_service=self.memory_profile_service,
             prompt_builder=self.prompt_builder,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,

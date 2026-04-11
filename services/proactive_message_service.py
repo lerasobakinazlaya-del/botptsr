@@ -33,6 +33,7 @@ class ProactiveMessageService:
         access_engine,
         settings_service,
         user_service,
+        memory_profile_service=None,
     ):
         self.client = client
         self.message_repository = message_repository
@@ -41,6 +42,7 @@ class ProactiveMessageService:
         self.state_repository = state_repository
         self.long_term_memory_service = long_term_memory_service
         self.keyword_memory_service = keyword_memory_service
+        self.memory_profile_service = memory_profile_service
         self.prompt_builder = prompt_builder
         self.access_engine = access_engine
         self.settings_service = settings_service
@@ -241,13 +243,20 @@ class ProactiveMessageService:
             limit=settings["history_limit"],
         )
 
-        durable_memory = await self.long_term_memory_service.build_prompt_context(user_id)
-        state_memory = self.keyword_memory_service.build_prompt_context(state, history=history)
-        memory_context = "\n".join(
-            part.strip()
-            for part in (durable_memory, state_memory)
-            if part and part.strip()
-        )
+        if self.memory_profile_service is not None:
+            memory_context = await self.memory_profile_service.build_prompt_context(
+                user_id=user_id,
+                state=state,
+                history=history,
+            )
+        else:
+            durable_memory = await self.long_term_memory_service.build_prompt_context(user_id)
+            state_memory = self.keyword_memory_service.build_prompt_context(state, history=history)
+            memory_context = "\n".join(
+                part.strip()
+                for part in (durable_memory, state_memory)
+                if part and part.strip()
+            )
         safe_memory_context = sanitize_untrusted_context(memory_context)
         transcript = self._build_transcript(history)
 
