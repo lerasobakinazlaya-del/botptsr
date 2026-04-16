@@ -57,6 +57,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - debug-логирование системного промпта теперь редактирует чувствительные блоки памяти и state summary, даже если флаг включён в админке
 - добавлен product eval-набор на короткие первые сообщения, чтобы проверять живость, длину ответа и вариативность follow-up вопросов до выкладки
 - добавлен отдельный emotional hooks layer: библиотека хуков, выбор по стадии диалога, anti-repeat через `state["last_hook"]` и `ensure_open_loop` в reply path
+- reply-кнопки главного меню больше не попадают под throttle-защиту и не считаются flood при быстром нажатии
 
 ## Стек
 
@@ -147,21 +148,22 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 Отдельный regression-набор для SaaS-ядра:
 
 ```powershell
-.\venv\Scripts\python.exe -m pytest -q tests\test_conversation_product_eval.py tests\test_conversation_engine_v2.py tests\test_response_guardrails.py tests\test_ai_service.py tests\test_emotional_hooks.py
+.\venv\Scripts\python.exe -m pytest -q tests\test_conversation_product_eval.py tests\test_conversation_engine_v2.py tests\test_response_guardrails.py tests\test_ai_service.py tests\test_emotional_hooks.py tests\test_middlewares.py
 ```
 
 Что он проверяет:
 
 - короткие реплики не превращаются в мини-лекции
-- ответ остаётся компактным и заканчивается одним follow-up вопросом
+- ответ остаётся компактным и заканчивается либо одним follow-up вопросом, либо open-loop формулировкой
 - в ответах не остаются низкосигнальные фразы вроде “это зависит от контекста”
 - follow-up вопросы и заходы не схлопываются в 1-2 одинаковые формулы
 - emotional hooks не повторяются подряд и сохраняют open-loop ending без раздувания ответа
+- нажатия на reply-кнопки UI не триггерят throttle-предупреждение и не ломают первый сценарий входа
 
 Проверка того же набора на сервере:
 
 ```bash
-cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_product_eval.py tests/test_conversation_engine_v2.py tests/test_response_guardrails.py tests/test_ai_service.py tests/test_emotional_hooks.py
+cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_product_eval.py tests/test_conversation_engine_v2.py tests/test_response_guardrails.py tests/test_ai_service.py tests/test_emotional_hooks.py tests/test_middlewares.py
 ```
 
 Что важно по админке сейчас:

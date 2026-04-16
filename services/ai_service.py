@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
+from services.conversation_driver import (
+    apply_driver_guardrails,
+    build_followup,
+    detect_intent,
+)
 from services.conversation_engine_v2 import ConversationEngineV2
 from services.emotional_hooks import ensure_open_loop, inject_hook, select_hook
 from services.prompt_safety import redact_prompt_for_log
@@ -283,6 +288,10 @@ class AIService:
             active_mode=active_mode,
             user_message=user_message,
         )
+        detected_intent = self._detect_conversation_driver_intent(
+            user_message=user_message,
+            runtime_settings=runtime_settings,
+        )
         access_level = str(access_decision["level"])
         if bool(access_decision.get("clamped")):
             self._intimacy_clamp_count += 1
@@ -316,6 +325,9 @@ class AIService:
                 base_instruction=ai_profile["prompt_suffix"],
                 user_message=user_message,
                 history=history,
+                state=new_state,
+                runtime_settings=runtime_settings,
+                detected_intent=detected_intent,
             ),
             history=history,
             access_profile=access_decision.get("budget"),
@@ -372,6 +384,13 @@ class AIService:
             response_text,
             user_message=user_message,
         )
+        response_text = self._apply_conversation_driver_guardrails(
+            response_text,
+            user_message=user_message,
+            state=new_state,
+            runtime_settings=runtime_settings,
+            detected_intent=detected_intent,
+        )
         response_text, hook_used = self._apply_emotional_hook(
             response_text,
             state=new_state,
@@ -380,6 +399,8 @@ class AIService:
         )
         if hook_used:
             new_state["last_hook"] = hook_used
+        if detected_intent:
+            new_state["last_detected_intent"] = detected_intent
 
         new_state = self.human_memory_service.apply_assistant_message(
             new_state,
@@ -684,10 +705,29 @@ class AIService:
         base_instruction: str,
         user_message: str,
         history: list[dict[str, str]],
+        state: dict[str, Any],
+        runtime_settings: dict[str, Any],
+        detected_intent: str | None,
     ) -> str:
-        _ = user_message
-        _ = history
-        return str(base_instruction or "").strip()
+        parts = [
+            str(base_instruction or "").strip(),
+            self._build_continuation_instruction(
+                user_message=user_message,
+                history=history,
+            ),
+            self._build_risky_topic_instruction(user_message),
+            self._build_human_companion_instruction(
+                user_message=user_message,
+                history=history,
+            ),
+            self._build_conversation_driver_instruction(
+                user_message=user_message,
+                state=state,
+                runtime_settings=runtime_settings,
+                detected_intent=detected_intent,
+            ),
+        ]
+        return "\n\n".join(part for part in parts if part)
 
     def _build_continuation_instruction(
         self,
@@ -893,6 +933,69 @@ class AIService:
             return response_text, ""
 
         return ensure_open_loop(hooked_text), hook
+
+    def _build_conversation_driver_instruction(
+        self,
+        *,
+        user_message: str,
+        state: dict[str, Any],
+        runtime_settings: dict[str, Any],
+        detected_intent: str | None,
+    ) -> str:
+        if not self._conversation_driver_enabled(runtime_settings):
+            return ""
+
+        normalized_message = self._normalize(user_message)
+        if not normalized_message:
+            return ""
+
+        intent = detected_intent or detect_intent(user_message)
+        followup = build_followup(intent, state)
+        return (
+            "Conversation driver:\n"
+            f"- detected intent: {intent}\n"
+            "- Use the skeleton below as the backbone of the reply, but do not quote it verbatim.\n"
+            f"- skeleton: {followup}\n"
+            "- Shape the reply as: reflect the user's intent, ask one sharp emotional follow-up question, and split that question between 2-3 motives.\n"
+            "- Max 3 sentences.\n"
+            "- Do not use bullet lists or numbered lists unless the user explicitly asked for a list.\n"
+            "- Do not fully close the topic; keep the dialogue moving."
+        )
+
+    def _apply_conversation_driver_guardrails(
+        self,
+        text: str,
+        *,
+        user_message: str,
+        state: dict[str, Any],
+        runtime_settings: dict[str, Any],
+        detected_intent: str | None,
+    ) -> str:
+        if not self._conversation_driver_enabled(runtime_settings):
+            return text
+        return apply_driver_guardrails(
+            text,
+            user_message=user_message,
+            state=state,
+            intent=detected_intent,
+        )
+
+    def _detect_conversation_driver_intent(
+        self,
+        *,
+        user_message: str,
+        runtime_settings: dict[str, Any],
+    ) -> str | None:
+        if not self._conversation_driver_enabled(runtime_settings):
+            return None
+        normalized_message = self._normalize(user_message)
+        if not normalized_message:
+            return None
+        return detect_intent(user_message)
+
+    def _conversation_driver_enabled(self, runtime_settings: dict[str, Any]) -> bool:
+        engagement_settings = runtime_settings.get("engagement", {})
+        return bool(engagement_settings.get("adaptive_mode_enabled", True))
 
     def _should_apply_emotional_hook(
         self,

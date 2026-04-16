@@ -298,10 +298,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertEqual(
-            result.response,
-            "Лучше заранее договориться о стоп-сигнале и утре после.",
-        )
+        self.assertTrue(result.response)
+        self.assertIn("?", result.response)
 
     async def test_generate_response_adds_emotional_hook_for_conversational_turn(self):
         service = AIService(
@@ -340,6 +338,74 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             result.response.endswith("?") or "не вся картина" in result.response.lower()
         )
+
+    async def test_generate_response_injects_conversation_driver_into_prompt(self):
+        client = FakeClient("Тут явно есть сдвиг.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Меня к этому тянет",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("Conversation driver:", system_prompt)
+        self.assertIn("detected intent: desire", system_prompt)
+        self.assertIn("Max 3 sentences.", system_prompt)
+        self.assertEqual(result.new_state["last_detected_intent"], "desire")
+
+    async def test_generate_response_flattens_list_style_when_driver_is_active(self):
+        service = AIService(
+            client=FakeClient(
+                "1. item one.\n"
+                "2. item two."
+            ),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Меня это цепляет",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        self.assertNotIn("1.", result.response)
+        self.assertNotIn("2.", result.response)
+        self.assertIn("?", result.response)
 
     async def test_generate_response_adds_list_continuation_instruction(self):
         client = FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок.")
