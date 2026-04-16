@@ -303,6 +303,44 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             "Лучше заранее договориться о стоп-сигнале и утре после.",
         )
 
+    async def test_generate_response_adds_emotional_hook_for_conversational_turn(self):
+        service = AIService(
+            client=FakeClient("Я бы не торопился с этим."),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Как тебе такой ход?",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "conversation_phase": "warmup",
+                    "interaction_count": 4,
+                    "interest": 0.64,
+                    "attraction": 0.22,
+                    "control": 0.51,
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        self.assertNotEqual(result.response, "Я бы не торопился с этим.")
+        self.assertIn(result.new_state["last_hook"], result.response)
+        self.assertTrue(
+            result.response.endswith("?") or "не вся картина" in result.response.lower()
+        )
+
     async def test_generate_response_adds_list_continuation_instruction(self):
         client = FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок.")
         service = AIService(

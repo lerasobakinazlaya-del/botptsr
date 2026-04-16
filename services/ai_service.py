@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 from services.ai_profile_service import resolve_ai_profile
 from services.conversation_engine_v2 import ConversationEngineV2
+from services.emotional_hooks import ensure_open_loop, inject_hook, select_hook
 from services.prompt_safety import redact_prompt_for_log
 from services.response_guardrails import (
     analyze_response_style,
@@ -371,6 +372,14 @@ class AIService:
             response_text,
             user_message=user_message,
         )
+        response_text, hook_used = self._apply_emotional_hook(
+            response_text,
+            state=new_state,
+            user_message=user_message,
+            source="reply",
+        )
+        if hook_used:
+            new_state["last_hook"] = hook_used
 
         new_state = self.human_memory_service.apply_assistant_message(
             new_state,
@@ -481,12 +490,20 @@ class AIService:
             user_message="Сформулируй одно живое сообщение первой инициативы.",
             force_dialogue_pull=bool(reengagement_style.get("allow_question", True)),
         )
+        response_text, hook_used = self._apply_emotional_hook(
+            response_text,
+            state=state,
+            user_message="",
+            source="reengagement",
+        )
 
         new_state = self.human_memory_service.apply_assistant_message(
             state.copy(),
             response_text,
             source="reengagement",
         )
+        if hook_used:
+            new_state["last_hook"] = hook_used
         new_state = self.human_memory_service.mark_reengagement_callback(
             new_state,
             callback_topic,
@@ -846,6 +863,61 @@ class AIService:
             allow_follow_up_question=self._user_explicitly_invites_questions(lowered),
             user_message=user_message,
         )
+
+    def _apply_emotional_hook(
+        self,
+        text: str,
+        *,
+        state: dict[str, Any],
+        user_message: str,
+        source: str,
+    ) -> tuple[str, str]:
+        response_text = " ".join(str(text or "").split()).strip()
+        if not response_text:
+            return response_text, ""
+
+        if not self._should_apply_emotional_hook(
+            user_message=user_message,
+            state=state,
+            source=source,
+        ):
+            return response_text, ""
+
+        strategy = "reengagement" if source == "reengagement" else "auto"
+        hook = select_hook(state, strategy)
+        if not hook:
+            return response_text, ""
+
+        hooked_text = inject_hook(response_text, hook)
+        if hooked_text == response_text:
+            return response_text, ""
+
+        return ensure_open_loop(hooked_text), hook
+
+    def _should_apply_emotional_hook(
+        self,
+        *,
+        user_message: str,
+        state: dict[str, Any],
+        source: str,
+    ) -> bool:
+        if str(state.get("emotional_tone") or "neutral") in {"overwhelmed", "anxious", "guarded"}:
+            return False
+
+        normalized_message = self._normalize(user_message)
+        if source == "reengagement":
+            return True
+
+        if not normalized_message:
+            return False
+        if self._looks_like_continuation_request(normalized_message):
+            return False
+        if self._looks_like_scene_request(normalized_message):
+            return False
+        if self._looks_like_answer_first_request(normalized_message) and not self._looks_like_hook_turn(normalized_message):
+            return False
+
+        return self._looks_like_hook_turn(normalized_message) or len(normalized_message) <= 140
 
     def _looks_like_answer_first_request(self, text: str) -> bool:
         answer_hints = (
