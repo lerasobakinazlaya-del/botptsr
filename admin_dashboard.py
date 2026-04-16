@@ -913,6 +913,25 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
     }
 
 
+@app.post("/api/test/reengagement")
+async def api_test_reengagement(request: Request, _: str = Depends(require_auth)):
+    payload = await request.json()
+    history = _parse_history(payload.get("history"))
+    state = _parse_json_field(payload.get("state"), {})
+    user_id = int(payload.get("user_id") or 0)
+
+    result = await container.ai_service.generate_reengagement(
+        user_id=user_id,
+        history=history,
+        state=state,
+    )
+    return {
+        "response": result.response,
+        "tokens_used": result.tokens_used,
+        "updated_state": result.new_state,
+    }
+
+
 @app.get("/api/logs")
 async def api_logs(lines: int = 200, _: str = Depends(require_auth)):
     return container.admin_settings_service.get_logs(lines=lines)
@@ -927,50 +946,88 @@ def _dashboard_html() -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Админка бота</title>
   <style>
-    :root{--bg:#09131d;--bg2:#12263a;--panel:rgba(9,19,32,.86);--soft:rgba(255,255,255,.05);--text:#eef6ff;--muted:#9bb0c8;--accent:#85df96;--warn:#f7c971;--danger:#ff7b72;--border:rgba(255,255,255,.08);--content-max:1600px}
-    *{box-sizing:border-box}body{margin:0;color:var(--text);font-family:"Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(133,223,150,.12),transparent 26%),radial-gradient(circle at top right,rgba(247,201,113,.12),transparent 24%),linear-gradient(145deg,var(--bg),var(--bg2))}
-    .layout{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}.sidebar{padding:20px 14px;border-right:1px solid var(--border);background:rgba(5,12,20,.78);backdrop-filter:blur(10px)}.main{padding:20px;display:grid;gap:14px;min-width:0}.main>*{width:100%;max-width:var(--content-max);margin:0 auto}
-    .nav{display:grid;gap:8px;margin-top:18px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:12px;padding:10px 13px;cursor:pointer;font-weight:600}.nav button.active,.toolbar .primary,.actions .primary{background:linear-gradient(135deg,var(--accent),#59c9a8);color:#082112;border:0}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input,.toolbar select{flex:1 1 220px;min-width:0}.toolbar button{flex:0 0 auto}.page{display:none;gap:14px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:16px}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.users-layout{grid-template-columns:minmax(320px,420px) minmax(0,1fr)}.conversations-layout{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    :root{--bg:#08111b;--bg2:#13283c;--panel:rgba(9,19,32,.84);--soft:rgba(255,255,255,.05);--text:#eef6ff;--muted:#9bb0c8;--accent:#85df96;--accent-2:#59c9a8;--warn:#f7c971;--danger:#ff7b72;--border:rgba(255,255,255,.08);--shadow:0 18px 48px rgba(0,0,0,.24);--content-max:1600px}
+    *{box-sizing:border-box}body{margin:0;color:var(--text);font-family:"Trebuchet MS","Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(133,223,150,.12),transparent 26%),radial-gradient(circle at top right,rgba(247,201,113,.12),transparent 24%),linear-gradient(145deg,var(--bg),var(--bg2))}
+    .layout{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px 14px;border-right:1px solid var(--border);background:rgba(5,12,20,.8);backdrop-filter:blur(14px)}.sidebar-inner{position:sticky;top:18px;display:grid;gap:16px}.main{padding:20px;display:grid;gap:14px;min-width:0}.main>*{width:100%;max-width:var(--content-max);margin:0 auto}
+    .brand-card{padding:18px;border:1px solid var(--border);border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:var(--shadow)}.brand-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--warn);margin-bottom:10px}.brand-title{margin:0 0 10px;font-size:28px;line-height:1.05}.brand-copy{margin:0;color:var(--muted);line-height:1.5}
+    .nav{display:grid;gap:8px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:14px;padding:10px 13px;cursor:pointer;font-weight:600;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease}.nav button{text-align:left;width:100%}.nav button:hover,.toolbar button:hover,.actions button:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16)}.nav button.active,.toolbar .primary,.actions .primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#082112;border:0;box-shadow:0 10px 24px rgba(89,201,168,.24)}
+    .sidebar-panels{display:grid;gap:12px}.compact-panel{padding:14px 16px}.sidebar-meta{display:flex;flex-wrap:wrap;gap:8px}.sidebar-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--muted)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input,.toolbar select{flex:1 1 220px;min-width:0}.toolbar button{flex:0 0 auto}.top-toolbar{position:sticky;top:12px;z-index:3;padding:14px 16px;margin-bottom:0;border:1px solid var(--border);border-radius:20px;background:rgba(7,15,24,.86);backdrop-filter:blur(16px);box-shadow:var(--shadow)}
+    .hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:16px;align-items:stretch;padding:20px 22px;background:linear-gradient(160deg,rgba(133,223,150,.12),rgba(255,255,255,.02) 38%,rgba(247,201,113,.08));box-shadow:var(--shadow)}.hero-main{display:grid;gap:8px;align-content:start}.hero-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--warn)}.hero-title{margin:0;font-size:34px;line-height:1.04}.hero-subtitle{margin:0;max-width:74ch;line-height:1.5}.hero-actions{display:grid;gap:12px;align-content:start}.hero-meta-grid{display:grid;gap:12px}.hero-meta{padding:14px 16px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.04)}.hero-meta-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}.hero-meta-value{font-size:15px;line-height:1.45}
+    .page{display:none;gap:14px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.users-layout{grid-template-columns:minmax(320px,420px) minmax(0,1fr)}.conversations-layout{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
     h1,h2,h3,p{margin-top:0}.muted{color:var(--muted)}.stat-label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}.stat-value{font-size:30px;font-weight:700}
     label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:104px;resize:vertical}
     .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
-    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.preset-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.preset-bar button{border-radius:999px}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
     .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.overview-hero-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.overview-table table{min-width:0}.overview-details .panel{background:rgba(255,255,255,.02)}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
-    @media (max-width:1380px){.users-layout,.conversations-layout{grid-template-columns:1fr}}
-    @media (max-width:1180px){.layout{grid-template-columns:1fr}.cols,.two,.three{grid-template-columns:1fr}.main{padding:16px}.toolbar input,.toolbar select,.toolbar button{flex:1 1 100%}}
+    @media (max-width:1380px){.users-layout,.conversations-layout,.hero{grid-template-columns:1fr}}
+    @media (max-width:1180px){.layout{grid-template-columns:1fr}.sidebar-inner{position:static}.cols,.two,.three{grid-template-columns:1fr}.main{padding:16px}.toolbar input,.toolbar select,.toolbar button{flex:1 1 100%}}
   </style>
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <h1>Пульт управления</h1>
-      <p class="muted">Полная настройка бота, промптов, режимов, оплаты и тестов.</p>
-      <div class="nav">
-        <button class="active" data-view="overview">Обзор</button>
-        <button data-view="users">Пользователи</button>
-        <button data-view="conversations">Диалоги</button>
-        <button data-view="runtime">ИИ и интерфейс</button>
-        <button data-view="safety">Безопасность</button>
-        <button data-view="prompts">Промпты</button>
-        <button data-view="modes">Режимы</button>
-        <button data-view="payments">Оплата</button>
-        <button data-view="testing">Тесты</button>
-        <button data-view="logs">Логи</button>
-      </div>
-      <div class="panel" style="margin-top:16px">
-        <div class="stat-label">Состояние</div>
-        <div id="sidebar-health" class="muted">Загрузка...</div>
+      <div class="sidebar-inner">
+        <div class="brand-card">
+          <div class="brand-eyebrow">Bot admin cockpit</div>
+          <h1 class="brand-title">Пульт управления</h1>
+          <p class="brand-copy">Один экран для состояния продукта, живых настроек, промптов, режимов, оплаты и проверки поведения бота.</p>
+        </div>
+        <div class="nav">
+          <button class="active" data-view="overview">Обзор</button>
+          <button data-view="users">Пользователи</button>
+          <button data-view="conversations">Диалоги</button>
+          <button data-view="runtime">ИИ и интерфейс</button>
+          <button data-view="safety">Безопасность</button>
+          <button data-view="prompts">Промпты</button>
+          <button data-view="modes">Режимы</button>
+          <button data-view="payments">Оплата</button>
+          <button data-view="testing">Тесты</button>
+          <button data-view="logs">Логи</button>
+        </div>
+        <div class="sidebar-panels">
+          <div class="panel compact-panel">
+            <div class="stat-label">Состояние</div>
+            <div id="sidebar-health" class="muted">Загрузка...</div>
+          </div>
+          <div class="panel compact-panel">
+            <div class="stat-label">Контекст</div>
+            <div id="sidebar-meta" class="sidebar-meta"><span class="sidebar-chip">Ждём первую синхронизацию…</span></div>
+          </div>
+        </div>
       </div>
     </aside>
     <main class="main">
-      <div class="toolbar">
+      <div class="toolbar top-toolbar">
         <button class="primary" id="refresh-all">Обновить все</button>
         <button id="export-json">Экспорт JSON</button>
         <button id="invalidate-cache">Сбросить кеш</button>
       </div>
+      <section class="hero panel">
+        <div class="hero-main">
+          <div class="hero-kicker" id="header-kicker">Операционный центр</div>
+          <h2 class="hero-title" id="header-title">Обзор продукта</h2>
+          <p class="hero-subtitle muted" id="header-subtitle">Метрики пользователей, платежей, поддержки и состояние инфраструктуры в одном ритме.</p>
+        </div>
+        <div class="hero-actions">
+          <div class="hero-meta-grid">
+            <div class="hero-meta">
+              <div class="hero-meta-label">Релиз</div>
+              <div class="hero-meta-value" id="header-release">Ждём данные о релизе…</div>
+            </div>
+            <div class="hero-meta">
+              <div class="hero-meta-label">Синхронизация</div>
+              <div class="hero-meta-value" id="header-sync">Ждём первую загрузку…</div>
+            </div>
+            <div class="hero-meta">
+              <div class="hero-meta-label">Контекст</div>
+              <div class="hero-meta-value" id="header-context">После загрузки здесь появятся база, активная аудитория и текущий фокус страницы.</div>
+            </div>
+          </div>
+        </div>
+      </section>
       <div id="notice" class="notice"></div>
 
       <section class="page active" data-view="overview">
@@ -1231,6 +1288,100 @@ def _dashboard_html() -> str:
               <label class="checkbox"><input id="initiative_quiet_hours_enabled" type="checkbox">Не писать в quiet hours</label>
               <label>Часовой пояс для тихих часов<input id="initiative_timezone"></label>
             </div>
+            <div class="soft-panel">
+              <h3>Re-engagement style</h3>
+              <div class="three">
+                <label>Макс. длина, символов<input id="initiative_style_max_chars" type="number" min="120" max="500"></label>
+                <label>Макс. токенов<input id="initiative_style_max_completion_tokens" type="number" min="32" max="300"></label>
+                <label class="checkbox"><input id="initiative_style_allow_question" type="checkbox">Можно завершать лёгким вопросом</label>
+              </div>
+              <div class="two">
+                <label class="checkbox"><input id="initiative_style_prefer_callback_thread" type="checkbox">Сначала подхватывать прошлую нить</label>
+              </div>
+              <div class="preset-bar">
+                <button type="button" data-initiative-preset="warm">Тёплый старт</button>
+                <button type="button" data-initiative-preset="balanced">Сбалансированный</button>
+                <button type="button" data-initiative-preset="tight">Короткий и плотный</button>
+              </div>
+              <div class="two">
+                <label class="checkbox"><input id="initiative_family_soft_presence" type="checkbox">Soft presence</label>
+                <label class="checkbox"><input id="initiative_family_callback_thread" type="checkbox">Callback thread</label>
+                <label class="checkbox"><input id="initiative_family_mood_ping" type="checkbox">Mood ping</label>
+                <label class="checkbox"><input id="initiative_family_playful_hook" type="checkbox">Playful hook</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Conversation lab</h3>
+            <p class="muted section-note">Настройки коротких живых ответов, которые тянут разговор дальше вместо лекций.</p>
+            <div class="preset-bar">
+              <button type="button" id="preset_dialogue_balanced">Balanced</button>
+              <button type="button" id="preset_dialogue_live">Live</button>
+              <button type="button" id="preset_dialogue_compact">Compact</button>
+            </div>
+            <div class="three">
+              <label>Фраз в hook-ответе<input id="dialogue_hook_max_sentences" type="number" min="1" max="6"></label>
+              <label>Лимит символов<input id="dialogue_hook_max_chars" type="number" min="120" max="500"></label>
+              <label class="checkbox"><input id="dialogue_hook_require_follow_up_question" type="checkbox">Обязательно оставлять follow-up</label>
+            </div>
+            <div class="two">
+              <label class="checkbox"><input id="dialogue_hook_topic_questions_enabled" type="checkbox">Вопросы по теме, а не общий шаблон</label>
+              <label class="checkbox"><input id="dialogue_risky_scene_compact_redirect" type="checkbox">Сжимать рискованные лекции</label>
+              <label class="checkbox"><input id="dialogue_charged_probe_compact_redirect" type="checkbox">Сжимать charged probe-лекции</label>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Fast lane</h3>
+            <p class="muted section-note">Тонкая настройка скорости, длины ответа и объёма контекста для коротких сообщений.</p>
+            <div class="soft-panel">
+              <div class="three">
+                <label class="checkbox"><input id="fast_lane_enabled" type="checkbox">Включить fast lane</label>
+                <label class="checkbox"><input id="fast_lane_force_low_verbosity" type="checkbox">Принудительно low verbosity</label>
+                <label class="checkbox"><input id="fast_lane_force_low_reasoning" type="checkbox">Принудительно low reasoning</label>
+              </div>
+            </div>
+            <div class="soft-panel">
+              <h3>Hook turns</h3>
+              <div class="three">
+                <label>Токены<input id="fast_lane_hook_max_completion_tokens" type="number" min="32"></label>
+                <label>Память<input id="fast_lane_hook_memory_max_tokens" type="number" min="64"></label>
+                <label>История<input id="fast_lane_hook_history_message_limit" type="number" min="1"></label>
+                <label>Timeout<input id="fast_lane_hook_timeout_seconds" type="number" min="1"></label>
+                <label>Retries<input id="fast_lane_hook_max_retries" type="number" min="0"></label>
+              </div>
+            </div>
+            <div class="soft-panel">
+              <h3>Continuation</h3>
+              <div class="three">
+                <label>Токены<input id="fast_lane_continuation_max_completion_tokens" type="number" min="32"></label>
+                <label>Память<input id="fast_lane_continuation_memory_max_tokens" type="number" min="64"></label>
+                <label>История<input id="fast_lane_continuation_history_message_limit" type="number" min="1"></label>
+                <label>Timeout<input id="fast_lane_continuation_timeout_seconds" type="number" min="1"></label>
+                <label>Retries<input id="fast_lane_continuation_max_retries" type="number" min="0"></label>
+              </div>
+            </div>
+            <div class="soft-panel">
+              <h3>Scene</h3>
+              <div class="three">
+                <label>Токены<input id="fast_lane_scene_max_completion_tokens" type="number" min="32"></label>
+                <label>Память<input id="fast_lane_scene_memory_max_tokens" type="number" min="64"></label>
+                <label>История<input id="fast_lane_scene_history_message_limit" type="number" min="1"></label>
+                <label>Timeout<input id="fast_lane_scene_timeout_seconds" type="number" min="1"></label>
+                <label>Retries<input id="fast_lane_scene_max_retries" type="number" min="0"></label>
+              </div>
+            </div>
+            <div class="soft-panel">
+              <h3>Generic</h3>
+              <div class="three">
+                <label>Токены<input id="fast_lane_generic_max_completion_tokens" type="number" min="32"></label>
+                <label>Память<input id="fast_lane_generic_memory_max_tokens" type="number" min="64"></label>
+                <label>История<input id="fast_lane_generic_history_message_limit" type="number" min="1"></label>
+                <label>Timeout<input id="fast_lane_generic_timeout_seconds" type="number" min="1"></label>
+                <label>Retries<input id="fast_lane_generic_max_retries" type="number" min="0"></label>
+              </div>
+            </div>
           </div>
         </div>
         <div class="panel">
@@ -1246,6 +1397,7 @@ def _dashboard_html() -> str:
               </div>
               <div class="two">
                 <label>Плейсхолдер<input id="ui_input_placeholder"></label>
+                <label>Путь к стартовому аватару<input id="ui_start_avatar_path" placeholder="assets/bot-avatar.png"></label>
                 <label>Заголовок режимов<input id="ui_modes_title"></label>
                 <label>Маркер premium-режима<input id="ui_modes_premium_marker"></label>
                 <label>Всплывающее уведомление<input id="ui_mode_saved_toast"></label>
@@ -1555,6 +1707,7 @@ def _dashboard_html() -> str:
             <div class="two">
               <label>Активный режим<input id="test_active_mode"></label>
               <label>Уровень доступа<input id="test_access_level"></label>
+              <label>User ID<input id="test_user_id" type="number" min="0"></label>
             </div>
             <label>Сообщение<textarea id="test_user_message"></textarea></label>
             <label>История (`user:` / `assistant:`)<textarea id="test_history"></textarea></label>
@@ -1563,6 +1716,7 @@ def _dashboard_html() -> str:
               <button class="primary" id="test-prompt">Промпт</button>
               <button id="test-state-btn">Состояние</button>
               <button id="test-live-reply">Live reply</button>
+              <button id="test-reengagement">Re-engagement</button>
             </div>
           </div>
           <div class="panel"><h3>Результат</h3><pre id="test-result">Здесь появится результат.</pre></div>
@@ -1591,7 +1745,19 @@ def _dashboard_html() -> str:
       'Как ты сегодня? Можешь ответить в любом темпе.',
       'Если хочешь, можем спокойно вернуться к тому, на чем остановились.'
     ];
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null,activeView:'overview',lastSyncedAt:null};
+    const VIEW_META={
+      overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
+      users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
+      conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
+      runtime:{kicker:'Настройки рантайма',title:'ИИ и интерфейс',subtitle:'Живые runtime-параметры модели, лимитов, инициативы и редактора шаблонов без похода в JSON вручную.'},
+      safety:{kicker:'Guardrails',title:'Безопасность и ограничения',subtitle:'Guardrails, кризисные настройки и стоп-линии, которые реально формируют поведение бота на проде.'},
+      prompts:{kicker:'Prompt control plane',title:'Промпты и шаблоны',subtitle:'Редактирование базовых инструкций, fallback-слоёв и prompt-контура без расползания по legacy-конфигам.'},
+      modes:{kicker:'Mode engine',title:'Режимы и голос',subtitle:'Каталог режимов, model overrides и UX-параметры, которые определяют, как бот звучит для пользователя.'},
+      payments:{kicker:'Revenue surface',title:'Оплата и пакеты',subtitle:'Пакеты Premium, провайдеры и монетизация в одной витрине без ощущения недоделанной панели.'},
+      testing:{kicker:'QA panel',title:'Тесты и песочница',subtitle:'Проверка промпта, state и reply прямо из админки, чтобы поведение можно было валидировать до выката.'},
+      logs:{kicker:'Runtime trace',title:'Логи и сигналы',subtitle:'Последние записи сервиса, быстрый экспорт и просмотр проблем без отдельного захода на сервер.'},
+    };
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
     const escText=v=>esc(v).replaceAll('\\n','<br>');
@@ -1638,7 +1804,35 @@ def _dashboard_html() -> str:
     function userSortLabel(sortBy){return ({created_desc:'новые сначала',premium_active_first:'premium наверху',premium_expiry_asc:'срок истекает раньше',premium_expiry_desc:'срок истекает позже',premium_expiring_soon:'скоро истекают наверху',premium_expired:'истекшие наверху'})[sortBy]||'новые сначала'}
     function setUserFilterButtons(filterBy='all'){const segments=state.users?.segments||{};$$('#user-filter-buttons .template-chip').forEach(button=>{const key=button.dataset.userFilter||'all';const baseLabel=button.dataset.baseLabel||button.textContent.replace(/\\s+\\(\\d+\\)$/,'');button.dataset.baseLabel=baseLabel;const count=segments[key];button.textContent=typeof count==='number'?`${baseLabel} (${count})`:baseLabel;button.classList.toggle('active',key===filterBy)})}
     function renderUserSegments(){const segments=state.users?.segments||{};const items=[['Всего',segments.all??0,'Все пользователи в базе'],['Активные Premium',segments.premium_active??0,'Сейчас имеют доступ'],['Истекают 3 дня',segments.premium_expiring_3d??0,'Нуждаются в продлении'],['Истекли',segments.premium_expired??0,'Можно возвращать оффером'],['Без Premium',segments.without_premium??0,'Потенциал на первую продажу']];const summary=$('#user-segment-summary');if(summary)summary.innerHTML=metricCards(items);const meta=$('#users-result-meta');if(meta){const matched=state.users?.matched_count??0;const query=String(state.users?.query||'').trim();const queryText=query?` • поиск: ${query}`:'';meta.textContent=`Найдено: ${matched} • фильтр: ${userFilterLabel(state.users?.filter_by||currentUserFilter())} • сортировка: ${userSortLabel(state.users?.sort_by||currentUserSort())}${queryText}`}}
-    function openView(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===name))}
+    function renderChrome(){
+      const viewKey=state.activeView||'overview';
+      const meta=VIEW_META[viewKey]||VIEW_META.overview;
+      const setText=(selector,value)=>{const el=$(selector);if(el)el.textContent=value};
+      setText('#header-kicker',meta.kicker);
+      setText('#header-title',meta.title);
+      setText('#header-subtitle',meta.subtitle);
+      const release=state.health?.release||{};
+      const releaseParts=[release.branch,release.commit_short||release.commit,release.deployed_at].map(part=>String(part||'').trim()).filter(Boolean);
+      setText('#header-release',releaseParts.length?releaseParts.join(' • '):'Релиз ещё не загружен');
+      const warningCount=(state.health?.warnings||[]).length;
+      const syncParts=[];
+      if(state.lastSyncedAt)syncParts.push(`Обновлено ${state.lastSyncedAt}`);
+      const syncLabel=state.health?.db?`${syncParts[0]||'Синхронизация выполнена'} • БД ${state.health.db.ok?'в норме':'нужна проверка'} • Redis ${state.health.redis?.ok?'в норме':(state.health.redis?.mode||'недоступен')}${warningCount?` • предупреждений: ${warningCount}`:''}`:(syncParts[0]||'Ждём первую загрузку...');
+      setText('#header-sync',syncLabel);
+      const currentUser=state.currentConversation?.user||state.currentUser||null;
+      const userSummary=state.overview?.users?`${num(state.overview.users.total??0)} пользователей • premium ${num(state.overview.users.premium_total??0)}`:'База ещё не загружена';
+      const currentFocus=currentUser?(currentUser.first_name||currentUser.username||`user ${currentUser.id}`):meta.title;
+      setText('#header-context',`${userSummary} • в фокусе ${currentFocus}`);
+      const chips=[];
+      if(state.overview?.users)chips.push(`<span class="sidebar-chip">${num(state.overview.users.total??0)} пользователей</span>`);
+      if(state.overview?.users)chips.push(`<span class="sidebar-chip">premium ${num(state.overview.users.premium_total??0)}</span>`);
+      if(state.health?.release?.commit_short)chips.push(`<span class="sidebar-chip">release ${esc(state.health.release.commit_short)}</span>`);
+      if(state.health?.warnings?.length)chips.push(`<span class="sidebar-chip">${num(state.health.warnings.length)} предупреждений</span>`);
+      if(currentUser?.id)chips.push(`<span class="sidebar-chip">user ${esc(currentUser.id)}</span>`);
+      const sidebarMeta=$('#sidebar-meta');
+      if(sidebarMeta)sidebarMeta.innerHTML=chips.join('')||'<span class="sidebar-chip">Ждём данные...</span>';
+    }
+    function openView(name){state.activeView=name||'overview';$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===state.activeView));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===state.activeView));renderChrome()}
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     const PAYMENT_PACKAGE_KEYS=['day','week','month','year']
@@ -1716,16 +1910,44 @@ def _dashboard_html() -> str:
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function renderUsers(){renderUserModeOptions();if(!state.users)return;renderUserSegments();$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
-    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.'}
+    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user?.id??'');setValue('#conversation_user_id',user?.id??$('#conversation_user_id')?.value??'');setValue('#user_username',user?.username??'');setValue('#user_first_name',user?.first_name??'');setValue('#user_active_mode',user?.active_mode??'base');setChecked('#user_is_admin',user?.is_admin);setChecked('#user_is_premium',user?.is_premium);$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.';renderChrome()}
     function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
     function memoryCategoryOptions(items){return (items||[]).map(item=>`<option value="${esc(item.key)}">${esc(item.label)}</option>`).join('')}
     function resetMemoryEditor(categories){const categorySelect=$('#memory_editor_category');const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];categorySelect.innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id','');setValue('#memory_editor_weight','1.0');setValue('#memory_editor_value','');setChecked('#memory_editor_pinned',false);if(categoryList.length){setValue('#memory_editor_category',categoryList[0].key)}state.currentMemoryId=null}
     function fillMemoryEditor(memory,categories){if(!memory){resetMemoryEditor(categories);return}const categoryList=categories||state.currentConversation?.settings?.memory_categories||[];$('#memory_editor_category').innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id',memory.id);setValue('#memory_editor_category',memory.category||'');setValue('#memory_editor_weight',memory.weight??1.0);setValue('#memory_editor_value',memory.value||'');setChecked('#memory_editor_pinned',memory.pinned);state.currentMemoryId=memory.id}
     function formatLongTermMemories(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return items.map(item=>`<div class="kv-row"><div class="kv-key"><strong>${esc(item.category)}</strong><div class="muted">${esc(item.value)}</div><div class="muted">score=${esc(item.score)} | weight=${esc(item.weight)} | seen=${esc(item.times_seen)} | updated=${esc(item.updated_at||'-')}</div></div><div class="kv-value"><div class="memory-row-actions"><button data-memory-edit="${esc(item.id)}">Редактировать</button><button data-memory-pin="${esc(item.id)}" data-pinned="${item.pinned?0:1}">${item.pinned?'Открепить':'Закрепить'}</button></div></div></div>`).join('')}
-    function renderConversation(){const view=state.currentConversation,categories=view?.settings?.memory_categories||[];if(!view){$('#conversation-meta').textContent='Выберите пользователя, чтобы увидеть историю и память.';$('#conversation-stats').innerHTML='';$('#conversation-memory-preview-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-memory-preview').textContent='Пока нет данных.';$('#conversation-long-term-memories').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state').textContent='Пока нет данных.';$('#conversation-messages').innerHTML='<div class="muted">Пока нет данных.</div>';resetMemoryEditor([]);return}const user=view.user||{},stats=view.stats||{},cfg=view.settings||{};setValue('#conversation_user_id',user.id??'');$('#conversation-meta').textContent=`Пользователь: ${user.first_name||user.username||user.id||'неизвестно'} • ID ${user.id||'-'} • Сообщений: ${stats.total_messages??0}`;$('#conversation-stats').innerHTML=metricCards([['Всего сообщений',String(stats.total_messages??0),`пользователь: ${stats.user_messages??0}, бот: ${stats.assistant_messages??0}`],['Первое сообщение',String(stats.first_message_at||'—'),'Начало истории'],['Последнее сообщение',String(stats.last_message_at||'—'),'Последняя активность'],['Долгая память',cfg.long_term_memory_enabled?'вкл':'выкл',`Элементов в контексте: ${cfg.long_term_memory_max_items??0}`],['Автоочистка',cfg.long_term_memory_auto_prune_enabled?'вкл':'выкл',`Мягкий лимит: ${cfg.long_term_memory_soft_limit??0}`],['Лимит истории',String(cfg.history_message_limit??0),`Токенов памяти: ${cfg.memory_max_tokens??0}`],['Сводная память',cfg.episodic_summary_enabled?'вкл':'выкл','Слой суммаризации']]);$('#conversation-memory-preview-summary').innerHTML=renderMemoryPreview(view.memory_preview||'');$('#conversation-memory-preview').textContent=view.memory_preview||'Память пока пустая.';$('#conversation-long-term-memories').innerHTML=formatLongTermMemories(view.long_term_memories||[]);$('#conversation-state-summary').innerHTML=renderStateSummary(view.state||{});$('#conversation-state').textContent=JSON.stringify(view.state||{},null,2);$('#conversation-messages').innerHTML=conversationMessages(view.messages||[]);const selected=(view.long_term_memories||[]).find(item=>String(item.id)===String(state.currentMemoryId));if(selected){fillMemoryEditor(selected,categories)}else{resetMemoryEditor(categories)}}
+    function renderConversation(){const view=state.currentConversation,categories=view?.settings?.memory_categories||[];if(!view){$('#conversation-meta').textContent='Выберите пользователя, чтобы увидеть историю и память.';$('#conversation-stats').innerHTML='';$('#conversation-memory-preview-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-memory-preview').textContent='Пока нет данных.';$('#conversation-long-term-memories').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state-summary').innerHTML='<div class="muted">Пока нет данных.</div>';$('#conversation-state').textContent='Пока нет данных.';$('#conversation-messages').innerHTML='<div class="muted">Пока нет данных.</div>';resetMemoryEditor([]);renderChrome();return}const user=view.user||{},stats=view.stats||{},cfg=view.settings||{};setValue('#conversation_user_id',user.id??'');$('#conversation-meta').textContent=`Пользователь: ${user.first_name||user.username||user.id||'неизвестно'} • ID ${user.id||'-'} • Сообщений: ${stats.total_messages??0}`;$('#conversation-stats').innerHTML=metricCards([['Всего сообщений',String(stats.total_messages??0),`пользователь: ${stats.user_messages??0}, бот: ${stats.assistant_messages??0}`],['Первое сообщение',String(stats.first_message_at||'—'),'Начало истории'],['Последнее сообщение',String(stats.last_message_at||'—'),'Последняя активность'],['Долгая память',cfg.long_term_memory_enabled?'вкл':'выкл',`Элементов в контексте: ${cfg.long_term_memory_max_items??0}`],['Автоочистка',cfg.long_term_memory_auto_prune_enabled?'вкл':'выкл',`Мягкий лимит: ${cfg.long_term_memory_soft_limit??0}`],['Лимит истории',String(cfg.history_message_limit??0),`Токенов памяти: ${cfg.memory_max_tokens??0}`],['Сводная память',cfg.episodic_summary_enabled?'вкл':'выкл','Слой суммаризации']]);$('#conversation-memory-preview-summary').innerHTML=renderMemoryPreview(view.memory_preview||'');$('#conversation-memory-preview').textContent=view.memory_preview||'Память пока пустая.';$('#conversation-long-term-memories').innerHTML=formatLongTermMemories(view.long_term_memories||[]);$('#conversation-state-summary').innerHTML=renderStateSummary(view.state||{});$('#conversation-state').textContent=JSON.stringify(view.state||{},null,2);$('#conversation-messages').innerHTML=conversationMessages(view.messages||[]);const selected=(view.long_term_memories||[]).find(item=>String(item.id)===String(state.currentMemoryId));if(selected){fillMemoryEditor(selected,categories)}else{resetMemoryEditor(categories)}renderChrome()}
+    function collectInitiativeFamilies(){return ['soft_presence','callback_thread','mood_ping','playful_hook'].filter(name=>$(`#initiative_family_${name}`)?.checked)}
+    function applyDialoguePreset(name){
+      const presets={
+        balanced:{sentences:2,chars:240,followUp:true,topicQuestions:true,risky:true,charged:true},
+        live:{sentences:3,chars:280,followUp:true,topicQuestions:true,risky:false,charged:false},
+        compact:{sentences:2,chars:190,followUp:true,topicQuestions:false,risky:true,charged:true}
+      };
+      const preset=presets[name]||presets.balanced;
+      setValue('#dialogue_hook_max_sentences',preset.sentences);
+      setValue('#dialogue_hook_max_chars',preset.chars);
+      setChecked('#dialogue_hook_require_follow_up_question',preset.followUp);
+      setChecked('#dialogue_hook_topic_questions_enabled',preset.topicQuestions);
+      setChecked('#dialogue_risky_scene_compact_redirect',preset.risky);
+      setChecked('#dialogue_charged_probe_compact_redirect',preset.charged);
+    }
+    function applyInitiativePreset(name){
+      const presets={
+        warm:{maxChars:240,maxCompletionTokens:120,allowQuestion:true,preferCallback:true,families:['soft_presence','callback_thread','mood_ping']},
+        balanced:{maxChars:220,maxCompletionTokens:110,allowQuestion:true,preferCallback:true,families:['soft_presence','callback_thread','mood_ping','playful_hook']},
+        tight:{maxChars:170,maxCompletionTokens:90,allowQuestion:false,preferCallback:false,families:['soft_presence','mood_ping']}
+      };
+      const preset=presets[name]||presets.balanced;
+      setValue('#initiative_style_max_chars',preset.maxChars);
+      setValue('#initiative_style_max_completion_tokens',preset.maxCompletionTokens);
+      setChecked('#initiative_style_allow_question',preset.allowQuestion);
+      setChecked('#initiative_style_prefer_callback_thread',preset.preferCallback);
+      ['soft_presence','callback_thread','mood_ping','playful_hook'].forEach(key=>setChecked(`#initiative_family_${key}`,preset.families.includes(key)));
+    }
     function renderRuntime(){
       if(!state.settings||!state.settings.runtime)return;
-      const r=state.settings.runtime,a=r.ai||{},c=r.chat||{},e=r.engagement||{},u=r.ui||{};
+      const r=state.settings.runtime,a=r.ai||{},c=r.chat||{},e=r.engagement||{},u=r.ui||{},dialogue=a.dialogue||{},fastLane=a.fast_lane||{},style=e.reengagement_style||{};
       setValue('#ai_openai_model',a.openai_model);
       setValue('#ai_response_language',a.response_language);
       setValue('#ai_temperature',a.temperature);
@@ -1764,10 +1986,32 @@ def _dashboard_html() -> str:
       setValue('#initiative_quiet_hours_start',e.quiet_hours_start??'');
       setValue('#initiative_quiet_hours_end',e.quiet_hours_end??'');
       setValue('#initiative_timezone',e.timezone||'');
+      setValue('#initiative_style_max_chars',style.max_chars??220);
+      setValue('#initiative_style_max_completion_tokens',style.max_completion_tokens??120);
+      setChecked('#initiative_style_allow_question',style.allow_question!==false);
+      setChecked('#initiative_style_prefer_callback_thread',style.prefer_callback_thread!==false);
+      ['soft_presence','callback_thread','mood_ping','playful_hook'].forEach(key=>setChecked(`#initiative_family_${key}`,(style.enabled_families||[]).includes(key)));
+      setValue('#dialogue_hook_max_sentences',dialogue.hook_max_sentences??2);
+      setValue('#dialogue_hook_max_chars',dialogue.hook_max_chars??260);
+      setChecked('#dialogue_hook_require_follow_up_question',dialogue.hook_require_follow_up_question!==false);
+      setChecked('#dialogue_hook_topic_questions_enabled',dialogue.hook_topic_questions_enabled!==false);
+      setChecked('#dialogue_risky_scene_compact_redirect',dialogue.risky_scene_compact_redirect!==false);
+      setChecked('#dialogue_charged_probe_compact_redirect',dialogue.charged_probe_compact_redirect!==false);
+      setChecked('#fast_lane_enabled',fastLane.enabled!==false);
+      setChecked('#fast_lane_force_low_verbosity',fastLane.force_low_verbosity!==false);
+      setChecked('#fast_lane_force_low_reasoning',fastLane.force_low_reasoning!==false);
+      ['hook','continuation','scene','generic'].forEach(name=>{
+        setValue(`#fast_lane_${name}_max_completion_tokens`,fastLane[`${name}_max_completion_tokens`]??'');
+        setValue(`#fast_lane_${name}_memory_max_tokens`,fastLane[`${name}_memory_max_tokens`]??'');
+        setValue(`#fast_lane_${name}_history_message_limit`,fastLane[`${name}_history_message_limit`]??'');
+        setValue(`#fast_lane_${name}_timeout_seconds`,fastLane[`${name}_timeout_seconds`]??'');
+        setValue(`#fast_lane_${name}_max_retries`,fastLane[`${name}_max_retries`]??'');
+      });
       setValue('#ui_write_button_text',u.write_button_text);
       setValue('#ui_modes_button_text',u.modes_button_text);
       setValue('#ui_premium_button_text',u.premium_button_text);
       setValue('#ui_input_placeholder',u.input_placeholder);
+      setValue('#ui_start_avatar_path',u.start_avatar_path||'');
       setValue('#ui_modes_title',u.modes_title);
       setValue('#ui_modes_premium_marker',u.modes_premium_marker||'');
       setValue('#ui_user_not_found_text',u.user_not_found_text);
@@ -1877,7 +2121,15 @@ def _dashboard_html() -> str:
         modeOverrides[mode]??={};
         modeOverrides[mode][key]=value;
       });
-      return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),long_term_memory_enabled:$('#ai_long_term_memory_enabled').checked,long_term_memory_max_items:Number($('#ai_long_term_memory_max_items').value),long_term_memory_auto_prune_enabled:$('#ai_long_term_memory_auto_prune_enabled').checked,long_term_memory_soft_limit:Number($('#ai_long_term_memory_soft_limit').value),episodic_summary_enabled:$('#ai_episodic_summary_enabled').checked,debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked,mode_overrides:modeOverrides},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,response_guardrails_enabled:$('#chat_response_guardrails_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value,response_guardrail_blocked_phrases:$('#chat_response_guardrail_blocked_phrases').value},engagement:{reengagement_enabled:$('#initiative_enabled').checked,reengagement_idle_hours:Number($('#initiative_idle_hours').value),reengagement_min_hours_between:Number($('#initiative_min_hours_between').value),reengagement_recent_window_days:Number($('#initiative_recent_window_days').value),reengagement_poll_seconds:Number($('#initiative_poll_seconds').value),reengagement_batch_size:Number($('#initiative_batch_size').value),quiet_hours_enabled:$('#initiative_quiet_hours_enabled').checked,quiet_hours_start:Number($('#initiative_quiet_hours_start').value),quiet_hours_end:Number($('#initiative_quiet_hours_end').value),timezone:$('#initiative_timezone').value.trim()},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,modes_title:$('#ui_modes_title').value,modes_premium_marker:$('#ui_modes_premium_marker').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value,message_templates:parseTemplateEditorText($('#message_templates_editor')?.value||'')}}}
+      const fastLane={enabled:$('#fast_lane_enabled').checked,force_low_verbosity:$('#fast_lane_force_low_verbosity').checked,force_low_reasoning:$('#fast_lane_force_low_reasoning').checked};
+      ['hook','continuation','scene','generic'].forEach(name=>{
+        fastLane[`${name}_max_completion_tokens`]=Number($(`#fast_lane_${name}_max_completion_tokens`).value);
+        fastLane[`${name}_memory_max_tokens`]=Number($(`#fast_lane_${name}_memory_max_tokens`).value);
+        fastLane[`${name}_history_message_limit`]=Number($(`#fast_lane_${name}_history_message_limit`).value);
+        fastLane[`${name}_timeout_seconds`]=Number($(`#fast_lane_${name}_timeout_seconds`).value);
+        fastLane[`${name}_max_retries`]=Number($(`#fast_lane_${name}_max_retries`).value);
+      });
+      return {ai:{openai_model:$('#ai_openai_model').value.trim(),response_language:$('#ai_response_language').value.trim(),temperature:Number($('#ai_temperature').value),top_p:Number($('#ai_top_p').value),frequency_penalty:Number($('#ai_frequency_penalty').value),presence_penalty:Number($('#ai_presence_penalty').value),max_completion_tokens:Number($('#ai_max_completion_tokens').value),reasoning_effort:$('#ai_reasoning_effort').value.trim(),verbosity:$('#ai_verbosity').value.trim(),timeout_seconds:Number($('#ai_timeout_seconds').value),max_retries:Number($('#ai_max_retries').value),memory_max_tokens:Number($('#ai_memory_max_tokens').value),history_message_limit:Number($('#ai_history_message_limit').value),long_term_memory_enabled:$('#ai_long_term_memory_enabled').checked,long_term_memory_max_items:Number($('#ai_long_term_memory_max_items').value),long_term_memory_auto_prune_enabled:$('#ai_long_term_memory_auto_prune_enabled').checked,long_term_memory_soft_limit:Number($('#ai_long_term_memory_soft_limit').value),episodic_summary_enabled:$('#ai_episodic_summary_enabled').checked,debug_prompt_user_id:$('#ai_debug_prompt_user_id').value.trim()||null,log_full_prompt:$('#ai_log_full_prompt').checked,mode_overrides:modeOverrides,dialogue:{hook_max_sentences:Number($('#dialogue_hook_max_sentences').value),hook_max_chars:Number($('#dialogue_hook_max_chars').value),hook_require_follow_up_question:$('#dialogue_hook_require_follow_up_question').checked,hook_topic_questions_enabled:$('#dialogue_hook_topic_questions_enabled').checked,risky_scene_compact_redirect:$('#dialogue_risky_scene_compact_redirect').checked,charged_probe_compact_redirect:$('#dialogue_charged_probe_compact_redirect').checked},fast_lane:fastLane},chat:{typing_action_enabled:$('#chat_typing_action_enabled').checked,response_guardrails_enabled:$('#chat_response_guardrails_enabled').checked,non_text_message:$('#chat_non_text_message').value,busy_message:$('#chat_busy_message').value,ai_error_message:$('#chat_ai_error_message').value,write_prompt_message:$('#chat_write_prompt_message').value,response_guardrail_blocked_phrases:$('#chat_response_guardrail_blocked_phrases').value},engagement:{reengagement_enabled:$('#initiative_enabled').checked,reengagement_idle_hours:Number($('#initiative_idle_hours').value),reengagement_min_hours_between:Number($('#initiative_min_hours_between').value),reengagement_recent_window_days:Number($('#initiative_recent_window_days').value),reengagement_poll_seconds:Number($('#initiative_poll_seconds').value),reengagement_batch_size:Number($('#initiative_batch_size').value),quiet_hours_enabled:$('#initiative_quiet_hours_enabled').checked,quiet_hours_start:Number($('#initiative_quiet_hours_start').value),quiet_hours_end:Number($('#initiative_quiet_hours_end').value),timezone:$('#initiative_timezone').value.trim(),reengagement_style:{enabled_families:collectInitiativeFamilies(),prefer_callback_thread:$('#initiative_style_prefer_callback_thread').checked,allow_question:$('#initiative_style_allow_question').checked,max_chars:Number($('#initiative_style_max_chars').value),max_completion_tokens:Number($('#initiative_style_max_completion_tokens').value)}},ui:{write_button_text:$('#ui_write_button_text').value,modes_button_text:$('#ui_modes_button_text').value,premium_button_text:$('#ui_premium_button_text').value,input_placeholder:$('#ui_input_placeholder').value,start_avatar_path:$('#ui_start_avatar_path').value.trim(),modes_title:$('#ui_modes_title').value,modes_premium_marker:$('#ui_modes_premium_marker').value,user_not_found_text:$('#ui_user_not_found_text').value,unknown_mode_text:$('#ui_unknown_mode_text').value,mode_locked_text:$('#ui_mode_locked_text').value,mode_saved_toast:$('#ui_mode_saved_toast').value,mode_saved_template:$('#ui_mode_saved_template').value,welcome_user_text:$('#ui_welcome_user_text').value,welcome_admin_text:$('#ui_welcome_admin_text').value,message_templates:parseTemplateEditorText($('#message_templates_editor')?.value||'')}}}
     function safetyPayload(){
       const defaults={},effects={};
       document.querySelectorAll('[data-state-default]').forEach(i=>defaults[i.dataset.stateDefault]=Number(i.value));
@@ -1928,12 +2180,12 @@ def _dashboard_html() -> str:
         }
       }
     }
-    function testPayload(){return {active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
+    function testPayload(){return {user_id:Number($('#test_user_id')?.value||0),active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
     function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
     function currentUserSort(){return $('#user-sort')?.value?.trim()||'created_desc'}
     async function refreshUsers(query){const search=query??$('#user-search').value.trim();const sortBy=currentUserSort();const filterBy=currentUserFilter();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100&sort_by=${encodeURIComponent(sortBy)}&filter_by=${encodeURIComponent(filterBy)}`);if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users?.filter_by||filterBy);renderUsers()}
-    async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers()}
-    async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();return state.currentConversation}
+    async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers();renderChrome()}
+    async function loadConversation(userId){const rawId=String(userId||$('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||'').trim();if(!rawId)throw new Error('Укажи user_id');const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));state.currentConversation=await api(`/api/users/${encodeURIComponent(rawId)}/conversation?limit=${limit}`);renderConversation();renderChrome();return state.currentConversation}
     async function sendConversationMessage(){const rawUserId=String($('#conversation_user_id').value.trim()||$('#user_user_id').value.trim()||state.currentConversation?.user?.id||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const textarea=$('#conversation_outbound_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст сообщения');const button=$('#send-conversation-message');if(button)button.disabled=true;try{await api(`/api/users/${encodeURIComponent(rawUserId)}/message`,{method:'POST',body:JSON.stringify({text})});if(textarea)textarea.value='';await loadConversation(rawUserId);notice('Сообщение отправлено.')}finally{if(button)button.disabled=false}}
     async function sendBulkMessage(){const ids=selectedUserIds();if(!ids.length)throw new Error('Выбери хотя бы одного пользователя');const textarea=$('#bulk_message_text');const text=String(textarea?.value||'').trim();if(!text)throw new Error('Введи текст для рассылки');const button=$('#send-bulk-message');if(button)button.disabled=true;const results=$('#bulk-message-results');if(results)results.textContent='Готовлю preview рассылки...';try{const preview=await api('/api/users/broadcast/preview',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text})});state.lastBroadcastPreview=preview;renderBroadcastResult(preview);const warningBlock=(preview.warnings||[]).length?`\\n\\nПредупреждения:\\n- ${(preview.warnings||[]).join('\\n- ')}`:'';if(!window.confirm(`Отправить сообщение ${preview.requested_count||ids.length} пользователям?${warningBlock}`)){notice('Рассылка отменена.','error');return}if(results)results.textContent='Отправляю сообщения...';const result=await api('/api/users/broadcast',{method:'POST',body:JSON.stringify({user_ids:ids.map(Number),text,confirmation_token:preview.confirmation_token})});state.lastBroadcastResult=result;renderBroadcastResult(result);await refreshUsers();notice(result.failed_count?`Рассылка завершена: ${result.sent_count} отправлено, ${result.failed_count} с ошибкой.`:`Рассылка завершена: отправлено ${result.sent_count}.`)}finally{if(button)button.disabled=false}}
     async function toggleMemoryPin(memoryId,pinned){await api(`/api/memories/${encodeURIComponent(memoryId)}/pin`,{method:'POST',body:JSON.stringify({pinned:!!Number(pinned)})});await loadConversation();notice('Статус памяти обновлен.')}
@@ -1942,8 +2194,8 @@ def _dashboard_html() -> str:
     async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users?.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users?.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});$('#test-result').textContent=JSON.stringify(data,null,2)}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
@@ -1985,6 +2237,11 @@ def _dashboard_html() -> str:
     on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Проверка ответа завершена.')).catch(e=>notice(e.message,'error'))});
     window.addEventListener('error',e=>{console.error('Admin dashboard error',e.error||e.message);notice(`Ошибка интерфейса: ${e.message||'см. консоль браузера'}`,'error')});
     window.addEventListener('unhandledrejection',e=>{console.error('Admin dashboard rejection',e.reason);notice(`Ошибка загрузки: ${e.reason?.message||e.reason||'неизвестно'}`,'error')});
+    on('#test-reengagement','click',()=>{$('#test-result').textContent='Жду re-engagement preview...';runTest('/api/test/reengagement').then(()=>notice('Re-engagement preview готов.')).catch(e=>notice(e.message,'error'))});
+    on('#preset_dialogue_balanced','click',()=>{applyDialoguePreset('balanced');notice('Conversation lab: Balanced.')});
+    on('#preset_dialogue_live','click',()=>{applyDialoguePreset('live');notice('Conversation lab: Live.')});
+    on('#preset_dialogue_compact','click',()=>{applyDialoguePreset('compact');notice('Conversation lab: Compact.')});
+    onAll('[data-initiative-preset]','click',event=>{applyInitiativePreset(event.currentTarget.dataset.initiativePreset||'balanced');notice('Стиль первой инициативы обновлён.')});
     renderMessageTemplates();
     renderBroadcastResult(null);
     refreshAll().catch(e=>notice(e.message,'error'));

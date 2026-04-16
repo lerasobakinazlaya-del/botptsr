@@ -14,7 +14,7 @@ class PaymentService:
         "day": {
             "enabled": True,
             "title": "Premium на 1 день",
-            "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+            "description": "Быстрый тест: память диалога, инициатива от бота и все режимы на один день.",
             "price_minor_units": 7900,
             "access_duration_days": 1,
             "sort_order": 10,
@@ -24,7 +24,7 @@ class PaymentService:
         "week": {
             "enabled": True,
             "title": "Premium на 7 дней",
-            "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+            "description": "Неделя, чтобы спокойно проверить формат и не упираться в лимит в первый же день.",
             "price_minor_units": 24900,
             "access_duration_days": 7,
             "sort_order": 20,
@@ -34,7 +34,7 @@ class PaymentService:
         "month": {
             "enabled": True,
             "title": "Premium на 30 дней",
-            "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+            "description": "Основной план: память диалога, инициатива от бота и все режимы на месяц.",
             "price_minor_units": 49900,
             "access_duration_days": 30,
             "sort_order": 30,
@@ -44,7 +44,7 @@ class PaymentService:
         "year": {
             "enabled": True,
             "title": "Premium на 365 дней",
-            "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+            "description": "Самый выгодный доступ для тех, кто уже встроил бота в свою ежедневную рутину.",
             "price_minor_units": 399000,
             "access_duration_days": 365,
             "sort_order": 40,
@@ -221,8 +221,8 @@ class PaymentService:
             return status_text
 
         if status_text:
-            return f"{status_text}\nPremium активен до {expires_text}."
-        return f"Premium активен до {expires_text}."
+            return f"{status_text}\nДоступ активен до {expires_text}."
+        return f"Доступ активен до {expires_text}."
 
     async def send_premium_invoice(self, message: Message, package_key: str | None = None) -> bool:
         payment = self.get_payment_settings()

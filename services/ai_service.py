@@ -270,7 +270,11 @@ class AIService:
         if crisis_signal is not None:
             logger.info("[AI] user_id=%s crisis_signal=%s no_bypass", user_id, crisis_signal)
 
-        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        ai_profile = self._apply_fast_lane_profile(
+            resolve_ai_profile(ai_settings, active_mode),
+            user_message=user_message,
+            active_mode=active_mode,
+        )
         access_level = self.access_engine.update_access_level(new_state)
         access_decision = self.access_engine.evaluate_access(
             state=new_state,
@@ -313,6 +317,7 @@ class AIService:
                 history=history,
             ),
             history=history,
+            access_profile=access_decision.get("budget"),
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -389,8 +394,12 @@ class AIService:
         runtime_settings = self.settings_service.get_runtime_settings()
         ai_settings = runtime_settings["ai"]
         engagement_settings = runtime_settings["engagement"]
+        reengagement_style = dict(engagement_settings.get("reengagement_style") or {})
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
-        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        ai_profile = self._apply_reengagement_profile(
+            resolve_ai_profile(ai_settings, active_mode),
+            reengagement_style=reengagement_style,
+        )
         access_level = self.access_engine.update_access_level(state)
         access_decision = self.access_engine.evaluate_access(
             state=state,
@@ -430,9 +439,11 @@ class AIService:
                 state,
                 hours_silent=hours_silent,
                 active_mode=active_mode,
+                style_settings=reengagement_style,
             ),
             history=history,
             is_reengagement=True,
+            access_profile=access_decision.get("budget"),
         )
 
         if self._should_log_full_prompt(user_id, ai_settings):
@@ -468,6 +479,7 @@ class AIService:
         response_text = self.conversation_engine.guard_response(
             response_text,
             user_message="Сформулируй одно живое сообщение первой инициативы.",
+            force_dialogue_pull=bool(reengagement_style.get("allow_question", True)),
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -532,8 +544,14 @@ class AIService:
         max_completion_tokens = int(
             ai_profile.get("max_completion_tokens", ai_settings.get("max_completion_tokens", 400)),
         )
-        reasoning_effort = str(ai_settings.get("reasoning_effort") or "").strip() or None
-        verbosity = str(ai_settings.get("verbosity") or "").strip() or None
+        reasoning_effort = (
+            str(ai_profile.get("reasoning_effort_override") or ai_settings.get("reasoning_effort") or "").strip()
+            or None
+        )
+        verbosity = (
+            str(ai_profile.get("verbosity_override") or ai_settings.get("verbosity") or "").strip()
+            or None
+        )
         truncation_retries = 0
 
         attempt = 0
@@ -826,6 +844,7 @@ class AIService:
             text,
             answer_first=self._looks_like_answer_first_request(lowered),
             allow_follow_up_question=self._user_explicitly_invites_questions(lowered),
+            user_message=user_message,
         )
 
     def _looks_like_answer_first_request(self, text: str) -> bool:
@@ -858,6 +877,148 @@ class AIService:
             "поспрашивай",
         )
         return any(hint in text for hint in question_hints)
+
+    def _apply_fast_lane_profile(
+        self,
+        ai_profile: dict[str, Any],
+        *,
+        user_message: str,
+        active_mode: str,
+    ) -> dict[str, Any]:
+        normalized = self._normalize(user_message)
+        fast_lane = self._get_fast_lane_settings()
+        if not bool(fast_lane.get("enabled", True)):
+            return ai_profile
+        if not self._should_use_fast_lane(normalized, active_mode=active_mode):
+            return ai_profile
+
+        optimized = dict(ai_profile)
+        is_continuation = self._looks_like_continuation_request(normalized)
+        is_scene = self._looks_like_scene_request(normalized)
+        is_hook_turn = self._looks_like_hook_turn(normalized)
+
+        profile_name = (
+            "hook" if is_hook_turn else "continuation" if is_continuation else "scene" if is_scene else "generic"
+        )
+        optimized["max_completion_tokens"] = min(
+            int(optimized.get("max_completion_tokens", 220)),
+            int(fast_lane.get(f"{profile_name}_max_completion_tokens", 200)),
+        )
+        optimized["memory_max_tokens"] = min(
+            int(optimized.get("memory_max_tokens", 1200)),
+            int(fast_lane.get(f"{profile_name}_memory_max_tokens", 900)),
+        )
+        optimized["history_message_limit"] = min(
+            int(optimized.get("history_message_limit", 20)),
+            int(fast_lane.get(f"{profile_name}_history_message_limit", 10)),
+        )
+        optimized["timeout_seconds"] = min(
+            int(optimized.get("timeout_seconds", self.timeout_seconds)),
+            int(fast_lane.get(f"{profile_name}_timeout_seconds", 12)),
+        )
+        optimized["max_retries"] = min(
+            int(optimized.get("max_retries", self.max_retries)),
+            int(fast_lane.get(f"{profile_name}_max_retries", 1)),
+        )
+        if bool(fast_lane.get("force_low_verbosity", True)):
+            optimized["verbosity_override"] = "low"
+        if bool(fast_lane.get("force_low_reasoning", True)) and not str(
+            optimized.get("reasoning_effort_override") or ""
+        ).strip():
+            optimized["reasoning_effort_override"] = "low"
+        return optimized
+
+    def _apply_reengagement_profile(
+        self,
+        ai_profile: dict[str, Any],
+        *,
+        reengagement_style: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        optimized = dict(ai_profile)
+        style = reengagement_style or {}
+        optimized["max_completion_tokens"] = min(
+            int(optimized.get("max_completion_tokens", 220)),
+            int(style.get("max_completion_tokens", 120)),
+        )
+        optimized["memory_max_tokens"] = min(
+            int(optimized.get("memory_max_tokens", 1200)),
+            700,
+        )
+        optimized["history_message_limit"] = min(
+            int(optimized.get("history_message_limit", 20)),
+            8,
+        )
+        optimized["timeout_seconds"] = min(
+            int(optimized.get("timeout_seconds", self.timeout_seconds)),
+            8,
+        )
+        optimized["max_retries"] = 0
+        optimized["verbosity_override"] = "low"
+        optimized["reasoning_effort_override"] = "low"
+        return optimized
+
+    def _get_fast_lane_settings(self) -> dict[str, Any]:
+        runtime_settings = self.settings_service.get_runtime_settings()
+        return dict(runtime_settings.get("ai", {}).get("fast_lane") or {})
+
+    def _should_use_fast_lane(self, text: str, *, active_mode: str) -> bool:
+        if active_mode in {"mentor", "ptsd"}:
+            return False
+        if self._looks_like_hook_turn(text):
+            return True
+        if self._looks_like_continuation_request(text):
+            return True
+        if self._looks_like_scene_request(text):
+            return True
+        return len(text) <= 140 and self._looks_like_answer_first_request(text)
+
+    def _looks_like_hook_turn(self, text: str) -> bool:
+        if not text:
+            return False
+        if len(text.split()) > 14:
+            return False
+        hook_hints = (
+            "что думаешь",
+            "как тебе",
+            "или",
+            "а если",
+            "почему",
+            "хочу",
+            "нравится",
+            "цепляет",
+            "заводит",
+            "стоит ли",
+        )
+        return text.endswith("?") or any(hint in text for hint in hook_hints)
+
+    @staticmethod
+    def _normalize(text: str) -> str:
+        return " ".join(str(text or "").lower().split())
+
+    @staticmethod
+    def _looks_like_continuation_request(text: str) -> bool:
+        return bool(re.fullmatch(r"(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше|давай)", text))
+
+    @staticmethod
+    def _looks_like_scene_request(text: str) -> bool:
+        hints = (
+            "как это должно проходить",
+            "как это должно быть",
+            "опиши",
+            "сценарий",
+            "атмосфер",
+            "техно",
+            "белье",
+            "оргия",
+            "хим",
+            "мжмж",
+            "жмж",
+            "ммж",
+            "втроем",
+            "вчетвером",
+            "фантаз",
+        )
+        return any(hint in text for hint in hints)
 
     def _assistant_has_been_question_heavy(self, history: list[dict[str, str]]) -> bool:
         assistant_messages = [

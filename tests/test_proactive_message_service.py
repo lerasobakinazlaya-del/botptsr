@@ -261,7 +261,7 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client.calls), 1)
         messages = client.calls[0]["messages"]
         system_prompt = messages[0]["content"].lower()
-        user_prompt = messages[2]["content"].lower()
+        user_prompt = messages[1]["content"].lower()
 
         self.assertIn("музыка", system_prompt)
         self.assertIn("прогулки", user_prompt)

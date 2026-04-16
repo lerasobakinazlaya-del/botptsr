@@ -51,25 +51,18 @@ class OpenAIClient:
         verbosity: str | None = None,
         user: str | None = None,
     ) -> Tuple[str, int | None]:
-        payload = {
-            "model": model or self.model,
-            "messages": messages,
-            "temperature": self.temperature if temperature is None else temperature,
-        }
-        if top_p is not None:
-            payload["top_p"] = top_p
-        if frequency_penalty is not None:
-            payload["frequency_penalty"] = frequency_penalty
-        if presence_penalty is not None:
-            payload["presence_penalty"] = presence_penalty
-        if max_completion_tokens is not None:
-            payload["max_completion_tokens"] = max_completion_tokens
-        if reasoning_effort:
-            payload["reasoning_effort"] = reasoning_effort
-        if verbosity:
-            payload["verbosity"] = verbosity
-        if user:
-            payload["user"] = user
+        payload = self._build_payload(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
+            max_completion_tokens=max_completion_tokens,
+            reasoning_effort=reasoning_effort,
+            verbosity=verbosity,
+            user=user,
+        )
 
         response = await self._run_with_limits(payload)
 
@@ -91,8 +84,45 @@ class OpenAIClient:
         verbosity: str | None = None,
         user: str | None = None,
     ) -> Tuple[str, int | None, str | None]:
+        payload = self._build_payload(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
+            max_completion_tokens=max_completion_tokens,
+            reasoning_effort=reasoning_effort,
+            verbosity=verbosity,
+            user=user,
+        )
+
+        response = await self._run_with_limits(payload)
+
+        choice = response.choices[0]
+        text = choice.message.content or ""
+        tokens_used = response.usage.total_tokens if response.usage else None
+        finish_reason = getattr(choice, "finish_reason", None)
+
+        return text.strip(), tokens_used, finish_reason
+
+    def _build_payload(
+        self,
+        *,
+        messages: List[Dict[str, str]],
+        model: str | None,
+        temperature: float | None,
+        top_p: float | None,
+        frequency_penalty: float | None,
+        presence_penalty: float | None,
+        max_completion_tokens: int | None,
+        reasoning_effort: str | None,
+        verbosity: str | None,
+        user: str | None,
+    ) -> Dict[str, Any]:
+        model_name = model or self.model
         payload = {
-            "model": model or self.model,
+            "model": model_name,
             "messages": messages,
             "temperature": self.temperature if temperature is None else temperature,
         }
@@ -104,21 +134,13 @@ class OpenAIClient:
             payload["presence_penalty"] = presence_penalty
         if max_completion_tokens is not None:
             payload["max_completion_tokens"] = max_completion_tokens
-        if reasoning_effort:
+        if reasoning_effort and self._supports_reasoning_effort(model_name):
             payload["reasoning_effort"] = reasoning_effort
-        if verbosity:
+        if verbosity and self._supports_verbosity(model_name):
             payload["verbosity"] = verbosity
         if user:
             payload["user"] = user
-
-        response = await self._run_with_limits(payload)
-
-        choice = response.choices[0]
-        text = choice.message.content or ""
-        tokens_used = response.usage.total_tokens if response.usage else None
-        finish_reason = getattr(choice, "finish_reason", None)
-
-        return text.strip(), tokens_used, finish_reason
+        return payload
 
     def get_runtime_stats(self) -> Dict[str, int | float]:
         return {
@@ -230,6 +252,14 @@ class OpenAIClient:
                 str(exc),
             )
         return changed
+
+    def _supports_reasoning_effort(self, model_name: str) -> bool:
+        normalized = str(model_name or "").strip().lower()
+        return normalized.startswith("gpt-5")
+
+    def _supports_verbosity(self, model_name: str) -> bool:
+        normalized = str(model_name or "").strip().lower()
+        return normalized.startswith("gpt-5")
 
     def _relax_temperature(
         self,

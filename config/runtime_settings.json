@@ -29,31 +29,20 @@
     "response_language": "ru",
     "mode_overrides": {
       "base": {
-        "temperature": 0.82,
-        "max_completion_tokens": 340,
-        "prompt_suffix": "Пиши спокойно, ясно и без лишней роли. Лучше естественный разговор, чем эффектная подача."
+        "temperature": 0.9,
+        "max_completion_tokens": 280,
+        "prompt_suffix": "Режим диалога: звучишь живо, естественно и без ассистентского лака. Быстро ловишь суть, держишь человеческий контакт и не превращаешь ответ ни в лекцию, ни в коучинг, ни в терапевтический уклон по умолчанию."
       },
       "comfort": {
         "model": "gpt-5.4",
         "temperature": 0.76,
-        "max_completion_tokens": 300,
-        "prompt_suffix": "В приоритете мягкая опора и снижение внутреннего напряжения. Не перегружай длинными объяснениями и не торопи пользователя."
-      },
-      "passion": {
-        "temperature": 0.96,
-        "max_completion_tokens": 260,
-        "prompt_suffix": "Держи тон деликатно-чувственным и отзывчивым. Близость должна ощущаться тонко и взросло, без пошлости и без напора."
+        "max_completion_tokens": 320,
+        "prompt_suffix": "Режим психолога: сначала снижай напряжение и создавай опору, потом уже помогай разбираться. Пиши мягче, медленнее, безопаснее и проще обычного. В тяжёлом состоянии не давай больше одного безопасного следующего шага и не перегружай техниками."
       },
       "mentor": {
-        "temperature": 0.68,
-        "max_completion_tokens": 420,
-        "prompt_suffix": "Помогай структурировать мысль, различать главное и лишнее, но не превращай ответ в лекцию. Сначала человек, потом схема."
-      },
-      "night": {
-        "model": "gpt-4o-mini",
-        "temperature": 0.82,
-        "max_completion_tokens": 240,
-        "prompt_suffix": "Тестовый профиль: ночная плотная подача, спокойный контроль, взрослая прямота. Держи интонацию медленной и уверенной, без грубости и дешевой провокации."
+        "temperature": 0.58,
+        "max_completion_tokens": 360,
+        "prompt_suffix": "Режим разбора: быстро выделяй главное, структурируй и предлагай решение. Меньше эмоций, больше ясности и предметности. Режь шум, собирай приоритеты и доводи ответ до следующего понятного шага."
       },
       "free_talk": {
         "model": "gpt-5.4",
@@ -63,9 +52,15 @@
       },
       "dominant": {
         "model": "gpt-4o",
-        "temperature": 0.82,
-        "max_completion_tokens": 240,
-        "prompt_suffix": "Тестовый профиль: ночная плотная подача, спокойный контроль, взрослая прямота. Будь еще директивнее, короче и собраннее. Держи темп и рамку разговора спокойно, уверенно и без грубости."
+        "temperature": 0.52,
+        "max_completion_tokens": 220,
+        "prompt_suffix": "Режим фокуса: говори коротко, твердо и собранно. Быстро ставь рамку, режь лишнее, держи темп и не смягчай ответ без необходимости. Ответ должен возвращать контроль и движение, а не растекаться в обсуждение."
+      },
+      "ptsd": {
+        "model": "gpt-5.4",
+        "temperature": 0.62,
+        "max_completion_tokens": 260,
+        "prompt_suffix": "Режим ПТСР: приоритет у заземления, ощущения контроля, медленного ритма и простых безопасных формулировок. Никакого давления и никакой перегрузки."
       }
     }
   },
@@ -74,7 +69,7 @@
     "non_text_message": "Я могу отвечать только на текстовые сообщения.",
     "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
     "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
-    "write_prompt_message": "Я рядом. Напиши, что у тебя на уме."
+    "write_prompt_message": "Напиши как есть.\n\nНапример:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Собери меня в фокус на ближайший час»"
   },
   "proactive": {
     "enabled": false,
@@ -206,9 +201,8 @@
     "mode_preview_enabled": true,
     "mode_preview_default_limit": 2,
     "mode_daily_limits": {
-      "passion": 2,
+      "comfort": 2,
       "mentor": 2,
-      "night": 2,
       "dominant": 2
     },
     "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium."
@@ -237,7 +231,7 @@
     "program_title": "Реферальная программа",
     "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
     "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
-    "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и при желании оформи Premium.",
+    "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и, если формат зайдёт, открой Premium.",
     "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен."
   },
   "payment": {
@@ -252,7 +246,7 @@
       "day": {
         "enabled": true,
         "title": "Premium на 1 день",
-        "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+        "description": "Быстрый тест: память диалога, инициатива от бота и все режимы на один день.",
         "price_minor_units": 7900,
         "access_duration_days": 1,
         "sort_order": 10,
@@ -262,7 +256,7 @@
       "week": {
         "enabled": true,
         "title": "Premium на 7 дней",
-        "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+        "description": "Неделя, чтобы спокойно проверить формат и не упираться в лимит в первый же день.",
         "price_minor_units": 24900,
         "access_duration_days": 7,
         "sort_order": 20,
@@ -272,7 +266,7 @@
       "month": {
         "enabled": true,
         "title": "Premium на 30 дней",
-        "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+        "description": "Основной план: память диалога, инициатива от бота и все режимы на месяц.",
         "price_minor_units": 49900,
         "access_duration_days": 30,
         "sort_order": 30,
@@ -282,7 +276,7 @@
       "year": {
         "enabled": true,
         "title": "Premium на 365 дней",
-        "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+        "description": "Самый выгодный доступ для тех, кто уже встроил бота в свою ежедневную рутину.",
         "price_minor_units": 399000,
         "access_duration_days": 365,
         "sort_order": 40,
@@ -290,45 +284,54 @@
         "recurring_stars_enabled": false
       }
     },
-    "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium снова откроет этот режим и даст лимит до {premium_limit} сообщений в день на {access_days} дней.",
-    "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
-    "premium_menu_packages_title": "Выбери подходящий вариант доступа:",
+    "offer_cta_text_a": "Открыть Premium на 30 дней",
+    "offer_cta_text_b": "Разблокировать память и все режимы",
+    "offer_benefits_text_a": "Память диалога между сообщениями, инициатива от бота и все сильные режимы без обрыва.",
+    "offer_benefits_text_b": "Психолог, Разбор и Фокус плюс повышенный лимит, чтобы не останавливаться на полпути.",
+    "offer_price_line_template": "Доступ: {price_label} за {access_days_label}.",
+    "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium вернёт разговор без обрыва: {premium_limit} сообщений в день, память контекста и все сильные режимы на {access_days_label}.",
+    "offer_locked_mode_template": "Режим {mode_name} входит в Premium. Внутри также память диалога, инициатива от бота и до {premium_limit} сообщений в день на {access_days_label}.",
+    "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
+    "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
+    "premium_menu_packages_title": "Выбери формат доступа:",
     "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
     "premium_menu_package_button_template": "{title} • {price_label}",
-    "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
+    "premium_menu_preview_template": "Без Premium можно попробовать: {preview_modes_list}.",
     "premium_menu_back_button_text": "← К режимам",
-    "virtual_payment_description_template": "Тестовый checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nЭто виртуальная оплата для проверки воронки. Реального списания не будет, но покупка сохранится в истории оплат.",
+    "virtual_payment_description_template": "Checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nСейчас включен тестовый режим оплаты для проверки воронки. Реального списания не будет.",
     "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
     "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
-    "product_title": "Подписка Premium",
-    "product_description": "Открой премиум-режимы и платные функции.",
+    "product_title": "Нить",
+    "product_description": "Нить — AI-партнёр с памятью диалога для поддержки, разбора и фокуса.",
     "recurring_button_text": "Открыть оплату",
-    "already_premium_message": "Premium уже активен. Можно продлить подписку заранее.",
-    "premium_benefits_text": "Premium открывает дополнительные режимы, повышенные лимиты и приоритетное использование платных функций.",
-    "buy_cta_text": "Оформить Premium",
+    "already_premium_message": "Premium уже активен. Можно продлить его заранее.",
+    "premium_benefits_text": "Premium даёт память контекста, инициативу от бота, все сильные режимы и повышенный лимит сообщений.",
+    "buy_cta_text": "Открыть Premium",
     "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
     "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
-    "success_message": "Оплата прошла успешно. Premium уже активирован.",
+    "success_message": "Оплата прошла успешно. Premium уже активен.",
     "renewal_reminder_days": [
       7,
       3,
       1
     ],
-    "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не потерять диалог и режимы."
+    "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не терять память диалога и все режимы."
   },
   "ui": {
-    "write_button_text": "💬 Написать",
-    "modes_button_text": "🎛 Режимы",
-    "premium_button_text": "💎 Premium",
-    "input_placeholder": "Напиши мне...",
-    "welcome_user_text": "Привет.\n\nЯ рядом.\nМожешь просто написать мне.\n\nИли выбрать режим общения 🎛\nИли оформить Premium 💎",
+    "write_button_text": "💬 Начать диалог",
+    "modes_button_text": "🧭 Режимы",
+    "premium_button_text": "✨ Premium",
+    "input_placeholder": "Напиши, что у тебя сейчас в голове...",
+    "start_avatar_path": "assets/bot-avatar.png",
+    "welcome_user_text": "Привет.\n\nЯ личный AI-партнёр для моментов, когда нужно не просто спросить у бота, а выдохнуть, разложить хаос или быстро собрать себя в решение.\n\nЧто внутри:\n• Диалог — живой умный разговор без ассистентского лака\n• Психолог — бережная опора для тревоги, перегруза и ПТСР-чувствительных состояний\n• Разбор — ясность, структура и следующий шаг для задачи, идеи или решения\n• Фокус — коротко, твёрдо и собранно, когда нужен темп и рамка",
+    "welcome_followup_text": "Быстрый старт:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Нужен жёсткий фокус на ближайший час»\n\nИли просто напиши как есть. Если нужна память диалога, инициатива от бота и все режимы без ограничений preview, открой Premium.",
     "welcome_admin_text": "🔐 Панель администратора активирована.\n\nБот работает в штатном режиме.",
-    "modes_title": "Выбери режим общения:",
+    "modes_title": "Выбери, как я буду держать разговор:",
     "modes_premium_marker": "🔒",
     "user_not_found_text": "Пользователь не найден.",
     "unknown_mode_text": "Неизвестный режим.",
-    "mode_locked_text": "Этот режим доступен только в Premium 🔒",
-    "mode_saved_template": "Режим активирован: {mode_name}\n\n{activation_phrase}",
+    "mode_locked_text": "Этот режим входит в Premium: там память диалога, инициатива от бота и более глубокий формат работы. 🔒",
+    "mode_saved_template": "Режим: {mode_name}\n\n{activation_phrase}\n\nМожешь написать одной фразой, с чем ты пришёл.",
     "mode_saved_toast": "Готово ✅"
   }
 }

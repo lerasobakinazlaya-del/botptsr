@@ -18,6 +18,7 @@ from services.access_engine import AccessEngine
 from services.ai_service import AIService
 from services.admin_settings_service import AdminSettingsService
 from services.chat_session_service import ChatSessionService
+from services.conversation_engine_v2 import ConversationEngineV2
 from services.conversation_summary_service import ConversationSummaryService
 from services.human_memory_service import HumanMemoryService
 from services.keyword_memory_service import KeywordMemoryService
@@ -74,7 +75,11 @@ class Container:
             redis=self.redis,
         )
         self.mode_access_service = ModeAccessService()
-        self.prompt_builder = PromptBuilder(self.admin_settings_service)
+        self.conversation_engine = ConversationEngineV2(self.admin_settings_service)
+        self.prompt_builder = PromptBuilder(
+            self.admin_settings_service,
+            conversation_engine=self.conversation_engine,
+        )
         self.access_engine = AccessEngine(self.admin_settings_service)
 
         self.openai_client = OpenAIClient(
@@ -92,6 +97,7 @@ class Container:
             prompt_builder=self.prompt_builder,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
+            conversation_engine=self.conversation_engine,
             debug=self.settings.debug,
             log_full_prompt=self.settings.ai_log_full_prompt,
             debug_prompt_user_id=self.settings.ai_debug_prompt_user_id,
@@ -131,6 +137,7 @@ class Container:
             keyword_memory_service=self.keyword_memory_service,
             memory_profile_service=self.memory_profile_service,
             prompt_builder=self.prompt_builder,
+            conversation_engine=self.conversation_engine,
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
             user_service=self.user_service,

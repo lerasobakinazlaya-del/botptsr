@@ -62,8 +62,24 @@ def make_bad_request(message: str) -> BadRequestError:
 
 
 class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_generate_retries_with_medium_verbosity_when_low_is_rejected(self):
+    async def test_generate_skips_unsupported_verbosity_and_reasoning_for_gpt_4o_mini(self):
         client = OpenAIClient(api_key="test-key")
+        fake_client = FakeAsyncOpenAI([FakeResponse("ok")])
+        client.client = fake_client
+
+        text, tokens = await client.generate(
+            messages=[{"role": "user", "content": "hi"}],
+            verbosity="low",
+            reasoning_effort="high",
+        )
+
+        self.assertEqual(text, "ok")
+        self.assertEqual(tokens, 42)
+        self.assertNotIn("verbosity", fake_client.chat.completions.payloads[0])
+        self.assertNotIn("reasoning_effort", fake_client.chat.completions.payloads[0])
+
+    async def test_generate_retries_with_medium_verbosity_when_low_is_rejected(self):
+        client = OpenAIClient(api_key="test-key", model="gpt-5")
         fake_client = FakeAsyncOpenAI(
             [
                 make_bad_request(
@@ -85,7 +101,7 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fake_client.chat.completions.payloads[1]["verbosity"], "medium")
 
     async def test_generate_drops_unknown_reasoning_effort_and_retries(self):
-        client = OpenAIClient(api_key="test-key")
+        client = OpenAIClient(api_key="test-key", model="gpt-5")
         fake_client = FakeAsyncOpenAI(
             [
                 make_bad_request("Unknown parameter: 'reasoning_effort'."),

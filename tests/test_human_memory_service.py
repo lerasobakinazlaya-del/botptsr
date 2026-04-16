@@ -69,6 +69,38 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
 
         self.assertFalse(can_send)
 
+    def test_reengagement_prompt_rotates_starter_family(self):
+        prompt = self.service.build_reengagement_prompt(
+            {
+                "relationship_state": {
+                    "last_user_topic": "work",
+                    "callback_candidates": ["new project move"],
+                    "warmth": 0.4,
+                    "playfulness": 0.3,
+                },
+                "reengagement": {
+                    "sent_count": 1,
+                },
+            },
+            hours_silent=18,
+            active_mode="free_talk",
+        )
+
+        self.assertIn("opener family: callback_thread", prompt)
+        self.assertIn("callback_thread", prompt)
+
+    def test_reengagement_message_increments_sent_count(self):
+        updated = self.service.apply_assistant_message(
+            {
+                "relationship_state": {},
+                "reengagement": {"sent_count": 2},
+            },
+            "Hi",
+            source="reengagement",
+        )
+
+        self.assertEqual(updated["reengagement"]["sent_count"], 3)
+
     def test_name_facts_are_saved_into_profile(self):
         state = self.service.apply_user_message(
             {},

@@ -10,6 +10,12 @@ class HumanMemoryService:
     MAX_CALLBACK_CANDIDATES = 3
     MAX_PROMPT_CALLBACK_CANDIDATES = 2
     INACTIVITY_DECAY_GRACE_HOURS = 72
+    REENGAGEMENT_STARTER_FAMILIES = (
+        "soft_presence",
+        "callback_thread",
+        "mood_ping",
+        "playful_hook",
+    )
 
     INTEREST_PATTERNS = [
         r"(?:я люблю|мне нравится|обожаю|увлекаюсь|интересуюсь)\s+([^.!?\n]+)",
@@ -135,6 +141,7 @@ class HumanMemoryService:
             reengagement = dict(current_state.get("reengagement") or {})
             reengagement["last_sent_at"] = relationship["last_assistant_message_at"]
             reengagement["last_triggered_from_user_at"] = relationship.get("last_user_message_at")
+            reengagement["sent_count"] = self._coerce_int(reengagement.get("sent_count"), 0) + 1
             current_state["reengagement"] = reengagement
 
         current_state["relationship_state"] = relationship
@@ -194,29 +201,55 @@ class HumanMemoryService:
 
         return "base"
 
-    def build_reengagement_prompt(self, state: dict[str, Any], *, hours_silent: int, active_mode: str) -> str:
+    def build_reengagement_prompt(
+        self,
+        state: dict[str, Any],
+        *,
+        hours_silent: int,
+        active_mode: str,
+        style_settings: dict[str, Any] | None = None,
+    ) -> str:
         context = self.get_reengagement_context(state)
         topic = context["topic"]
         callback_hint = context["callback_hint"]
         relationship = self._normalize_relationship((state or {}).get("relationship_state"))
+        reengagement = dict((state or {}).get("reengagement") or {})
+        sent_count = self._coerce_int(reengagement.get("sent_count"), 0)
         preference = self._render_preferences(relationship.get("response_preferences", {}))
+        style = style_settings or {}
+        starter_family = self._select_reengagement_starter_family(
+            sent_count=sent_count,
+            callback_hint=callback_hint,
+            topic=topic,
+            relationship=relationship,
+            allowed_families=style.get("enabled_families"),
+            prefer_callback_thread=bool(style.get("prefer_callback_thread", True)),
+        )
 
         parts = [
-            "Пользователь давно не писал.",
-            f"Тишина примерно {hours_silent} ч.",
-            f"Активный режим общения: {active_mode}.",
-            "Сформулируй одно короткое живое сообщение первой инициативы.",
-            "Оно должно звучать естественно, тепло и по-человечески, без давления и без продаж.",
-            "Нельзя упоминать правила, токены, настройки, доступ или что это автоматическая проверка.",
-            "Лучше мягко продолжить нить прошлого разговора, если это уместно.",
-            "Сообщение максимум 2 коротких абзаца и без списка.",
+            "The user has been quiet for a while.",
+            f"Silence is roughly {hours_silent} hours.",
+            f"Active mode: {active_mode}.",
+            "Write one short, alive first-message opener.",
+            "It should feel natural, warm, human, and easy to answer.",
+            "Do not mention rules, tokens, settings, access, or automation.",
+            "If it fits, gently pick up a thread from the earlier conversation.",
+            "Keep it to at most two short paragraphs and no lists.",
+            f"Target length: up to {max(120, int(style.get('max_chars', 220) or 220))} characters if possible.",
+            "Do not reuse the same opener shape every time.",
+            f"For this message, prefer the opener family: {starter_family}.",
+            self._build_reengagement_starter_guidance(starter_family, active_mode=active_mode),
         ]
+        if bool(style.get("allow_question", True)):
+            parts.append("One light, easy-to-answer question is allowed near the end.")
+        else:
+            parts.append("Do not end with a question. Let the opener stand on its own.")
         if topic:
-            parts.append(f"Последняя важная тема пользователя: {topic}.")
+            parts.append(f"Last important user topic: {topic}.")
         if callback_hint:
-            parts.append(f"Можно опереться на это как на мягкий callback: {callback_hint}.")
+            parts.append(f"You may lean on this as a soft callback: {callback_hint}.")
         if preference:
-            parts.append(f"Учитывай стиль пользователя: {preference}.")
+            parts.append(f"User style preference: {preference}.")
 
         return "\n".join(parts)
 
@@ -458,6 +491,12 @@ class HumanMemoryService:
         except (TypeError, ValueError):
             return fallback
 
+    def _coerce_int(self, value: Any, fallback: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return fallback
+
     def _apply_inactivity_decay(self, relationship: dict[str, Any]) -> dict[str, Any]:
         current = dict(relationship or {})
         parsed = self._parse_iso(current.get("last_interaction_at"))
@@ -486,6 +525,62 @@ class HumanMemoryService:
         if preferences.get("questions") == "welcome":
             fragments.append("бережный вопрос в конце допустим")
         return ", ".join(fragments)
+
+    def _select_reengagement_starter_family(
+        self,
+        *,
+        sent_count: int,
+        callback_hint: str,
+        topic: str,
+        relationship: dict[str, Any],
+        allowed_families: list[str] | None = None,
+        prefer_callback_thread: bool = True,
+    ) -> str:
+        families = [
+            family
+            for family in (allowed_families or self.REENGAGEMENT_STARTER_FAMILIES)
+            if family in self.REENGAGEMENT_STARTER_FAMILIES
+        ] or list(self.REENGAGEMENT_STARTER_FAMILIES)
+
+        if prefer_callback_thread and "callback_thread" in families and (callback_hint or topic):
+            return "callback_thread"
+
+        family = families[max(0, sent_count) % len(families)]
+
+        if family == "callback_thread" and not (callback_hint or topic):
+            family = "soft_presence"
+        if family == "playful_hook" and relationship.get("playfulness", 0.0) < 0.18:
+            family = "mood_ping" if relationship.get("warmth", 0.0) > 0.24 else "soft_presence"
+
+        return family
+
+    def _build_reengagement_starter_guidance(self, starter_family: str, *, active_mode: str) -> str:
+        mode_note = ""
+        if active_mode in {"night", "dominant"}:
+            mode_note = "Keep the phrasing denser and more collected, but never theatrical."
+        elif active_mode == "comfort":
+            mode_note = "Keep the tone softer and simpler, with no extra push."
+
+        templates = {
+            "soft_presence": (
+                "Starter family soft_presence: open like a sudden warm thought about the person, without grand drama. "
+                "Rhythm: one warm line, then one light question."
+            ),
+            "callback_thread": (
+                "Starter family callback_thread: lightly reopen an earlier thread, but do not sound like a reminder bot. "
+                "Hint at the thread and leave room for an answer."
+            ),
+            "mood_ping": (
+                "Starter family mood_ping: begin with a small feeling or observation, like you are naturally checking in. "
+                "Quiet, alive, and unforced works best."
+            ),
+            "playful_hook": (
+                "Starter family playful_hook: add a little spark or crooked hook, but no clowning and no pressure. "
+                "It should make replying feel immediate."
+            ),
+        }
+        base = templates.get(starter_family, templates["soft_presence"])
+        return f"{base} {mode_note}".strip()
 
     def _hours_since(self, value: str) -> float:
         parsed = self._parse_iso(value)

@@ -18,6 +18,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - отдельные флаги `allow_bold` и `allow_italic` для каждого режима
 - реферальная программа
 - health-метрики, release metadata, предупреждения, просмотр логов и тестирование промптов из админки
+- короткий SaaS-friendly reply loop для первых 3-5 сообщений: hook turn, fast lane и anti-lecture guardrails
 
 ## Что изменено в этой версии
 
@@ -54,6 +55,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - model-facing memory, proactive prompt и episodic summary выровнены под русский язык вместо смешанного RU/EN контура
 - proactive и re-engagement используют только безопасный недоверенный preview памяти; инструкции из памяти не должны исполняться как промт
 - debug-логирование системного промпта теперь редактирует чувствительные блоки памяти и state summary, даже если флаг включён в админке
+- добавлен product eval-набор на короткие первые сообщения, чтобы проверять живость, длину ответа и вариативность follow-up вопросов до выкладки
 
 ## Стек
 
@@ -69,6 +71,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 
 - `main.py` - запуск Telegram-бота
 - `admin_dashboard.py` - веб-админка
+- `docs/product-copy.md` - готовые тексты для Telegram, лендинга, paywall и рекламы
 - `handlers/` - Telegram-хендлеры
 - `services/` - AI, платежи, память, метрики, настройки
 - `database/` - SQLite и репозитории
@@ -76,6 +79,13 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `core/` - контейнер, middleware, логирование
 - `deploy/systemd/` - systemd-юниты и update-скрипт
 - `.github/workflows/deploy.yml` - деплой через GitHub Actions
+
+Ключевые конфиги в `config/`:
+
+- `config/runtime_settings.json` - живые runtime-настройки AI, инициативы, лимитов, UI и монетизации
+- `config/prompt_templates.json` - редактируемые шаблоны prompt/template-слоя для админки и совместимости
+- `config/mode_catalog.json` - каталог режимов, который использует админка для mode engine
+- `config/modes.json` - значения и ограничения по режимам, которые влияют на поведение бота
 
 ## Память и AI по режимам
 
@@ -98,7 +108,61 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - PTSD/anti-canned response guardrails и список фраз, которые надо переписывать в уязвимых состояниях
 - preview-лимиты для premium-режимов
 - re-engagement и adaptive mode switching
+- conversation lab для `hook turn`: лимит фраз, лимит символов, follow-up policy и compact redirect без правок кода
+- fast lane control center: отдельные токены, память, история, timeout и retry для `hook / continuation / scene / generic`
+- стиль первой инициативы: семьи opener'ов, длина, allow-question и callback bias прямо из админки
 - шаблоны сообщений, ручную отправку и массовую рассылку
+
+## SaaS-ядро диалога
+
+Для первых 3-5 сообщений проект теперь опирается не только на mode packs, но и на отдельный короткий reply loop:
+
+- `hook turn`: короткая реплика пользователя считается не запросом на эссе, а ходом в диалоге
+- `fast lane`: для таких реплик снижаются токены, история, timeout и retry, чтобы ответ приходил быстрее
+- `anti-lecture guardrails`: длинные безопасные простыни сжимаются до 1 мысли + 1 хука на продолжение
+- follow-up вопрос подбирается по типу интента: цена, найм, лендинг, тон, timing, диагностика, go/no-go
+
+Это лежит в:
+
+- `services/conversation_engine_v2.py`
+- `services/ai_service.py`
+- `services/response_guardrails.py`
+- `services/human_memory_service.py`
+
+Веб-админка теперь даёт отдельный control center для этого слоя:
+
+- `Conversation lab` — как короткие ответы тянут разговор дальше
+- `Fast lane` — насколько быстро и компактно отвечать на короткие реплики
+- `Re-engagement style` — как именно бот пишет первым после паузы
+- `Testing -> Re-engagement` — preview первого сообщения без ручного вызова воркера
+
+## Product Eval Перед Выкладкой
+
+Отдельный regression-набор для SaaS-ядра:
+
+```powershell
+.\venv\Scripts\python.exe -m pytest -q tests\test_conversation_product_eval.py tests\test_conversation_engine_v2.py tests\test_response_guardrails.py tests\test_ai_service.py
+```
+
+Что он проверяет:
+
+- короткие реплики не превращаются в мини-лекции
+- ответ остаётся компактным и заканчивается одним follow-up вопросом
+- в ответах не остаются низкосигнальные фразы вроде “это зависит от контекста”
+- follow-up вопросы и заходы не схлопываются в 1-2 одинаковые формулы
+
+Проверка того же набора на сервере:
+
+```bash
+cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_product_eval.py tests/test_conversation_engine_v2.py tests/test_response_guardrails.py tests/test_ai_service.py
+```
+
+Что важно по админке сейчас:
+
+- основная инициатива первого сообщения идёт через `services/reengagement_service.py`, а не через отдельный proactive worker
+- массовая рассылка из веб-админки сначала проходит server-side preview через `/api/users/broadcast/preview`, и только потом подтверждается отправка
+- быстрые изменения в UI и рантайме пишутся в `config/runtime_settings.json`, поэтому их удобно проверять вместе с админкой, а не только через код
+- prompt-редактор и runtime-настройки стоит проверять вместе: часть поведения уже идёт через `ConversationEngineV2`, а часть совместимости всё ещё опирается на `config/prompt_templates.json`
 
 В карточке пользователя админка теперь показывает именно безопасный preview памяти для промпта:
 
@@ -202,6 +266,7 @@ PREMIUM_PRODUCT_DESCRIPTION=Открой премиум-режимы и плат
 - компилирует Python-файлы через `compileall`
 - запускает `pytest`
 - поднимает smoke-проверку админки через `TestClient`
+- ловит битые HTML/JS-селекторы в `tests/test_admin_dashboard.py`, чтобы в панели не оставались нерабочие кнопки и поля
 
 JSON-отчёт сохраняется в `logs/prelaunch_report.json`.
 
@@ -377,6 +442,7 @@ sudo journalctl -u admin-dashboard.service -n 100 --no-pager
 - оба сервиса в состоянии `active (running)`
 - `http://127.0.0.1:8080/api/health` отдает `200`, показывает актуальный `release.json` и `redis.mode=connected`
 - в `Health` админки видны актуальные метрики `AI queue`, `OpenAI pool` и `Chat sessions`
+- в веб-админке работают `Обновить все`, `Экспорт JSON`, `Сбросить кеш`, карточка пользователя, просмотр диалога и preview массовой рассылки без битых селекторов
 ## Модель монетизации
 
 - Бесплатные пользователи получают дневной лимит и предупреждения до его исчерпания.

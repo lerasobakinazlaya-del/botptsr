@@ -10,6 +10,7 @@ from handlers.payments import (
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
     OFFER_TRIGGER_PREVIEW_EXHAUSTED,
+    _build_offer_intro,
     send_premium_offer,
     show_premium_menu,
 )

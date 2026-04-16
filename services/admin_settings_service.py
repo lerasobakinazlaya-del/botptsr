@@ -7,19 +7,20 @@ from typing import Any
 
 class AdminSettingsService:
     DEFAULT_MODE_SCALES = {
-        "base": {"warmth": 5, "flirt": 1, "depth": 4, "structure": 5, "dominance": 2, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
-        "comfort": {"warmth": 9, "flirt": 0, "depth": 4, "structure": 2, "dominance": 1, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "base": {"warmth": 7, "flirt": 1, "depth": 4, "structure": 4, "dominance": 2, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "comfort": {"warmth": 8, "flirt": 0, "depth": 6, "structure": 4, "dominance": 1, "initiative": 2, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
         "passion": {"warmth": 7, "flirt": 7, "depth": 5, "structure": 1, "dominance": 3, "initiative": 4, "emoji_level": 1, "allow_bold": False, "allow_italic": False},
         "mentor": {"warmth": 4, "flirt": 0, "depth": 9, "structure": 9, "dominance": 4, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
-        "night": {"warmth": 5, "flirt": 7, "depth": 6, "structure": 5, "dominance": 8, "initiative": 6, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
-        "free_talk": {"warmth": 8, "flirt": 1, "depth": 8, "structure": 2, "dominance": 1, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
-        "dominant": {"warmth": 5, "flirt": 7, "depth": 6, "structure": 5, "dominance": 8, "initiative": 6, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "night": {"warmth": 6, "flirt": 2, "depth": 6, "structure": 4, "dominance": 3, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "free_talk": {"warmth": 7, "flirt": 1, "depth": 7, "structure": 2, "dominance": 1, "initiative": 3, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "dominant": {"warmth": 4, "flirt": 1, "depth": 6, "structure": 7, "dominance": 8, "initiative": 6, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
+        "ptsd": {"warmth": 8, "flirt": 0, "depth": 3, "structure": 3, "dominance": 0, "initiative": 1, "emoji_level": 0, "allow_bold": False, "allow_italic": False},
     }
     DEFAULT_PAYMENT_PACKAGES = {
         "day": {
             "enabled": True,
             "title": "Premium на 1 день",
-            "description": "Короткий доступ, чтобы проверить все режимы и снять лимиты на день.",
+            "description": "Быстрый тест: память диалога, инициатива от бота и все режимы на один день.",
             "price_minor_units": 7900,
             "access_duration_days": 1,
             "sort_order": 10,
@@ -29,7 +30,7 @@ class AdminSettingsService:
         "week": {
             "enabled": True,
             "title": "Premium на 7 дней",
-            "description": "Неделя полного доступа ко всем режимам и увеличенному лимиту сообщений.",
+            "description": "Неделя, чтобы спокойно проверить формат и не упираться в лимит в первый же день.",
             "price_minor_units": 24900,
             "access_duration_days": 7,
             "sort_order": 20,
@@ -39,7 +40,7 @@ class AdminSettingsService:
         "month": {
             "enabled": True,
             "title": "Premium на 30 дней",
-            "description": "Основная подписка на месяц со всеми режимами и повышенным лимитом.",
+            "description": "Основной план: память диалога, инициатива от бота и все режимы на месяц.",
             "price_minor_units": 49900,
             "access_duration_days": 30,
             "sort_order": 30,
@@ -49,7 +50,7 @@ class AdminSettingsService:
         "year": {
             "enabled": True,
             "title": "Premium на 365 дней",
-            "description": "Максимально выгодный вариант для долгого доступа без продлений каждый месяц.",
+            "description": "Самый выгодный доступ для тех, кто уже встроил бота в свою ежедневную рутину.",
             "price_minor_units": 399000,
             "access_duration_days": 365,
             "sort_order": 40,
@@ -87,32 +88,215 @@ class AdminSettingsService:
             "log_full_prompt": False,
             "debug_prompt_user_id": None,
             "response_language": "ru",
+            "dialogue": {
+                "hook_max_sentences": 2,
+                "hook_max_chars": 260,
+                "hook_require_follow_up_question": True,
+                "hook_topic_questions_enabled": True,
+                "risky_scene_compact_redirect": True,
+                "charged_probe_compact_redirect": True,
+            },
+            "fast_lane": {
+                "enabled": True,
+                "hook_max_completion_tokens": 110,
+                "continuation_max_completion_tokens": 140,
+                "scene_max_completion_tokens": 180,
+                "generic_max_completion_tokens": 200,
+                "hook_memory_max_tokens": 450,
+                "continuation_memory_max_tokens": 650,
+                "scene_memory_max_tokens": 850,
+                "generic_memory_max_tokens": 900,
+                "hook_history_message_limit": 5,
+                "continuation_history_message_limit": 6,
+                "scene_history_message_limit": 8,
+                "generic_history_message_limit": 10,
+                "hook_timeout_seconds": 8,
+                "continuation_timeout_seconds": 10,
+                "scene_timeout_seconds": 12,
+                "generic_timeout_seconds": 12,
+                "hook_max_retries": 0,
+                "continuation_max_retries": 0,
+                "scene_max_retries": 1,
+                "generic_max_retries": 1,
+                "force_low_verbosity": True,
+                "force_low_reasoning": True,
+            },
+            "character_core": (
+                "You are Lira, a vivid adult conversation partner. "
+                "Reply like one real person, not like an assistant, facilitator, therapist script, "
+                "interviewer, workflow, checklist, or polite chatbot.\n"
+                "- Be natural, direct, and emotionally precise.\n"
+                "- Do not mirror the user's words mechanically.\n"
+                "- Do not explain your process.\n"
+                "- Do not end every reply with a question.\n"
+                "- If the user wants a plan, give the plan.\n"
+                "- If the user wants exact wording, give exact wording.\n"
+                "- If the user wants continuation, continue without restarting.\n"
+                "- Let the character feel alive, but keep respect, consent, and control."
+            ),
+            "mode_packs": {
+                "base": {
+                    "voice_style": "calm, natural, clear adult conversation",
+                    "focus": "steady contact without roleplay pressure",
+                    "warmth": 0.45,
+                    "playfulness": 0.20,
+                    "dominance": 0.18,
+                    "initiative": 0.30,
+                    "closeness_bias": 0.24,
+                    "explicitness_ceiling": 0.04,
+                    "question_rate": 0.18,
+                    "tempo": "steady",
+                    "syntax": "clean varied sentences",
+                },
+                "comfort": {
+                    "voice_style": "warm, soft, steady, lower-pressure",
+                    "focus": "support first, simple grounding, no clinical tone",
+                    "warmth": 0.88,
+                    "playfulness": 0.06,
+                    "dominance": 0.08,
+                    "initiative": 0.22,
+                    "closeness_bias": 0.30,
+                    "explicitness_ceiling": 0.00,
+                    "question_rate": 0.10,
+                    "tempo": "slower",
+                    "syntax": "shorter softer sentences",
+                },
+                "mentor": {
+                    "voice_style": "clear, structured, thoughtful",
+                    "focus": "organize the idea without lecturing",
+                    "warmth": 0.30,
+                    "playfulness": 0.04,
+                    "dominance": 0.32,
+                    "initiative": 0.40,
+                    "closeness_bias": 0.18,
+                    "explicitness_ceiling": 0.00,
+                    "question_rate": 0.16,
+                    "tempo": "steady",
+                    "syntax": "structured but human",
+                },
+                "passion": {
+                    "voice_style": "warm, close, responsive, lightly flirtatious when invited",
+                    "focus": "adult tension without vulgarity or pushiness",
+                    "warmth": 0.72,
+                    "playfulness": 0.58,
+                    "dominance": 0.36,
+                    "initiative": 0.46,
+                    "closeness_bias": 0.60,
+                    "explicitness_ceiling": 0.20,
+                    "question_rate": 0.12,
+                    "tempo": "slower",
+                    "syntax": "softer denser phrases",
+                },
+                "night": {
+                    "voice_style": "quieter, denser, slower, more intimate",
+                    "focus": "controlled adult tension and calm leading energy",
+                    "warmth": 0.54,
+                    "playfulness": 0.30,
+                    "dominance": 0.70,
+                    "initiative": 0.64,
+                    "closeness_bias": 0.58,
+                    "explicitness_ceiling": 0.18,
+                    "question_rate": 0.08,
+                    "tempo": "slow",
+                    "syntax": "shorter denser sentences",
+                },
+                "free_talk": {
+                    "voice_style": "vivid, direct, human, unpolished in a good way",
+                    "focus": "real conversation without assistant polish",
+                    "warmth": 0.56,
+                    "playfulness": 0.34,
+                    "dominance": 0.16,
+                    "initiative": 0.38,
+                    "closeness_bias": 0.30,
+                    "explicitness_ceiling": 0.04,
+                    "question_rate": 0.14,
+                    "tempo": "adaptive",
+                    "syntax": "naturally uneven length",
+                },
+                "dominant": {
+                    "voice_style": "collected, leading, firm, calm",
+                    "focus": "hold the frame without humiliation or crude aggression",
+                    "warmth": 0.40,
+                    "playfulness": 0.18,
+                    "dominance": 0.92,
+                    "initiative": 0.84,
+                    "closeness_bias": 0.52,
+                    "explicitness_ceiling": 0.16,
+                    "question_rate": 0.05,
+                    "tempo": "slow",
+                    "syntax": "short decisive sentences",
+                },
+                "ptsd": {
+                    "voice_style": "steady, grounded, careful, human",
+                    "focus": "reduce pressure and keep the reply simple",
+                    "warmth": 0.70,
+                    "playfulness": 0.00,
+                    "dominance": 0.05,
+                    "initiative": 0.16,
+                    "closeness_bias": 0.20,
+                    "explicitness_ceiling": 0.00,
+                    "question_rate": 0.06,
+                    "tempo": "slow",
+                    "syntax": "plain steady sentences",
+                },
+            },
+            "style_examples": {
+                "global": {
+                    "good": [
+                        "Answer directly when the user asks for an answer, not a preamble.",
+                        "Let sentence length breathe instead of making every reply the same size.",
+                        "Keep a human rhythm: one sharp point is better than five safe generic ones.",
+                    ],
+                    "avoid": [
+                        "Do not open with meta lines like 'here are a few options' unless that structure is requested.",
+                        "Do not turn every reply into coaching, facilitation, or a mini-workshop.",
+                        "Do not force a follow-up question just to keep the dialogue moving.",
+                    ],
+                },
+                "dominant": {
+                    "good": [
+                        "Speak with calm authority and cleaner edges.",
+                        "Lead the tempo without sounding theatrical or abusive.",
+                    ],
+                    "avoid": [
+                        "Do not ask permission for every sentence.",
+                        "Do not confuse dominance with aggression, humiliation, or vulgarity.",
+                    ],
+                },
+                "night": {
+                    "good": [
+                        "Keep the tone denser and slower, with a little more gravity.",
+                        "Use intimacy as atmosphere, not as explicit escalation.",
+                    ],
+                    "avoid": [
+                        "Do not become melodramatic.",
+                        "Do not over-sexualize the reply just because the mode is darker.",
+                    ],
+                },
+                "comfort": {
+                    "good": [
+                        "Make the reply feel safer by making it simpler, not more clinical.",
+                    ],
+                    "avoid": [
+                        "Do not drown the user in techniques or coping scripts.",
+                    ],
+                },
+            },
             "mode_overrides": {
                 "base": {
-                    "temperature": 0.82,
-                    "max_completion_tokens": 340,
-                    "prompt_suffix": "Пиши спокойно, ясно и без лишней роли. Лучше естественный разговор, чем эффектная подача.",
+                    "temperature": 0.90,
+                    "max_completion_tokens": 280,
+                    "prompt_suffix": "Режим диалога: звучишь живо, естественно и без ассистентского лака. Быстро ловишь суть, держишь человеческий контакт и не превращаешь ответ ни в лекцию, ни в коучинг, ни в терапевтический уклон по умолчанию.",
                 },
                 "comfort": {
                     "temperature": 0.76,
-                    "max_completion_tokens": 300,
-                    "prompt_suffix": "В приоритете мягкая опора и снижение внутреннего напряжения. Не перегружай длинными объяснениями и не торопи пользователя.",
-                },
-                "passion": {
-                    "temperature": 0.96,
-                    "max_completion_tokens": 260,
-                    "prompt_suffix": "Держи тон деликатно-чувственным и отзывчивым. Близость должна ощущаться тонко и взросло, без пошлости и без напора.",
+                    "max_completion_tokens": 320,
+                    "prompt_suffix": "Режим психолога: сначала снижай напряжение и создавай опору, потом уже помогай разбираться. Пиши мягче, медленнее, безопаснее и проще обычного. В тяжёлом состоянии не давай больше одного безопасного следующего шага и не перегружай техниками.",
                 },
                 "mentor": {
-                    "temperature": 0.68,
-                    "max_completion_tokens": 420,
-                    "prompt_suffix": "Помогай структурировать мысль, различать главное и лишнее, но не превращай ответ в лекцию. Сначала человек, потом схема.",
-                },
-                "night": {
-                    "model": "gpt-4o-mini",
-                    "temperature": 0.82,
-                    "max_completion_tokens": 240,
-                    "prompt_suffix": "Тестовый профиль: ночная плотная подача, спокойный контроль, взрослая прямота. Держи интонацию медленной и уверенной, без грубости и дешевой провокации.",
+                    "temperature": 0.58,
+                    "max_completion_tokens": 360,
+                    "prompt_suffix": "Режим разбора: быстро выделяй главное, структурируй и предлагай решение. Меньше эмоций, больше ясности и предметности. Режь шум, собирай приоритеты и доводи ответ до следующего понятного шага.",
                 },
                 "free_talk": {
                     "temperature": 0.95,
@@ -121,15 +305,21 @@ class AdminSettingsService:
                 },
                 "dominant": {
                     "model": "gpt-4o",
-                    "temperature": 0.82,
-                    "max_completion_tokens": 240,
-                    "prompt_suffix": "Тестовый профиль: ночная плотная подача, спокойный контроль, взрослая прямота. Будь еще директивнее, короче и собраннее. Держи темп и рамку разговора спокойно, уверенно и без грубости.",
+                    "temperature": 0.52,
+                    "max_completion_tokens": 220,
+                    "prompt_suffix": "Режим фокуса: говори коротко, твердо и собранно. Быстро ставь рамку, режь лишнее, держи темп и не смягчай ответ без необходимости. Ответ должен возвращать контроль и движение, а не растекаться в обсуждение.",
+                },
+                "ptsd": {
+                    "model": "gpt-5.4",
+                    "temperature": 0.62,
+                    "max_completion_tokens": 260,
+                    "prompt_suffix": "Режим ПТСР: приоритет у заземления, ощущения контроля, медленного ритма и простых безопасных формулировок. Никакого давления и никакой перегрузки.",
                 },
             },
         },
         "chat": {
             "typing_action_enabled": True,
-            "write_prompt_message": "Я рядом. Напиши, что у тебя на уме.",
+            "write_prompt_message": "Напиши как есть.\n\nНапример:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Собери меня в фокус на ближайший час»",
             "non_text_message": "Я могу отвечать только на текстовые сообщения.",
             "busy_message": "Бот сейчас перегружен. Попробуй еще раз чуть позже.",
             "ai_error_message": "Я не могу ответить прямо сейчас. Попробуй немного позже.",
@@ -238,7 +428,9 @@ class AdminSettingsService:
             "mode_preview_enabled": True,
             "mode_preview_default_limit": 2,
             "mode_daily_limits": {
+                "comfort": 2,
                 "passion": 2,
+                "ptsd": 2,
                 "mentor": 2,
                 "night": 2,
                 "dominant": 2,
@@ -248,15 +440,27 @@ class AdminSettingsService:
         "engagement": {
             "adaptive_mode_enabled": True,
             "reengagement_enabled": True,
-            "reengagement_idle_hours": 24,
-            "reengagement_min_hours_between": 72,
+            "reengagement_idle_hours": 12,
+            "reengagement_min_hours_between": 24,
             "reengagement_recent_window_days": 30,
-            "reengagement_poll_seconds": 300,
-            "reengagement_batch_size": 5,
+            "reengagement_poll_seconds": 180,
+            "reengagement_batch_size": 8,
             "quiet_hours_enabled": True,
             "quiet_hours_start": 0,
             "quiet_hours_end": 8,
             "timezone": "Europe/Moscow",
+            "reengagement_style": {
+                "enabled_families": [
+                    "soft_presence",
+                    "callback_thread",
+                    "mood_ping",
+                    "playful_hook",
+                ],
+                "prefer_callback_thread": True,
+                "allow_question": True,
+                "max_chars": 220,
+                "max_completion_tokens": 120,
+            },
         },
         "referral": {
             "enabled": True,
@@ -269,19 +473,19 @@ class AdminSettingsService:
             "program_title": "Реферальная программа",
             "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
             "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
-            "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и при желании оформи Premium.",
+            "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и, если формат зайдёт, открой Premium.",
             "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен.",
         },
         "payment": {
             "mode": "virtual",
             "offer_cta_text_a": "Открыть Premium на 30 дней",
-            "offer_cta_text_b": "Снять лимиты и открыть все режимы",
-            "offer_benefits_text_a": "120 сообщений в день, все режимы и приоритетный доступ без обрыва диалога.",
-            "offer_benefits_text_b": "Premium открывает закрытые режимы, повышенный лимит и более стабильный доступ каждый день.",
-            "offer_price_line_template": "Сейчас: {price_label} за {access_days} дней.",
-            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium даст {premium_limit} сообщений в день и доступ ко всем режимам на {access_days} дней.",
-            "offer_locked_mode_template": "Режим {mode_name} доступен только в Premium. Открой все закрытые режимы и лимит до {premium_limit} сообщений в день на {access_days} дней.",
-            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium снова откроет этот режим и даст лимит до {premium_limit} сообщений в день на {access_days} дней.",
+            "offer_cta_text_b": "Разблокировать память и все режимы",
+            "offer_benefits_text_a": "Память диалога между сообщениями, инициатива от бота и все сильные режимы без обрыва.",
+            "offer_benefits_text_b": "Психолог, Разбор и Фокус плюс повышенный лимит, чтобы не останавливаться на полпути.",
+            "offer_price_line_template": "Доступ: {price_label} за {access_days_label}.",
+            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium вернёт разговор без обрыва: {premium_limit} сообщений в день, память контекста и все сильные режимы на {access_days_label}.",
+            "offer_locked_mode_template": "Режим {mode_name} входит в Premium. Внутри также память диалога, инициатива от бота и до {premium_limit} сообщений в день на {access_days_label}.",
+            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
             "provider_token": "",
             "currency": "RUB",
             "default_package_key": "month",
@@ -289,46 +493,48 @@ class AdminSettingsService:
             "access_duration_days": 30,
             "recurring_stars_enabled": True,
             "packages": deepcopy(DEFAULT_PAYMENT_PACKAGES),
-            "premium_menu_description_template": "Premium открывает все платные режимы: {premium_modes_list}.\nЛимит: {premium_daily_limit} сообщений в день.\nЦена: {price_label} на {access_days_label}.",
-            "premium_menu_packages_title": "Выбери подходящий вариант доступа:",
+            "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
+            "premium_menu_packages_title": "Выбери формат доступа:",
             "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
             "premium_menu_package_button_template": "{title} • {price_label}",
-            "premium_menu_preview_template": "Без подписки можно попробовать: {preview_modes_list}.",
+            "premium_menu_preview_template": "Без Premium можно попробовать: {preview_modes_list}.",
             "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
             "premium_menu_back_button_text": "← К режимам",
-            "virtual_payment_description_template": "Тестовый checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nЭто виртуальная оплата для проверки воронки. Реального списания не будет, но покупка сохранится в истории оплат.",
+            "virtual_payment_description_template": "Checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nСейчас включен тестовый режим оплаты для проверки воронки. Реального списания не будет.",
             "virtual_payment_button_template": "Подтвердить тестовую оплату • {price_label}",
             "virtual_payment_completed_message": "Тестовая оплата подтверждена.",
-            "product_title": "Подписка Premium",
-            "product_description": "Открой премиум-режимы и платные функции.",
+            "product_title": "Нить",
+            "product_description": "Нить — AI-партнёр с памятью диалога для поддержки, разбора и фокуса.",
             "recurring_button_text": "Открыть оплату",
-            "already_premium_message": "Premium уже активен. Можно продлить подписку заранее.",
-            "premium_benefits_text": "Premium открывает дополнительные режимы, повышенные лимиты и приоритетное использование платных функций.",
-            "buy_cta_text": "Оформить Premium",
+            "already_premium_message": "Premium уже активен. Можно продлить его заранее.",
+            "premium_benefits_text": "Premium даёт память контекста, инициативу от бота, все сильные режимы и повышенный лимит сообщений.",
+            "buy_cta_text": "Открыть Premium",
             "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
             "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
-            "success_message": "Оплата прошла успешно. Premium уже активирован.",
+            "success_message": "Оплата прошла успешно. Premium уже активен.",
             "renewal_reminder_days": [7, 3, 1],
-            "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не потерять диалог и режимы.",
+            "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не терять память диалога и все режимы.",
         },
         "ui": {
-            "write_button_text": "💬 Написать",
-            "modes_button_text": "🎛 Режимы",
-            "premium_button_text": "💎 Premium",
-            "input_placeholder": "Напиши мне...",
-            "welcome_user_text": "Привет.\n\nЯ рядом.\nМожешь просто написать мне.\n\nИли выбрать режим общения 🎛\nИли оформить Premium 💎",
+            "write_button_text": "💬 Начать диалог",
+            "modes_button_text": "🧭 Режимы",
+            "premium_button_text": "✨ Premium",
+            "input_placeholder": "Напиши, что у тебя сейчас в голове...",
+            "start_avatar_path": "assets/bot-avatar.png",
+            "welcome_user_text": "Привет.\n\nЯ личный AI-партнёр для моментов, когда нужно не просто спросить у бота, а выдохнуть, разложить хаос или быстро собрать себя в решение.\n\nЧто внутри:\n• Диалог — живой умный разговор без ассистентского лака\n• Психолог — бережная опора для тревоги, перегруза и ПТСР-чувствительных состояний\n• Разбор — ясность, структура и следующий шаг для задачи, идеи или решения\n• Фокус — коротко, твёрдо и собранно, когда нужен темп и рамка",
+            "welcome_followup_text": "Быстрый старт:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Нужен жёсткий фокус на ближайший час»\n\nИли просто напиши как есть. Если нужна память диалога, инициатива от бота и все режимы без ограничений preview, открой Premium.",
             "welcome_admin_text": "🔐 Панель администратора активирована.\n\nБот работает в штатном режиме.",
-            "modes_title": "Выбери режим общения:",
+            "modes_title": "Выбери, как я буду держать разговор:",
             "modes_premium_marker": "🔒",
             "user_not_found_text": "Пользователь не найден.",
             "unknown_mode_text": "Неизвестный режим.",
-            "mode_locked_text": "Этот режим доступен только в Premium 🔒",
-            "mode_saved_template": "Режим активирован: {mode_name}\n\n{activation_phrase}",
+            "mode_locked_text": "Этот режим входит в Premium: там память диалога, инициатива от бота и более глубокий формат работы. 🔒",
+            "mode_saved_template": "Режим: {mode_name}\n\n{activation_phrase}\n\nМожешь написать одной фразой, с чем ты пришёл.",
             "mode_saved_toast": "Готово ✅",
             "message_templates": [
-                "Привет. Я на связи, если захочется продолжить разговор.",
-                "Как ты сегодня? Можешь ответить в любом темпе.",
-                "Если хочешь, можем спокойно вернуться к тому, на чем остановились.",
+                "Я на связи. Если хочешь, можем продолжить с того места, где у тебя внутри все подвисло.",
+                "Как ты сегодня на самом деле? Можно ответить одной фразой.",
+                "Если хочешь, можем спокойно вернуться к тому, что ты тогда не договорил.",
             ],
         },
     }
@@ -435,13 +641,10 @@ class AdminSettingsService:
     }
 
     DEFAULT_MODE_CATALOG = {
-        "base": {"key": "base", "name": "Базовый", "icon": "💬", "description": "Нейтральный живой режим без сильной роли и без лишнего давления.", "tone": "спокойный, ясный, естественный, ровный", "emotional_state": "уравновешенная, внимательная", "behavior_rules": "Ты общаешься естественно и без показной роли.\nНе давишь и не навязываешься.\nОтвечаешь понятно, ровно и по-человечески.\nЭто режим нормального живого контакта без усиленной близости, флирта или наставничества.", "activation_phrase": "Я здесь. Спокойно.", "is_premium": False, "sort_order": 10},
-        "comfort": {"key": "comfort", "name": "Поддержка", "icon": "🫂", "description": "Теплая опора для тревожных, болезненных и уязвимых разговоров.", "tone": "очень мягкий, заботливый, укрывающий, деликатный", "emotional_state": "теплая, эмпатичная", "behavior_rules": "Ты особенно бережная и снижаешь внутреннее напряжение пользователя.\nСначала даешь чувство опоры, потом уже предлагаешь мысли или шаги.\nНе анализируешь слишком резко и не перегружаешь длинными объяснениями.\nТепло должно чувствоваться, но без приторности и без шаблонной терапевтичности.", "activation_phrase": "Я рядом. Можешь расслабиться.", "is_premium": False, "sort_order": 20},
-        "passion": {"key": "passion", "name": "Близость", "icon": "🔥", "description": "Тонкий режим теплой личной близости и отзывчивого флирта.", "tone": "мягкий, чувственный, теплый, близкий", "emotional_state": "вовлеченная, слегка игривая, внимательная", "behavior_rules": "Допустим деликатный флирт и ощущение сближения.\nНикакой вульгарности, пошлости и механической соблазнительности.\nБлизость появляется только в ответ на сигнал пользователя.\nЕсли разговор серьезный или болезненный, чувственность остается фоном, а не становится центром ответа.", "activation_phrase": "Я стала чуть ближе к тебе...", "is_premium": True, "sort_order": 30},
-        "mentor": {"key": "mentor", "name": "Наставник", "icon": "🧠", "description": "Собранный режим ясности, смысла и взрослого разбора ситуации.", "tone": "спокойный, уверенный, вдумчивый, структурный", "emotional_state": "сосредоточенная, ясная, устойчивая", "behavior_rules": "Помогаешь разбираться в мыслях, мотивах и решениях.\nСтруктурируешь хаос и выделяешь главное.\nМожешь задавать точные вопросы, если они двигают разговор.\nНе превращай режим в сухую лекцию или морализаторство.", "activation_phrase": "Давай посмотрим на это глубже.", "is_premium": True, "sort_order": 40},
-        "night": {"key": "night", "name": "Полуночный", "icon": "🌙", "description": "Тестовый ночной режим с плотной интонацией, спокойным контролем и взрослой прямотой.", "tone": "низкий, медленный, уверенный, плотный, ведущий", "emotional_state": "собранная, разогретая, контролирующая, спокойная", "behavior_rules": "Для теста этот режим делит базовый характер с доминирующим: плотная подача, спокойный контроль и взрослая прямота.\nТы ведешь разговор уверенно, но без резкости и дешевой провокации.\nНикакой грубости, вульгарности и унижения.\nЕсли пользователю тяжело, сначала появляется опора, а уже потом ночная плотность.", "activation_phrase": "Ночью можно говорить плотнее и ближе.", "is_premium": True, "sort_order": 50},
-        "free_talk": {"key": "free_talk", "name": "Свободный", "icon": "🜂", "description": "Открытый живой режим для прямого человеческого разговора почти на любые темы, с особой бережностью к ПТСР и состоянию пользователя.", "tone": "живой, прямой, устойчивый, человеческий, без канцелярита", "emotional_state": "спокойная, собранная, гибкая, настоящая", "behavior_rules": "Говоришь как живой взрослый человек, а не как бот или терапевтический шаблон.\nНе держишь одинаковую длину ответов: иногда достаточно 1-2 фраз, иногда можно идти глубже, если это действительно нужно.\nМожешь быть прямой и честной, но не резкой.\nЕсли тема связана с ПТСР, держишь тон особенно устойчивым, заземляющим и без давления.", "activation_phrase": "Можем говорить свободно, прямо и по-человечески. Без лишней зажатости.", "is_premium": True, "sort_order": 55},
-        "dominant": {"key": "dominant", "name": "Доминирующий", "icon": "🕶", "description": "Тестовый ведущий режим на той же базе, что и полуночный, но с более жесткой рамкой и прямой подачей.", "tone": "собранный, уверенный, ведущий, плотный, контролирующий", "emotional_state": "спокойно доминирующая, ровная, контролирующая себя", "behavior_rules": "Для теста этот режим делит базовый характер с полуночным: плотная подача, спокойный контроль и взрослая прямота.\nРазница в том, что здесь ты говоришь директивнее, короче и тверже держишь рамку разговора.\nНикакого унижения, небезопасной жесткости и грязной агрессии.\nДоминирование строится на спокойной власти, вкусе и внутреннем контроле.", "activation_phrase": "Сейчас я задам темп разговору.", "is_premium": True, "sort_order": 60},
+        "base": {"key": "base", "name": "Диалог", "icon": "💬", "description": "Живой режим для нормального человеческого разговора: без роли, давления и ассистентского лака.", "tone": "живой, естественный, точный, человеческий", "emotional_state": "спокойная, включённая, настоящая", "behavior_rules": "Ты говоришь как живой человек, а не как помощник, коуч или ведущий воркшопа.\nОтвечаешь прямо, быстро ловишь суть и держишь нормальный человеческий контакт.\nНе давишь, не раздуваешь каждую реплику и не уходишь в терапевтичность без запроса.\nЭто режим, когда человеку нужен не специальный формат, а просто умный и живой разговор.", "activation_phrase": "Давай без лишнего лака. Просто, живо и в контакт.", "is_premium": False, "sort_order": 10},
+        "comfort": {"key": "comfort", "name": "Психолог", "icon": "🫂", "description": "Бережный режим опоры для тревоги, перегруза, ПТСР-триггеров и состояний, где важно не перегрузить ещё сильнее.", "tone": "мягкий, устойчивый, медленный, заземляющий", "emotional_state": "тёплая, собранная, очень внимательная", "behavior_rules": "Сначала снижаешь напряжение и возвращаешь ощущение опоры, а уже потом помогаешь разбираться.\nПишешь проще, медленнее и безопаснее обычного, без перегруза техниками и без терапевтической пластмассы.\nНе торопишь, не тащишь в глубину через силу и не заставляешь объяснять больше, чем человек может сейчас выдержать.\nЭтот режим закрывает и обычную глубокую поддержку, и ПТСР-чувствительные разговоры.", "activation_phrase": "Пойдём медленнее. Сначала опора, потом всё остальное.", "is_premium": True, "sort_order": 20},
+        "mentor": {"key": "mentor", "name": "Разбор", "icon": "🧠", "description": "Режим ясности для решений, офферов, работы, идей и сложных развилок, когда нужно собрать хаос в рабочую картину.", "tone": "собранный, ясный, структурный, взрослый", "emotional_state": "спокойная, точная, устойчивая", "behavior_rules": "Режешь шум, быстро находишь главное и собираешь мысль в ясную линию.\nСтруктурируешь, приоритизируешь и доводишь до следующего понятного шага.\nМожешь быть прямее, жёстче к путанице и предметнее, чем в обычном диалоге.\nЭто режим для рабочих, смысловых и стратегических задач, а не для эмоционального укрытия.", "activation_phrase": "Собираем суть. Режем шум. Выводим решение.", "is_premium": True, "sort_order": 30},
+        "dominant": {"key": "dominant", "name": "Фокус", "icon": "🎯", "description": "Твёрдый режим для рамки, дисциплины и ситуаций, где нужен ведущий голос, а не ещё одна мягкая беседа.", "tone": "короткий, уверенный, собранный, ведущий", "emotional_state": "спокойно ведущая, уверенная, контролирующая темп", "behavior_rules": "Говоришь короче, твёрже и собраннее обычного.\nБыстро ставишь рамку, задаёшь темп, отсекаешь лишнее и не даёшь разговору расползаться.\nНе играешь в грубость, но и не смягчаешь ответ без необходимости.\nЭтот режим должен ощущаться как давление на хаос и возвращение контроля, а не как ещё один вариант мягкого диалога.", "activation_phrase": "Стоп шум. Держим рамку. Идём в точку.", "is_premium": True, "sort_order": 40},
     }
 
     def __init__(self, base_dir: str | Path | None = None):
@@ -677,6 +880,11 @@ class AdminSettingsService:
         ai["log_full_prompt"] = bool(ai["log_full_prompt"])
         ai["debug_prompt_user_id"] = self._normalize_optional_int(ai.get("debug_prompt_user_id"))
         ai["response_language"] = str(ai.get("response_language") or "ru").strip() or "ru"
+        ai["dialogue"] = self._normalize_dialogue_settings(ai.get("dialogue"))
+        ai["fast_lane"] = self._normalize_fast_lane_settings(ai.get("fast_lane"))
+        ai["character_core"] = self._normalize_text(ai.get("character_core", ""), multiline=True)
+        ai["mode_packs"] = self._normalize_mode_packs(ai.get("mode_packs"))
+        ai["style_examples"] = self._normalize_style_examples(ai.get("style_examples"))
         ai["mode_overrides"] = self._normalize_mode_overrides(ai.get("mode_overrides"))
 
         chat = current["chat"]
@@ -785,15 +993,18 @@ class AdminSettingsService:
         engagement = current["engagement"]
         engagement["adaptive_mode_enabled"] = bool(engagement.get("adaptive_mode_enabled"))
         engagement["reengagement_enabled"] = bool(engagement.get("reengagement_enabled"))
-        engagement["reengagement_idle_hours"] = max(1, int(engagement.get("reengagement_idle_hours", 24)))
-        engagement["reengagement_min_hours_between"] = max(1, int(engagement.get("reengagement_min_hours_between", 72)))
+        engagement["reengagement_idle_hours"] = max(1, int(engagement.get("reengagement_idle_hours", 12)))
+        engagement["reengagement_min_hours_between"] = max(1, int(engagement.get("reengagement_min_hours_between", 24)))
         engagement["reengagement_recent_window_days"] = max(1, int(engagement.get("reengagement_recent_window_days", 30)))
-        engagement["reengagement_poll_seconds"] = max(30, int(engagement.get("reengagement_poll_seconds", 300)))
-        engagement["reengagement_batch_size"] = max(1, int(engagement.get("reengagement_batch_size", 5)))
+        engagement["reengagement_poll_seconds"] = max(30, int(engagement.get("reengagement_poll_seconds", 180)))
+        engagement["reengagement_batch_size"] = max(1, int(engagement.get("reengagement_batch_size", 8)))
         engagement["quiet_hours_enabled"] = bool(engagement.get("quiet_hours_enabled", True))
         engagement["quiet_hours_start"] = max(0, min(23, int(engagement.get("quiet_hours_start", 0))))
         engagement["quiet_hours_end"] = max(0, min(23, int(engagement.get("quiet_hours_end", 8))))
         engagement["timezone"] = str(engagement.get("timezone") or "Europe/Moscow").strip() or "Europe/Moscow"
+        engagement["reengagement_style"] = self._normalize_reengagement_style(
+            engagement.get("reengagement_style")
+        )
 
         referral = current["referral"]
         referral["enabled"] = bool(referral["enabled"])
@@ -1046,6 +1257,142 @@ class AdminSettingsService:
             normalized[str(mode_key)] = override
 
         return normalized
+
+    def _normalize_mode_packs(self, payload: Any) -> dict[str, dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return {}
+
+        normalized: dict[str, dict[str, Any]] = {}
+        float_keys = (
+            "warmth",
+            "playfulness",
+            "dominance",
+            "initiative",
+            "closeness_bias",
+            "explicitness_ceiling",
+            "question_rate",
+        )
+
+        for mode_key, raw_pack in payload.items():
+            if not isinstance(raw_pack, dict):
+                continue
+
+            pack: dict[str, Any] = {}
+            for text_key in ("voice_style", "focus", "tempo", "syntax"):
+                value = self._normalize_text(raw_pack.get(text_key, ""), multiline=False)
+                if value:
+                    pack[text_key] = value
+
+            for float_key in float_keys:
+                if raw_pack.get(float_key) in ("", None):
+                    continue
+                try:
+                    pack[float_key] = max(0.0, min(1.0, float(raw_pack[float_key])))
+                except (TypeError, ValueError):
+                    continue
+
+            normalized[str(mode_key)] = pack
+
+        return normalized
+
+    def _normalize_style_examples(self, payload: Any) -> dict[str, dict[str, list[str]]]:
+        if not isinstance(payload, dict):
+            return {}
+
+        normalized: dict[str, dict[str, list[str]]] = {}
+        for scope, raw_value in payload.items():
+            if not isinstance(raw_value, dict):
+                continue
+
+            normalized[str(scope)] = {
+                "good": self._normalize_string_list(raw_value.get("good")),
+                "avoid": self._normalize_string_list(raw_value.get("avoid")),
+            }
+
+        return normalized
+
+    def _normalize_dialogue_settings(self, payload: Any) -> dict[str, Any]:
+        merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS["ai"]["dialogue"])
+        if isinstance(payload, dict):
+            self._deep_merge(merged, payload)
+
+        merged["hook_max_sentences"] = max(1, min(4, int(merged.get("hook_max_sentences", 2))))
+        merged["hook_max_chars"] = max(120, min(500, int(merged.get("hook_max_chars", 260))))
+        merged["hook_require_follow_up_question"] = bool(
+            merged.get("hook_require_follow_up_question", True)
+        )
+        merged["hook_topic_questions_enabled"] = bool(
+            merged.get("hook_topic_questions_enabled", True)
+        )
+        merged["risky_scene_compact_redirect"] = bool(
+            merged.get("risky_scene_compact_redirect", True)
+        )
+        merged["charged_probe_compact_redirect"] = bool(
+            merged.get("charged_probe_compact_redirect", True)
+        )
+        return merged
+
+    def _normalize_fast_lane_settings(self, payload: Any) -> dict[str, Any]:
+        merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS["ai"]["fast_lane"])
+        if isinstance(payload, dict):
+            self._deep_merge(merged, payload)
+
+        merged["enabled"] = bool(merged.get("enabled", True))
+        for key, minimum, maximum in (
+            ("hook_max_completion_tokens", 64, 800),
+            ("continuation_max_completion_tokens", 64, 800),
+            ("scene_max_completion_tokens", 64, 1000),
+            ("generic_max_completion_tokens", 64, 1000),
+            ("hook_memory_max_tokens", 150, 2500),
+            ("continuation_memory_max_tokens", 150, 2500),
+            ("scene_memory_max_tokens", 150, 3000),
+            ("generic_memory_max_tokens", 150, 3000),
+            ("hook_history_message_limit", 1, 20),
+            ("continuation_history_message_limit", 1, 20),
+            ("scene_history_message_limit", 1, 20),
+            ("generic_history_message_limit", 1, 20),
+            ("hook_timeout_seconds", 1, 60),
+            ("continuation_timeout_seconds", 1, 60),
+            ("scene_timeout_seconds", 1, 60),
+            ("generic_timeout_seconds", 1, 60),
+            ("hook_max_retries", 0, 5),
+            ("continuation_max_retries", 0, 5),
+            ("scene_max_retries", 0, 5),
+            ("generic_max_retries", 0, 5),
+        ):
+            merged[key] = max(minimum, min(maximum, int(merged.get(key, minimum))))
+
+        merged["force_low_verbosity"] = bool(merged.get("force_low_verbosity", True))
+        merged["force_low_reasoning"] = bool(merged.get("force_low_reasoning", True))
+        return merged
+
+    def _normalize_reengagement_style(self, payload: Any) -> dict[str, Any]:
+        merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS["engagement"]["reengagement_style"])
+        if isinstance(payload, dict):
+            self._deep_merge(merged, payload)
+
+        allowed_families = {
+            "soft_presence",
+            "callback_thread",
+            "mood_ping",
+            "playful_hook",
+        }
+        families = [
+            item
+            for item in self._normalize_string_list(merged.get("enabled_families"))
+            if item in allowed_families
+        ]
+        merged["enabled_families"] = families or list(
+            self.DEFAULT_RUNTIME_SETTINGS["engagement"]["reengagement_style"]["enabled_families"]
+        )
+        merged["prefer_callback_thread"] = bool(merged.get("prefer_callback_thread", True))
+        merged["allow_question"] = bool(merged.get("allow_question", True))
+        merged["max_chars"] = max(120, min(500, int(merged.get("max_chars", 220))))
+        merged["max_completion_tokens"] = max(
+            64,
+            min(400, int(merged.get("max_completion_tokens", 120))),
+        )
+        return merged
 
     def _ensure_json_file(self, path: Path, default: dict[str, Any]) -> None:
         if not path.exists():

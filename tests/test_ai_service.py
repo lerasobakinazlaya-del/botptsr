@@ -94,7 +94,7 @@ class FakeHumanMemoryService:
     def hours_since_iso(self, value, fallback=24):
         return fallback
 
-    def build_reengagement_prompt(self, state, *, hours_silent, active_mode):
+    def build_reengagement_prompt(self, state, *, hours_silent, active_mode, style_settings=None):
         return "Сформулируй одно живое сообщение первой инициативы."
 
     def suggest_mode(self, state, current_mode):
@@ -152,6 +152,39 @@ class FakeSettingsService:
                 "mode_overrides": {},
                 "verbosity": "medium",
                 "reasoning_effort": "",
+                "dialogue": {
+                    "hook_max_sentences": 2,
+                    "hook_max_chars": 260,
+                    "hook_require_follow_up_question": True,
+                    "hook_topic_questions_enabled": True,
+                    "risky_scene_compact_redirect": True,
+                    "charged_probe_compact_redirect": True,
+                },
+                "fast_lane": {
+                    "enabled": True,
+                    "hook_max_completion_tokens": 110,
+                    "continuation_max_completion_tokens": 140,
+                    "scene_max_completion_tokens": 180,
+                    "generic_max_completion_tokens": 200,
+                    "hook_memory_max_tokens": 450,
+                    "continuation_memory_max_tokens": 700,
+                    "scene_memory_max_tokens": 800,
+                    "generic_memory_max_tokens": 900,
+                    "hook_history_message_limit": 5,
+                    "continuation_history_message_limit": 8,
+                    "scene_history_message_limit": 9,
+                    "generic_history_message_limit": 10,
+                    "hook_timeout_seconds": 8,
+                    "continuation_timeout_seconds": 10,
+                    "scene_timeout_seconds": 12,
+                    "generic_timeout_seconds": 12,
+                    "hook_max_retries": 0,
+                    "continuation_max_retries": 0,
+                    "scene_max_retries": 1,
+                    "generic_max_retries": 1,
+                    "force_low_verbosity": True,
+                    "force_low_reasoning": True,
+                },
             },
             "chat": {
                 "response_guardrails_enabled": True,
@@ -163,11 +196,54 @@ class FakeSettingsService:
             "engagement": {
                 "adaptive_mode_enabled": True,
                 "reengagement_recent_window_days": 30,
+                "reengagement_style": {
+                    "enabled_families": [
+                        "soft_presence",
+                        "callback_thread",
+                        "mood_ping",
+                        "playful_hook",
+                    ],
+                    "prefer_callback_thread": True,
+                    "allow_question": True,
+                    "max_chars": 220,
+                    "max_completion_tokens": 120,
+                },
             },
         }
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_fast_lane_profile_shrinks_short_hook_turns(self):
+        service = AIService(
+            client=FakeClient("ok"),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        optimized = service._apply_fast_lane_profile(
+            {
+                "max_completion_tokens": 220,
+                "memory_max_tokens": 1000,
+                "history_message_limit": 12,
+                "timeout_seconds": 20,
+                "max_retries": 2,
+            },
+            user_message="Что думаешь, брать или нет?",
+            active_mode="free_talk",
+        )
+
+        self.assertEqual(optimized["max_completion_tokens"], 110)
+        self.assertEqual(optimized["memory_max_tokens"], 450)
+        self.assertEqual(optimized["history_message_limit"], 5)
+        self.assertEqual(optimized["timeout_seconds"], 8)
+        self.assertEqual(optimized["max_retries"], 0)
+
     async def test_build_memory_context_prefers_unified_memory_profile_service(self):
         memory_profile_service = FakeMemoryProfileService("- Важные имена и связи: пользователя зовут Лена")
         service = AIService(
@@ -263,6 +339,9 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         system_prompt = client.calls[0]["messages"][0]["content"]
         self.assertIn("Continue directly from item 2", system_prompt)
         self.assertIn("instead of restarting", system_prompt)
+        self.assertEqual(client.calls[0]["max_completion_tokens"], 140)
+        self.assertEqual(client.calls[0]["verbosity"], "low")
+        self.assertEqual(client.calls[0]["reasoning_effort"], "low")
 
     async def test_generate_response_adds_harm_reduction_instruction_for_sex_and_drugs(self):
         client = FakeClient("Нужно заранее обсудить границы, трезвого наблюдателя и утро после.")
@@ -293,8 +372,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("Do not romanticize sex under substances.", system_prompt)
-        self.assertIn("Do not provide step-by-step drug use or mixing instructions.", system_prompt)
+        self.assertIn("Do not romanticize altered-state scenarios with blurred control.", system_prompt)
+        self.assertIn("Do not provide step-by-step use, mixing, or escalation instructions.", system_prompt)
         self.assertIn("Stay on harm reduction", system_prompt)
 
     async def test_generate_response_allows_single_question_when_user_requests_it(self):
@@ -398,6 +477,34 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("слышу, как тебе тяжело", lowered)
         self.assertIn("твоя реакция понятна", lowered)
         self.assertEqual(result.response.count("?"), 1)
+
+    async def test_generate_reengagement_uses_fast_short_profile(self):
+        client = FakeClient("Привет. Я вдруг о тебе вспомнила.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        await service.generate_reengagement(
+            user_id=1,
+            history=[],
+            state={
+                "active_mode": "free_talk",
+                "emotional_tone": "neutral",
+                "relationship_state": {},
+            },
+        )
+
+        self.assertEqual(client.calls[0]["max_completion_tokens"], 120)
+        self.assertEqual(client.calls[0]["verbosity"], "low")
+        self.assertEqual(client.calls[0]["reasoning_effort"], "low")
 
     async def test_call_with_retry_retries_once_when_response_was_truncated(self):
         client = FakeTruncatingClient()

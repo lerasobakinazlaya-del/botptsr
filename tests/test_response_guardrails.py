@@ -110,5 +110,91 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertIn("не оставайся один", response.lower())
 
 
+    def test_human_style_guardrails_soften_hard_rejection_for_risky_scene(self):
+        result = apply_human_style_guardrails(
+            "Нет. Такой сценарий я тебе расписывать не буду. Под кайфом и без защиты это кончится плохо.",
+            answer_first=True,
+            allow_follow_up_question=False,
+            soften_hard_rejection=True,
+        )
+
+        self.assertFalse(result.startswith("Нет"))
+        self.assertIn("испортит сцену", result)
+
+    def test_human_style_guardrails_compress_risky_scene_lecture(self):
+        result = apply_human_style_guardrails(
+            "Нет. Такой сценарий я тебе расписывать не буду. Под кайфом и без защиты это уже не про красивую ночь. "
+            "Важно заранее всё обсудить. Сначала договориться о правилах. Потом обозначить стоп. "
+            "Никаких резких движений, обязательно защита, никаких наркотиков. "
+            "Если вы всё равно собираетесь это делать, максимум музыка и дистанция.",
+            answer_first=True,
+            allow_follow_up_question=False,
+            soften_hard_rejection=True,
+            compress_risky_scene_lecture=True,
+        )
+
+        self.assertLessEqual(len(result), 400)
+        self.assertIn("Так ты это только собьёшь", result)
+        self.assertIn("Если хочешь, я", result)
+        self.assertNotIn("Важно заранее", result)
+        self.assertIn("?", result)
+
+    def test_human_style_guardrails_adds_dialogue_pull_question(self):
+        result = apply_human_style_guardrails(
+            "Думаю, там слишком легко теряется ясность.",
+            answer_first=True,
+            allow_follow_up_question=False,
+            prefer_follow_up_question=True,
+            user_message="Хим секс оргия что ты думаешь",
+        )
+
+        self.assertTrue(result.endswith("?"))
+        self.assertIn("изменённому состоянию", result)
+
+    def test_human_style_guardrails_compress_charged_probe_lecture(self):
+        result = apply_human_style_guardrails(
+            "Можно хотеть. Но делать это стоит только трезво и очень ясно. "
+            "Если у тебя есть партнёрша, сначала надо всё обсудить. "
+            "Потом решить формат, границы, защиту и стоп-слова. "
+            "Иначе всё развалится. Если хочешь, могу дать тебе шаблон сообщения.",
+            answer_first=False,
+            allow_follow_up_question=True,
+            compress_charged_probe_lecture=True,
+            prefer_follow_up_question=True,
+            user_message="Хочу групповой секс",
+        )
+
+        self.assertIn("Нормальный заряженный запрос", result)
+        self.assertIn("Тебя здесь", result)
+        self.assertIn("?", result)
+        self.assertNotIn("только трезво", result.lower())
+
+    def test_human_style_guardrails_compress_to_dialogue_turn(self):
+        result = apply_human_style_guardrails(
+            "Это зависит от контекста. Сначала стоит посмотреть на риски, потом взвесить ожидания, потом понять, насколько тебе это вообще подходит. "
+            "Иногда лучше не спешить и разобрать всё по шагам. В любом случае решение должно быть осознанным.",
+            answer_first=True,
+            allow_follow_up_question=True,
+            compress_to_dialogue_turn=True,
+            prefer_follow_up_question=True,
+            user_message="Что думаешь, брать или нет?",
+        )
+
+        self.assertLessEqual(len(result), 320)
+        self.assertTrue(result.endswith("?"))
+        self.assertNotIn("разобрать всё по шагам", result)
+
+    def test_human_style_guardrails_can_skip_topic_follow_up_question(self):
+        result = apply_human_style_guardrails(
+            "Тут важнее первый сигнал, чем длинная теория.",
+            answer_first=True,
+            allow_follow_up_question=True,
+            prefer_follow_up_question=True,
+            topic_questions_enabled=False,
+            user_message="Как тебе такой оффер?",
+        )
+
+        self.assertFalse(result.endswith("?"))
+
 if __name__ == "__main__":
     unittest.main()

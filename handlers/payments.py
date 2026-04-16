@@ -36,6 +36,31 @@ def _normalize_offer_trigger(value: str | None) -> str:
     return normalized if normalized in SUPPORTED_OFFER_TRIGGERS else OFFER_TRIGGER_DEFAULT
 
 
+def _build_offer_teaser(trigger: str, mode_name: str | None = None) -> str:
+    normalized_mode = str(mode_name or "").strip().lower()
+    if trigger == OFFER_TRIGGER_LIMIT_REACHED:
+        return "Не хочу рвать это здесь. В Premium я продолжаю без обрыва, сушняка и урезанного темпа."
+
+    if "доминир" in normalized_mode or "жестк" in normalized_mode or "фокус" in normalized_mode:
+        return "Если хочешь, я продолжу жёстче, увереннее и с более собранным темпом."
+    if "полуноч" in normalized_mode or "ночн" in normalized_mode or "night" in normalized_mode:
+        return "Если хочешь, я продолжу темнее, тише и плотнее, не ломая атмосферу."
+    if "близост" in normalized_mode or "отношен" in normalized_mode or "passion" in normalized_mode:
+        return "Если хочешь, я продолжу ближе, теплее и с большим напряжением между строк."
+    if "наставник" in normalized_mode or "разбор" in normalized_mode or "mentor" in normalized_mode:
+        return "Если хочешь, я соберу это в более точную и сильную линию без воды."
+    if "психолог" in normalized_mode or "comfort" in normalized_mode:
+        return "Если хочешь, я пойду глубже, бережнее и точнее, без поверхностных ответов."
+    if "птср" in normalized_mode or "ptsd" in normalized_mode:
+        return "Если хочешь, я продолжу медленнее и устойчивее, не перегружая тебя лишним."
+    if "свободн" in normalized_mode or "free_talk" in normalized_mode:
+        return "Если хочешь, я буду говорить свободнее, живее и без этого ощущения обрыва на входе."
+
+    if trigger in {OFFER_TRIGGER_MODE_LOCKED, OFFER_TRIGGER_PREVIEW_EXHAUSTED}:
+        return "Если хочешь, я продолжу в этом голосе дальше, глубже и без обрыва после пробного касания."
+    return ""
+
+
 def _build_offer_intro(
     payment_settings: dict,
     primary_package: dict | None,
@@ -89,8 +114,21 @@ def _build_offer_intro(
             premium_limit=premium_limit or 0,
             price_label=price_label,
         )
+    teaser_line = _build_offer_teaser(trigger, mode_name)
 
-    return [part for part in (trigger_line, cta_text, price_line, benefits_text) if part]
+    ordered_parts = (
+        teaser_line,
+        trigger_line,
+        cta_text,
+        price_line,
+        benefits_text,
+    ) if teaser_line else (
+        trigger_line,
+        cta_text,
+        price_line,
+        benefits_text,
+    )
+    return [part for part in ordered_parts if part]
 
 
 def _build_buy_premium_callback_data(package_key: str, trigger: str) -> str:

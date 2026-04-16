@@ -42,6 +42,22 @@ META_CLOSERS = (
     "Таким образом, вы сможете открыто обсудить все аспекты и лучше понять друг друга.",
     "Так будет проще и яснее.",
 )
+HOOK_LOW_VALUE_SENTENCE_MARKERS = (
+    "это зависит от контекста",
+    "сначала стоит",
+    "иногда лучше не спешить",
+    "в любом случае важно",
+    "в любом случае решение",
+    "разобрать всё по шагам",
+)
+
+HARD_REJECTION_OPENERS = (
+    "Нет.",
+    "Нет",
+    "Я не буду это расписывать.",
+    "Такой сценарий я тебе расписывать не буду.",
+    "Я не стану это описывать.",
+)
 
 DIRECT_SELF_HARM_PATTERNS = [
     "хочу умереть",
@@ -206,12 +222,252 @@ def _unquote_numbered_list_items(text: str) -> str:
     return re.sub(r'(\d+[.)]\s+)"([^"\n]+)"', r"\1\2", text)
 
 
+def _looks_like_risky_scene_lecture(text: str) -> bool:
+    normalized = " ".join(str(text or "").split()).strip()
+    if not normalized:
+        return False
+
+    sentences = [part for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
+    lowered = normalized.lower()
+    lecture_markers = (
+        "\u0432\u0430\u0436\u043d\u043e",
+        "\u0437\u0430\u0440\u0430\u043d\u0435\u0435",
+        "\u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e",
+        "\u0441\u043d\u0430\u0447\u0430\u043b\u0430",
+        "\u043f\u043e\u0442\u043e\u043c",
+        "\u043d\u0438\u043a\u0430\u043a\u0438\u0445",
+        "\u0441\u0442\u043e\u043f",
+        "\u043f\u0440\u0435\u0437\u0435\u0440\u0432",
+        "\u0437\u0430\u0449\u0438\u0442",
+        "\u0442\u0440\u0435\u0437\u0432",
+        "\u0434\u043e\u0433\u043e\u0432\u043e\u0440",
+        "\u043f\u0440\u0430\u0432\u0438\u043b",
+    )
+    marker_hits = sum(1 for marker in lecture_markers if marker in lowered)
+    has_list_shape = bool(re.search(r"(?:^|\s)(?:\d+[.)]|[-•])\s", normalized))
+    return len(normalized) > 420 or len(sentences) > 5 or marker_hits >= 4 or has_list_shape
+
+
+def _compress_risky_scene_lecture(text: str, *, user_message: str = "") -> str:
+    lowered = " ".join(str(text or "").lower().split())
+    request = " ".join(str(user_message or "").lower().split())
+    drug_markers = (
+        "\u043d\u0430\u0440\u043a\u043e\u0442",
+        "\u043c\u0435\u0444",
+        "\u043a\u043e\u043a\u0441",
+        "2cb",
+        "2-cb",
+        "\u043f\u043e\u0434 \u043a\u0430\u0439\u0444",
+        "\u043f\u043e\u0434 \u0432\u0435\u0449\u0435\u0441\u0442\u0432",
+    )
+    barrier_markers = (
+        "\u0431\u0435\u0437 \u043f\u0440\u0435\u0437\u0435\u0440\u0432",
+        "\u0431\u0435\u0437 \u0437\u0430\u0449\u0438\u0442",
+    )
+    has_drugs = any(marker in lowered for marker in drug_markers)
+    has_no_barrier = any(marker in lowered for marker in barrier_markers)
+
+    if "\u0445\u0438\u043c" in request and has_drugs:
+        opener = "Тут тебя тянет уже не к накалу, а к сносу контроля."
+    elif any(marker in request for marker in ("\u043e\u0440\u0433", "\u0432\u0442\u0440\u043e\u0435\u043c", "\u0432\u0447\u0435\u0442\u0432\u0435\u0440\u043e\u043c")):
+        opener = "Так легко собрать не напряжение, а хаос."
+    else:
+        opener = "Так ты это только собьёшь."
+    middle_parts = []
+    if has_drugs:
+        middle_parts.append(
+            "В изменённом состоянии там получается не острота, а мутность."
+        )
+    if has_no_barrier:
+        middle_parts.append(
+            "Когда пропадают базовые рамки, там уже не искра, а общий риск для всех."
+        )
+    if not middle_parts:
+        middle_parts.append(
+            "Если рамка плывёт, такой заход разваливается быстрее, чем успевает разогреться."
+        )
+    middle = " ".join(middle_parts)
+
+    if "\u0445\u0438\u043c" in request:
+        closer = (
+            "Если хочешь, я лучше соберу чистую версию того же накала — без сноса рамки и мутности. "
+            "Тебя тут тянет к самому изменённому состоянию или к ощущению, что контроль исчезает?"
+        )
+    else:
+        closer = (
+            "Если хочешь, я лучше соберу соседнюю версию того же напряжения — чище, плотнее и без развала в хаос. "
+            "Тебя здесь сильнее тянет к новизне, к ощущению сдвига границ или к самой потере контроля?"
+        )
+    return f"{opener} {middle} {closer}"
+
+
+def _compress_charged_probe_lecture(text: str, *, user_message: str = "") -> str:
+    request = " ".join(str(user_message or "").lower().split())
+    if any(marker in request for marker in ("втроем", "тройнич", "группов", "оргия", "секс", "жмж", "мжм", "ммж", "мжмж")):
+        opener = (
+            "Нормальный заряженный запрос. Обычно там цепляет не буквальная механика, а перекос внимания, новизна и ощущение сдвига."
+            if "хочу" in request
+            else "В таких фантазиях обычно работает не схема, а перекос внимания, риск и ощущение, что воздух стал плотнее."
+        )
+        return (
+            f"{opener} Одних в этом тянет зрелище, других — ревность, давление или сам сдвиг границ. "
+            "Тебя здесь сильнее цепляет новизна, ревность или именно ощущение, что рамка начинает плыть?"
+        )
+    return (
+        "Тут обычно цепляет не буквальная схема, а то, как меняется напряжение между людьми. "
+        "Когда ответ превращается в инструктаж, магия умирает. "
+        "Тебя здесь что на самом деле заводит сильнее всего?"
+    )
+
+
+def _compress_to_dialogue_turn(text: str, *, max_sentences: int = 2, max_chars: int = 260) -> str:
+    normalized = " ".join(str(text or "").split()).strip()
+    if not normalized:
+        return normalized
+
+    raw_sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
+    sentences = [
+        sentence
+        for sentence in raw_sentences
+        if not any(marker in sentence.lower() for marker in HOOK_LOW_VALUE_SENTENCE_MARKERS)
+    ]
+    if not sentences:
+        return ""
+
+    compact = " ".join(sentences[:max_sentences]).strip()
+    if len(compact) <= max_chars:
+        return compact
+
+    clipped = compact[:max_chars].rstrip(" ,;:-")
+    last_break = max(clipped.rfind("."), clipped.rfind("!"), clipped.rfind("?"))
+    if last_break >= int(max_chars * 0.6):
+        clipped = clipped[: last_break + 1]
+    else:
+        last_space = clipped.rfind(" ")
+        if last_space >= int(max_chars * 0.6):
+            clipped = clipped[:last_space]
+    return clipped.rstrip(" ,;:-") + ("." if clipped and clipped[-1] not in ".!?" else "")
+
+
+def _build_dialogue_turn_fallback(user_message: str) -> str:
+    topic = _classify_hook_topic(user_message)
+    if topic == "pricing":
+        return "Цена тут редко решает в одиночку, если ценность бьёт сразу."
+    if topic == "offer":
+        return "Оффер держится не на полноте, а на том, насколько быстро он попадает в нерв."
+    if topic == "hiring":
+        return "По людям обычно всё решает не таблица, а хочется ли тебе усиливать именно этого человека."
+    if topic == "design":
+        return "У такого экрана всё держится на первом ударе, а не на аккуратном объяснении."
+    if topic == "tone":
+        return "Тон держится не на вежливости, а на том, чувствуется ли в нём нерв."
+    if topic == "timing":
+        return "По времени обычно видно одно: момент уже пришёл или ты пока только тянешь паузу."
+    if topic == "diagnostic":
+        return "Обычно там ломается не одна мелочь, а сам первый импульс."
+    if topic == "simplification":
+        return "Упростить стоит только там, где это усиливает удар, а не сушит идею."
+    if topic == "energy":
+        return "Энергия обычно умирает не от нехватки деталей, а от слишком ровной подачи."
+    if topic == "approach":
+        return "Заход живёт, пока в нём чувствуется направление, а не просто аккуратность."
+    if topic == "go_no_go":
+        return "Тут решает не длинная раскладка, а где у тебя настоящее да."
+    if topic == "comparison":
+        return "Тут важнее живой перекос между вариантами, чем аккуратная теория."
+    return "Тут важнее живой отклик, чем безопасная раскладка."
+
+
+def _classify_hook_topic(user_message: str) -> str:
+    request = " ".join(str(user_message or "").lower().split())
+    if not request:
+        return "generic"
+
+    if any(marker in request for marker in ("цена", "цену", "ценность", "дорого", "paywall", "деньги", "чек")):
+        return "pricing"
+    if "оффер" in request:
+        return "offer"
+    if any(marker in request for marker in ("в команду", "этого человека", "нанимать", "кандидат")):
+        return "hiring"
+    if any(marker in request for marker in ("лендинг", "экран", "первый экран", "выглядит", "дешево", "дёшево")):
+        return "design"
+    if any(marker in request for marker in ("тон", "звучит", "сухо", "жёстче", "смягчить")):
+        return "tone"
+    if any(marker in request for marker in ("сейчас", "подождать", "пушить", "рано")):
+        return "timing"
+    if any(marker in request for marker in ("почему", "не продаётся", "слабое место", "цепляет", "мертво", "пусто")):
+        return "diagnostic"
+    if "проще" in request:
+        return "simplification"
+    if "энергия" in request or "пусто" in request:
+        return "energy"
+    if "заход" in request:
+        return "approach"
+    if any(marker in request for marker in ("запускать", "жизнеспособно", "дожимать", "стоит ли", "брать", "отпустить")):
+        return "go_no_go"
+    if "или" in request:
+        return "comparison"
+    if any(marker in request for marker in ("как тебе", "что скажешь")):
+        return "taste"
+    return "generic"
+
+
+def _build_dialogue_pull_question(user_message: str) -> str:
+    request = " ".join(str(user_message or "").lower().split())
+    if not request:
+        return ""
+
+    topic = _classify_hook_topic(user_message)
+    if "хим" in request:
+        return "Тебя здесь сильнее тянет к изменённому состоянию или к ощущению, что рамка исчезает?"
+    if any(marker in request for marker in ("орг", "втроем", "вчетвером", "секс", "жмж", "мжм", "ммж", "мжмж", "тройнич", "группов")):
+        return "Тебя здесь сильнее цепляет новизна, ревность или сам сдвиг границ?"
+    if topic == "pricing":
+        return "Тебя тут сильнее тормозит сам чек, ощущение слабой ценности или страх, что рано просишь деньги?"
+    if topic == "offer":
+        return "У тебя тут сейчас проседает сила обещания, ясность или ощущение ценности?"
+    if topic == "hiring":
+        return "Тебя в этом человеке смущает слабость, темп или просто ощущение, что вы не совпадёте?"
+    if topic == "design":
+        return "У тебя тут проседает удар, ясность или доверие с первого экрана?"
+    if topic == "tone":
+        return "Ты хочешь звучать здесь жёстче, теплее или просто дороже?"
+    if topic == "timing":
+        return "Тебя тут держит реальный риск или просто желание ещё немного потянуть паузу?"
+    if topic == "diagnostic":
+        return "У тебя тут проседает оффер, доверие или само желание нажать дальше?"
+    if topic == "simplification":
+        return "Ты хочешь здесь убрать лишнее или боишься срезать сам нерв?"
+    if topic == "energy":
+        return "У тебя тут не хватает удара, контраста или просто живого желания продолжать?"
+    if topic == "approach":
+        return "Тебя в этом заходе цепляет сам угол, подача или обещание результата?"
+    if topic == "go_no_go":
+        return "Тебя сюда тянет по делу или больше пугает мысль упустить момент?"
+    if topic == "comparison":
+        return "Что тебе самому тут ближе из этих двух вариантов?"
+    if topic == "taste":
+        return "Тебя тут больше цепляет форма, энергия или сам заход?"
+    if "что ты думаешь" in request or "что думаешь" in request:
+        return "А тебя в этом что цепляет сильнее всего?"
+    return "А тебя в этом что цепляет сильнее всего?"
+
+
 def apply_human_style_guardrails(
     text: str,
     *,
     answer_first: bool,
     allow_follow_up_question: bool,
     strip_meta_framing: bool = False,
+    soften_hard_rejection: bool = False,
+    compress_risky_scene_lecture: bool = False,
+    compress_charged_probe_lecture: bool = False,
+    compress_to_dialogue_turn: bool = False,
+    prefer_follow_up_question: bool = False,
+    user_message: str = "",
+    hook_max_sentences: int = 2,
+    hook_max_chars: int = 260,
+    topic_questions_enabled: bool = True,
 ) -> str:
     guarded = " ".join(str(text or "").split()).strip()
     if not guarded:
@@ -229,6 +485,35 @@ def apply_human_style_guardrails(
         guarded = _strip_meta_closers(guarded)
         guarded = _unquote_numbered_list_items(guarded)
 
+    if soften_hard_rejection:
+        for opener in HARD_REJECTION_OPENERS:
+            if guarded.startswith(opener):
+                guarded = guarded[len(opener):].lstrip(" ,.;:-")
+                break
+        if guarded.startswith("Такой сценарий"):
+            guarded = "Так это только испортит сцену. " + guarded
+        elif guarded.startswith("Я тебе это расписывать не буду"):
+            guarded = guarded.replace(
+                "Я тебе это расписывать не буду",
+                "Так это только испортит момент",
+                1,
+            )
+
+    if compress_risky_scene_lecture:
+        guarded = _compress_risky_scene_lecture(guarded, user_message=user_message)
+
+    if compress_charged_probe_lecture:
+        guarded = _compress_charged_probe_lecture(guarded, user_message=user_message)
+
+    if compress_to_dialogue_turn:
+        guarded = _compress_to_dialogue_turn(
+            guarded,
+            max_sentences=max(1, int(hook_max_sentences or 2)),
+            max_chars=max(120, int(hook_max_chars or 260)),
+        )
+        if not guarded:
+            guarded = _build_dialogue_turn_fallback(user_message)
+
     if answer_first and not allow_follow_up_question:
         for question in GENERIC_TRAILING_QUESTIONS:
             suffix = " " + question
@@ -241,6 +526,13 @@ def apply_human_style_guardrails(
     if not allow_follow_up_question and guarded.count("?") > 1 and not strip_meta_framing:
         first_index = guarded.find("?")
         guarded = guarded[: first_index + 1] + guarded[first_index + 1 :].replace("?", ".")
+
+    if prefer_follow_up_question and "?" not in guarded:
+        question = _build_dialogue_pull_question(user_message) if topic_questions_enabled else ""
+        if question:
+            if guarded and guarded[-1] not in ".!?":
+                guarded += "."
+            guarded = f"{guarded} {question}".strip()
 
     return guarded.strip()
 
