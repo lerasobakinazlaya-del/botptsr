@@ -36,6 +36,9 @@ class ThrottlingMiddleware(BaseMiddleware):
 
     async def __call__(self, handler, event, data):
         if isinstance(event, Message) and event.from_user:
+            if self._is_throttle_exempt_text(event.text):
+                return await handler(event, data)
+
             user_id = event.from_user.id
             safety = self.settings_service.get_runtime_settings()["safety"]
             allowed = await self._is_allowed(
@@ -55,6 +58,20 @@ class ThrottlingMiddleware(BaseMiddleware):
                 return
 
         return await handler(event, data)
+
+    def _is_throttle_exempt_text(self, text: str | None) -> bool:
+        normalized = str(text or "").strip()
+        if not normalized:
+            return False
+
+        ui_settings = self.settings_service.get_runtime_settings().get("ui", {})
+        exempt_texts = {
+            str(ui_settings.get("write_button_text") or "").strip(),
+            str(ui_settings.get("modes_button_text") or "").strip(),
+            str(ui_settings.get("premium_button_text") or "").strip(),
+        }
+        exempt_texts.discard("")
+        return normalized in exempt_texts
 
     async def _is_allowed(self, user_id: int, rate_limit_seconds: float) -> bool:
         rate_limit_ms = max(1, int(rate_limit_seconds * 1000))

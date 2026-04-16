@@ -56,6 +56,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - proactive и re-engagement используют только безопасный недоверенный preview памяти; инструкции из памяти не должны исполняться как промт
 - debug-логирование системного промпта теперь редактирует чувствительные блоки памяти и state summary, даже если флаг включён в админке
 - добавлен product eval-набор на короткие первые сообщения, чтобы проверять живость, длину ответа и вариативность follow-up вопросов до выкладки
+- добавлен отдельный emotional hooks layer: библиотека хуков, выбор по стадии диалога, anti-repeat через `state["last_hook"]` и `ensure_open_loop` в reply path
 
 ## Стек
 
@@ -95,6 +96,8 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `services/human_memory_service.py` использует adaptive mode только как мягкое повышение `base -> comfort`; явный `comfort` не понижается автоматически
 - `services/ai_service.py` объединяет short-term историю, старую память и human memory context перед генерацией ответа
 - `services/ai_service.py` теперь сначала проверяет crisis signals и только потом идёт в обычную модельную генерацию
+- `services/ai_service.py` после guardrails может мягко встраивать emotional hook в короткий разговорный ответ и сохраняет последний использованный хук в `state["last_hook"]`
+- `services/emotional_hooks.py` хранит библиотеку curiosity / tension / partial reveal / escalation / personalization хуков, выбирает подходящий вариант по состоянию диалога и удерживает ответ в open-loop формате
 - `services/prompt_safety.py` санитизирует память, режет instruction-like payload и редактирует чувствительные части debug prompt-логов
 - `services/conversation_engine_v2.py` собирает основной system prompt для reply/reengagement: короткий character core, intent contract и условный PTSD-layer
 - `services/prompt_builder.py` остается как legacy/template слой для админского prompt-редактора и совместимости со старыми настройками
@@ -120,12 +123,15 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - `hook turn`: короткая реплика пользователя считается не запросом на эссе, а ходом в диалоге
 - `fast lane`: для таких реплик снижаются токены, история, timeout и retry, чтобы ответ приходил быстрее
 - `anti-lecture guardrails`: длинные безопасные простыни сжимаются до 1 мысли + 1 хука на продолжение
+- `emotional hooks`: после базового ответа может добавляться короткий curiosity / tension / partial reveal / escalation / personalization-хук без раздувания длины ответа
+- `open loop ending`: короткий ответ должен либо оставить мягкую недосказанность, либо закончиться вопросом, чтобы разговор естественно тянулся дальше
 - follow-up вопрос подбирается по типу интента: цена, найм, лендинг, тон, timing, диагностика, go/no-go
 
 Это лежит в:
 
 - `services/conversation_engine_v2.py`
 - `services/ai_service.py`
+- `services/emotional_hooks.py`
 - `services/response_guardrails.py`
 - `services/human_memory_service.py`
 
@@ -141,7 +147,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 Отдельный regression-набор для SaaS-ядра:
 
 ```powershell
-.\venv\Scripts\python.exe -m pytest -q tests\test_conversation_product_eval.py tests\test_conversation_engine_v2.py tests\test_response_guardrails.py tests\test_ai_service.py
+.\venv\Scripts\python.exe -m pytest -q tests\test_conversation_product_eval.py tests\test_conversation_engine_v2.py tests\test_response_guardrails.py tests\test_ai_service.py tests\test_emotional_hooks.py
 ```
 
 Что он проверяет:
@@ -150,11 +156,12 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - ответ остаётся компактным и заканчивается одним follow-up вопросом
 - в ответах не остаются низкосигнальные фразы вроде “это зависит от контекста”
 - follow-up вопросы и заходы не схлопываются в 1-2 одинаковые формулы
+- emotional hooks не повторяются подряд и сохраняют open-loop ending без раздувания ответа
 
 Проверка того же набора на сервере:
 
 ```bash
-cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_product_eval.py tests/test_conversation_engine_v2.py tests/test_response_guardrails.py tests/test_ai_service.py
+cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_product_eval.py tests/test_conversation_engine_v2.py tests/test_response_guardrails.py tests/test_ai_service.py tests/test_emotional_hooks.py
 ```
 
 Что важно по админке сейчас:
