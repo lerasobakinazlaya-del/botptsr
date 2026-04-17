@@ -1,8 +1,17 @@
 import json
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any
+
+
+@dataclass(frozen=True)
+class _FileSignature:
+    mtime_ns: int
+    ctime_ns: int
+    size: int
+    inode: int
 
 
 class AdminSettingsService:
@@ -656,7 +665,7 @@ class AdminSettingsService:
         self.modes_path = self.config_dir / "modes.json"
         self.mode_catalog_path = self.config_dir / "mode_catalog.json"
         self.log_path = self.logs_dir / "bot.log"
-        self._json_cache: dict[Path, tuple[int | None, dict[str, Any]]] = {}
+        self._json_cache: dict[Path, tuple[_FileSignature | None, dict[str, Any]]] = {}
         self._logs_cache: dict[tuple[int, int, int], dict[str, Any]] = {}
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -1399,14 +1408,14 @@ class AdminSettingsService:
             self._write_json(path, default)
 
     def _read_json(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
-        current_mtime = self._get_mtime(path)
+        signature = self._get_file_signature(path)
         cached = self._json_cache.get(path)
-        if cached is not None and cached[0] == current_mtime:
+        if cached is not None and cached[0] == signature:
             return deepcopy(cached[1])
 
         if not path.exists():
             payload = deepcopy(default)
-            self._json_cache[path] = (current_mtime, deepcopy(payload))
+            self._json_cache[path] = (signature, deepcopy(payload))
             return payload
         try:
             with path.open("r", encoding="utf-8") as file:
@@ -1414,7 +1423,7 @@ class AdminSettingsService:
         except Exception:
             payload = deepcopy(default)
 
-        self._json_cache[path] = (current_mtime, deepcopy(payload))
+        self._json_cache[path] = (signature, deepcopy(payload))
         return deepcopy(payload)
 
     def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
@@ -1424,10 +1433,19 @@ class AdminSettingsService:
             tmp.flush()
             temp_path = Path(tmp.name)
         temp_path.replace(path)
-        self._json_cache[path] = (self._get_mtime(path), deepcopy(payload))
+        self._json_cache[path] = (self._get_file_signature(path), deepcopy(payload))
 
-    def _get_mtime(self, path: Path) -> int | None:
+    def _get_file_signature(self, path: Path) -> _FileSignature | None:
         try:
-            return path.stat().st_mtime_ns
+            stat_result = path.stat()
         except OSError:
             return None
+
+        # Some file systems have coarse mtime resolution (e.g., 1s). Admin updates are
+        # done via atomic replace, so inode/ctime/size tend to change even when mtime doesn't.
+        return _FileSignature(
+            mtime_ns=int(getattr(stat_result, "st_mtime_ns", 0) or 0),
+            ctime_ns=int(getattr(stat_result, "st_ctime_ns", 0) or 0),
+            size=int(getattr(stat_result, "st_size", 0) or 0),
+            inode=int(getattr(stat_result, "st_ino", 0) or 0),
+        )
