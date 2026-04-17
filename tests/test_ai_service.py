@@ -29,8 +29,8 @@ class FakeTruncatingClient:
     async def generate_with_meta(self, **kwargs):
         self.calls.append(dict(kwargs))
         if len(self.calls) == 1:
-            return "Для начала важно", 42, "length"
-        return "Для начала важно создать спокойный и естественный контакт.", 84, "stop"
+            return "\u0420\u201d\u0420\u00bb\u0421\u040f \u0420\u0405\u0420\u00b0\u0421\u2021\u0420\u00b0\u0420\u00bb\u0420\u00b0 \u0420\u0406\u0420\u00b0\u0420\u00b6\u0420\u0405\u0420\u0455", 42, "length"
+        return "\u0420\u201d\u0420\u00bb\u0421\u040f \u0420\u0405\u0420\u00b0\u0421\u2021\u0420\u00b0\u0420\u00bb\u0420\u00b0 \u0420\u0406\u0420\u00b0\u0420\u00b6\u0420\u0405\u0420\u0455 \u0421\u0403\u0420\u0455\u0420\u00b7\u0420\u0491\u0420\u00b0\u0421\u201a\u0421\u040a \u0421\u0403\u0420\u0457\u0420\u0455\u0420\u0454\u0420\u0455\u0420\u2116\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u0451 \u0420\u00b5\u0421\u0403\u0421\u201a\u0420\u00b5\u0421\u0403\u0421\u201a\u0420\u0406\u0420\u00b5\u0420\u0405\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u0454\u0420\u0455\u0420\u0405\u0421\u201a\u0420\u00b0\u0420\u0454\u0421\u201a.", 84, "stop"
 
 
 class FakeStateEngine:
@@ -95,7 +95,7 @@ class FakeHumanMemoryService:
         return fallback
 
     def build_reengagement_prompt(self, state, *, hours_silent, active_mode, style_settings=None):
-        return "Сформулируй одно живое сообщение первой инициативы."
+        return "\u0420\u040e\u0421\u201e\u0420\u0455\u0421\u0402\u0420\u0458\u0421\u0453\u0420\u00bb\u0420\u0451\u0421\u0402\u0421\u0453\u0420\u2116 \u0420\u0455\u0420\u0491\u0420\u0405\u0420\u0455 \u0420\u00b6\u0420\u0451\u0420\u0406\u0420\u0455\u0420\u00b5 \u0421\u0403\u0420\u0455\u0420\u0455\u0420\u00b1\u0421\u2030\u0420\u00b5\u0420\u0405\u0420\u0451\u0420\u00b5 \u0420\u0457\u0420\u00b5\u0421\u0402\u0420\u0406\u0420\u0455\u0420\u2116 \u0420\u0451\u0420\u0405\u0420\u0451\u0421\u2020\u0420\u0451\u0420\u00b0\u0421\u201a\u0420\u0451\u0420\u0406\u0421\u2039."
 
     def suggest_mode(self, state, current_mode):
         return current_mode
@@ -189,8 +189,8 @@ class FakeSettingsService:
             "chat": {
                 "response_guardrails_enabled": True,
                 "response_guardrail_blocked_phrases": [
-                    "я понимаю, что тебе тяжело",
-                    "твои чувства валидны",
+                    "\u044f \u043f\u043e\u043d\u0438\u043c\u0430\u044e, \u0447\u0442\u043e \u0442\u0435\u0431\u0435 \u0442\u044f\u0436\u0435\u043b\u043e",
+                    "\u0442\u0432\u043e\u0438 \u0447\u0443\u0432\u0441\u0442\u0432\u0430 \u0432\u0430\u043b\u0438\u0434\u043d\u044b",
                 ],
             },
             "engagement": {
@@ -210,6 +210,16 @@ class FakeSettingsService:
                 },
             },
         }
+
+
+class ConversationDriverFlagSettingsService(FakeSettingsService):
+    def __init__(self, enabled):
+        self.enabled = enabled
+
+    def get_runtime_settings(self):
+        settings = super().get_runtime_settings()
+        settings["engagement"]["conversation_driver_enabled"] = self.enabled
+        return settings
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
@@ -234,7 +244,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 "timeout_seconds": 20,
                 "max_retries": 2,
             },
-            user_message="Что думаешь, брать или нет?",
+            user_message="\u0420\u00a7\u0421\u201a\u0420\u0455 \u0420\u0491\u0421\u0453\u0420\u0458\u0420\u00b0\u0420\u00b5\u0421\u20ac\u0421\u040a, \u0420\u00b1\u0421\u0402\u0420\u00b0\u0421\u201a\u0421\u040a \u0420\u0451\u0420\u00bb\u0420\u0451 \u0420\u0405\u0420\u00b5\u0421\u201a?",
             active_mode="free_talk",
         )
 
@@ -245,7 +255,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(optimized["max_retries"], 0)
 
     async def test_build_memory_context_prefers_unified_memory_profile_service(self):
-        memory_profile_service = FakeMemoryProfileService("- Важные имена и связи: пользователя зовут Лена")
+        memory_profile_service = FakeMemoryProfileService("- \u0420\u2019\u0420\u00b0\u0420\u00b6\u0420\u0405\u0421\u2039\u0420\u00b5 \u0420\u0451\u0420\u0458\u0420\u00b5\u0420\u0405\u0420\u00b0 \u0420\u0451 \u0421\u0403\u0420\u0406\u0421\u040f\u0420\u00b7\u0420\u0451: \u0420\u0457\u0420\u0455\u0420\u00bb\u0421\u040a\u0420\u00b7\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u201a\u0420\u00b5\u0420\u00bb\u0421\u040f \u0420\u00b7\u0420\u0455\u0420\u0406\u0421\u0453\u0421\u201a \u0420\u203a\u0420\u00b5\u0420\u0405\u0420\u00b0")
         service = AIService(
             client=FakeClient("ok"),
             state_engine=FakeStateEngine(),
@@ -265,14 +275,16 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             history=[],
         )
 
-        self.assertEqual(context, "- Важные имена и связи: пользователя зовут Лена")
+        self.assertEqual(context, "- \u0420\u2019\u0420\u00b0\u0420\u00b6\u0420\u0405\u0421\u2039\u0420\u00b5 \u0420\u0451\u0420\u0458\u0420\u00b5\u0420\u0405\u0420\u00b0 \u0420\u0451 \u0421\u0403\u0420\u0406\u0421\u040f\u0420\u00b7\u0420\u0451: \u0420\u0457\u0420\u0455\u0420\u00bb\u0421\u040a\u0420\u00b7\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u201a\u0420\u00b5\u0420\u00bb\u0421\u040f \u0420\u00b7\u0420\u0455\u0420\u0406\u0421\u0453\u0421\u201a \u0420\u203a\u0420\u00b5\u0420\u0405\u0420\u00b0")
         self.assertEqual(len(memory_profile_service.calls), 1)
 
     async def test_generate_response_strips_robotic_opener_and_generic_question(self):
         prompt_builder = RecordingPromptBuilder()
         service = AIService(
             client=FakeClient(
-                "Это хороший подход. Лучше заранее договориться о стоп-сигнале и утре после. Как ты на это смотришь?"
+                "\u042d\u0442\u043e \u0445\u043e\u0440\u043e\u0448\u0438\u0439 \u043f\u043e\u0434\u0445\u043e\u0434. "
+                "\u041b\u0443\u0447\u0448\u0435 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0438\u0442\u044c\u0441\u044f \u043e \u0441\u0442\u043e\u043f-\u0441\u0438\u0433\u043d\u0430\u043b\u0435 \u0438 \u0443\u0442\u0440\u0435 \u043f\u043e\u0441\u043b\u0435. "
+                "\u041a\u0430\u043a \u0442\u044b \u043d\u0430 \u044d\u0442\u043e \u0441\u043c\u043e\u0442\u0440\u0438\u0448\u044c?"
             ),
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
@@ -288,7 +300,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             result = await service.generate_response(
                 user_id=1,
                 history=[],
-                user_message="Составь план, как лучше все обсудить заранее.",
+                user_message="\u0421\u043e\u0441\u0442\u0430\u0432\u044c \u043f\u043b\u0430\u043d, \u043a\u0430\u043a \u043b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435 \u043e\u0431\u0441\u0443\u0434\u0438\u0442\u044c \u0437\u0430\u0440\u0430\u043d\u0435\u0435.",
                 state={
                     "active_mode": "free_talk",
                     "emotional_tone": "neutral",
@@ -298,12 +310,13 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertTrue(result.response)
-        self.assertIn("?", result.response)
-
+        self.assertEqual(
+            result.response,
+            "\u041b\u0443\u0447\u0448\u0435 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0438\u0442\u044c\u0441\u044f \u043e \u0441\u0442\u043e\u043f-\u0441\u0438\u0433\u043d\u0430\u043b\u0435 \u0438 \u0443\u0442\u0440\u0435 \u043f\u043e\u0441\u043b\u0435.",
+        )
     async def test_generate_response_adds_emotional_hook_for_conversational_turn(self):
         service = AIService(
-            client=FakeClient("Я бы не торопился с этим."),
+            client=FakeClient("\u0420\u0407 \u0420\u00b1\u0421\u2039 \u0420\u0405\u0420\u00b5 \u0421\u201a\u0420\u0455\u0421\u0402\u0420\u0455\u0420\u0457\u0420\u0451\u0420\u00bb\u0421\u0403\u0421\u040f \u0421\u0403 \u0421\u040c\u0421\u201a\u0420\u0451\u0420\u0458."),
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
             keyword_memory_service=FakeKeywordMemoryService(),
@@ -318,7 +331,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             result = await service.generate_response(
                 user_id=1,
                 history=[],
-                user_message="Как тебе такой ход?",
+                user_message="\u0420\u0459\u0420\u00b0\u0420\u0454 \u0421\u201a\u0420\u00b5\u0420\u00b1\u0420\u00b5 \u0421\u201a\u0420\u00b0\u0420\u0454\u0420\u0455\u0420\u2116 \u0421\u2026\u0420\u0455\u0420\u0491?",
                 state={
                     "active_mode": "free_talk",
                     "emotional_tone": "neutral",
@@ -333,10 +346,10 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertNotEqual(result.response, "Я бы не торопился с этим.")
+        self.assertNotEqual(result.response, "\u0420\u0407 \u0420\u00b1\u0421\u2039 \u0420\u0405\u0420\u00b5 \u0421\u201a\u0420\u0455\u0421\u0402\u0420\u0455\u0420\u0457\u0420\u0451\u0420\u00bb\u0421\u0403\u0421\u040f \u0421\u0403 \u0421\u040c\u0421\u201a\u0420\u0451\u0420\u0458.")
         self.assertIn(result.new_state["last_hook"], result.response)
         self.assertTrue(
-            result.response.endswith("?") or "не вся картина" in result.response.lower()
+            result.response.endswith("?") or "\u0420\u0405\u0420\u00b5 \u0420\u0406\u0421\u0403\u0421\u040f \u0420\u0454\u0420\u00b0\u0421\u0402\u0421\u201a\u0420\u0451\u0420\u0405\u0420\u00b0" in result.response.lower()
         )
 
     async def test_generate_response_injects_conversation_driver_into_prompt(self):
@@ -368,11 +381,12 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("Conversation driver:", system_prompt)
+        self.assertIn("Conversation driver override:", system_prompt)
         self.assertIn("detected intent: desire", system_prompt)
+        self.assertIn("selected question id: q01", system_prompt)
         self.assertIn("Max 3 sentences.", system_prompt)
         self.assertEqual(result.new_state["last_detected_intent"], "desire")
-
+        self.assertEqual(result.new_state["last_driver_question_id"], "q01")
     async def test_generate_response_flattens_list_style_when_driver_is_active(self):
         service = AIService(
             client=FakeClient(
@@ -393,7 +407,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             result = await service.generate_response(
                 user_id=1,
                 history=[],
-                user_message="Меня это цепляет",
+                user_message="\u0420\u045a\u0420\u00b5\u0420\u0405\u0421\u040f \u0421\u040c\u0421\u201a\u0420\u0455 \u0421\u2020\u0420\u00b5\u0420\u0457\u0420\u00bb\u0421\u040f\u0420\u00b5\u0421\u201a",
                 state={
                     "active_mode": "free_talk",
                     "emotional_tone": "neutral",
@@ -407,8 +421,100 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("2.", result.response)
         self.assertIn("?", result.response)
 
+    async def test_generate_response_skips_driver_for_full_reveal_request(self):
+        client = FakeClient("Скажу прямо и без обходов.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Скажи прямо, без вопросов и сразу по делу",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertNotIn("Conversation driver override:", system_prompt)
+        self.assertNotIn("last_driver_question_id", result.new_state)
+    async def test_generate_response_skips_driver_for_crisis_signal(self):
+        client = FakeClient("\u0421\u0435\u0439\u0447\u0430\u0441 \u0432\u0430\u0436\u043d\u043e \u0443\u0434\u0435\u0440\u0436\u0430\u0442\u044c\u0441\u044f \u0437\u0430 \u043e\u043f\u043e\u0440\u0443.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="\u042f \u043d\u0435 \u0445\u043e\u0447\u0443 \u0436\u0438\u0442\u044c \u0442\u0430\u043a",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        self.assertEqual(client.calls, [])
+        self.assertNotIn("last_driver_question_id", result.new_state)
+    async def test_generate_response_respects_explicit_driver_flag(self):
+        client = FakeClient("\u0420\u045e\u0421\u0453\u0421\u201a \u0421\u040f\u0420\u0406\u0420\u0405\u0420\u0455 \u0420\u00b5\u0421\u0403\u0421\u201a\u0421\u040a \u0421\u0403\u0420\u0491\u0420\u0406\u0420\u0451\u0420\u0456.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=ConversationDriverFlagSettingsService(False),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="\u0420\u045f\u0420\u0455\u0421\u2021\u0420\u00b5\u0420\u0458\u0421\u0453 \u0421\u040c\u0421\u201a\u0420\u0455 \u0420\u0406\u0420\u0455\u0420\u0455\u0420\u00b1\u0421\u2030\u0420\u00b5 \u0421\u2020\u0420\u00b5\u0420\u0457\u0420\u00bb\u0421\u040f\u0420\u00b5\u0421\u201a?",
+                state={
+                    "active_mode": "free_talk",
+                    "emotional_tone": "neutral",
+                    "relationship_state": {},
+                },
+            )
+        finally:
+            await service.close()
+
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertNotIn("Conversation driver override:", system_prompt)
+        self.assertNotIn("last_driver_question_id", result.new_state)
     async def test_generate_response_adds_list_continuation_instruction(self):
-        client = FakeClient("2. Обсудите заранее стоп-сигнал и кто следит за состоянием.\n3. Утром не спешите, проверьте, всем ли ок.")
+        client = FakeClient("2. \u041e\u0431\u0441\u0443\u0434\u0438\u0442\u0435 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0441\u0442\u043e\u043f-\u0441\u0438\u0433\u043d\u0430\u043b \u0438 \u043a\u0442\u043e \u0441\u043b\u0435\u0434\u0438\u0442 \u0437\u0430 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435\u043c.\n3. \u0423\u0442\u0440\u043e\u043c \u043d\u0435 \u0441\u043f\u0435\u0448\u0438\u0442\u0435, \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435, \u0432\u0441\u0435\u043c \u043b\u0438 \u043e\u043a.")
         service = AIService(
             client=client,
             state_engine=FakeStateEngine(),
@@ -427,7 +533,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[
                     {
                         "role": "assistant",
-                        "content": "Вот примерный план:\n1. Заранее обсудите границы и что точно ок для всех.",
+                        "content": "\u0412\u043e\u0442 \u043f\u0440\u0438\u043c\u0435\u0440\u043d\u044b\u0439 \u043f\u043b\u0430\u043d:\n1. \u0417\u0430\u0440\u0430\u043d\u0435\u0435 \u043e\u0431\u0441\u0443\u0434\u0438\u0442\u0435 \u0433\u0440\u0430\u043d\u0438\u0446\u044b \u0438 \u0447\u0442\u043e \u0442\u043e\u0447\u043d\u043e \u043e\u043a \u0434\u043b\u044f \u0432\u0441\u0435\u0445.",
                     }
                 ],
                 user_message="Ок далее",
@@ -446,7 +552,6 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.calls[0]["max_completion_tokens"], 140)
         self.assertEqual(client.calls[0]["verbosity"], "low")
         self.assertEqual(client.calls[0]["reasoning_effort"], "low")
-
     async def test_generate_response_adds_harm_reduction_instruction_for_sex_and_drugs(self):
         client = FakeClient("Нужно заранее обсудить границы, трезвого наблюдателя и утро после.")
         service = AIService(
@@ -479,7 +584,6 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Do not romanticize altered-state scenarios with blurred control.", system_prompt)
         self.assertIn("Do not provide step-by-step use, mixing, or escalation instructions.", system_prompt)
         self.assertIn("Stay on harm reduction", system_prompt)
-
     async def test_generate_response_allows_single_question_when_user_requests_it(self):
         client = FakeClient("Ок, давай так и сделаем.")
         service = AIService(
@@ -510,17 +614,16 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
 
         system_prompt = client.calls[0]["messages"][0]["content"]
         self.assertIn("The user explicitly invited questions.", system_prompt)
-
     async def test_generate_response_clamps_overloaded_ptsd_reply(self):
         prompt_builder = RecordingPromptBuilder()
         service = AIService(
             client=FakeLongReplyClient(
-                "Я понимаю, что тебе тяжело. Твои чувства валидны. "
-                "Сейчас попробуем разложить это на несколько частей. "
-                "Сначала обрати внимание на дыхание. "
-                "Потом осмотрись вокруг и назови пять предметов рядом. "
-                "После этого прислушайся к телу и попробуй расслабить плечи. "
-                "А затем напиши мне подробно, что происходит внутри? Чем помочь дальше?"
+                "\u042f \u043f\u043e\u043d\u0438\u043c\u0430\u044e, \u0447\u0442\u043e \u0442\u0435\u0431\u0435 \u0442\u044f\u0436\u0435\u043b\u043e. \u0422\u0432\u043e\u0438 \u0447\u0443\u0432\u0441\u0442\u0432\u0430 \u0432\u0430\u043b\u0438\u0434\u043d\u044b. "
+                "\u0421\u0435\u0439\u0447\u0430\u0441 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0435\u043c \u0440\u0430\u0437\u043b\u043e\u0436\u0438\u0442\u044c \u044d\u0442\u043e \u043d\u0430 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0447\u0430\u0441\u0442\u0435\u0439. "
+                "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043e\u0431\u0440\u0430\u0442\u0438 \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435 \u043d\u0430 \u0434\u044b\u0445\u0430\u043d\u0438\u0435. "
+                "\u041f\u043e\u0442\u043e\u043c \u043e\u0441\u043c\u043e\u0442\u0440\u0438\u0441\u044c \u0432\u043e\u043a\u0440\u0443\u0433 \u0438 \u043d\u0430\u0437\u043e\u0432\u0438 \u043f\u044f\u0442\u044c \u043f\u0440\u0435\u0434\u043c\u0435\u0442\u043e\u0432 \u0440\u044f\u0434\u043e\u043c. "
+                "\u041f\u043e\u0441\u043b\u0435 \u044d\u0442\u043e\u0433\u043e \u043f\u0440\u0438\u0441\u043b\u0443\u0448\u0430\u0439\u0441\u044f \u043a \u0442\u0435\u043b\u0443 \u0438 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0440\u0430\u0441\u0441\u043b\u0430\u0431\u0438\u0442\u044c \u043f\u043b\u0435\u0447\u0438. "
+                "\u0410 \u0437\u0430\u0442\u0435\u043c \u043d\u0430\u043f\u0438\u0448\u0438 \u043c\u043d\u0435 \u043f\u043e\u0434\u0440\u043e\u0431\u043d\u043e, \u0447\u0442\u043e \u043f\u0440\u043e\u0438\u0441\u0445\u043e\u0434\u0438\u0442 \u0432\u043d\u0443\u0442\u0440\u0438? \u0427\u0435\u043c \u043f\u043e\u043c\u043e\u0447\u044c \u0434\u0430\u043b\u044c\u0448\u0435?"
             ),
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
@@ -536,7 +639,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             result = await service.generate_response(
                 user_id=1,
                 history=[],
-                user_message="Мне очень тревожно и трудно собраться.",
+                user_message="\u041c\u043d\u0435 \u043e\u0447\u0435\u043d\u044c \u0442\u0440\u0435\u0432\u043e\u0436\u043d\u043e \u0438 \u0442\u0440\u0443\u0434\u043d\u043e \u0441\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f.",
                 state={
                     "active_mode": "free_talk",
                     "emotional_tone": "anxious",
@@ -546,16 +649,15 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertIn("слышу, как тебе тяжело", result.response.lower())
-        self.assertIn("твоя реакция понятна", result.response.lower())
+        self.assertIn("\u0441\u043b\u044b\u0448\u0443, \u043a\u0430\u043a \u0442\u0435\u0431\u0435 \u0442\u044f\u0436\u0435\u043b\u043e", result.response.lower())
+        self.assertIn("\u0442\u0432\u043e\u044f \u0440\u0435\u0430\u043a\u0446\u0438\u044f \u043f\u043e\u043d\u044f\u0442\u043d\u0430", result.response.lower())
         self.assertLessEqual(result.response.count("?"), 1)
         self.assertLessEqual(len(result.response), 340)
         self.assertEqual(result.new_state["last_assistant_source"], "reply")
-
     async def test_generate_reengagement_applies_response_guardrails(self):
         service = AIService(
             client=FakeClient(
-                "Я понимаю, что тебе тяжело. Твои чувства валидны. Что рядом? Чем помочь?"
+                "\u042f \u043f\u043e\u043d\u0438\u043c\u0430\u044e, \u0447\u0442\u043e \u0442\u0435\u0431\u0435 \u0442\u044f\u0436\u0435\u043b\u043e. \u0422\u0432\u043e\u0438 \u0447\u0443\u0432\u0441\u0442\u0432\u0430 \u0432\u0430\u043b\u0438\u0434\u043d\u044b. \u0427\u0442\u043e \u0440\u044f\u0434\u043e\u043c? \u0427\u0435\u043c \u043f\u043e\u043c\u043e\u0447\u044c?"
             ),
             state_engine=FakeStateEngine(),
             memory_engine=FakeMemoryEngine(),
@@ -578,12 +680,11 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         )
 
         lowered = result.response.lower()
-        self.assertIn("слышу, как тебе тяжело", lowered)
-        self.assertIn("твоя реакция понятна", lowered)
+        self.assertIn("\u0441\u043b\u044b\u0448\u0443, \u043a\u0430\u043a \u0442\u0435\u0431\u0435 \u0442\u044f\u0436\u0435\u043b\u043e", lowered)
+        self.assertIn("\u0442\u0432\u043e\u044f \u0440\u0435\u0430\u043a\u0446\u0438\u044f \u043f\u043e\u043d\u044f\u0442\u043d\u0430", lowered)
         self.assertEqual(result.response.count("?"), 1)
-
     async def test_generate_reengagement_uses_fast_short_profile(self):
-        client = FakeClient("Привет. Я вдруг о тебе вспомнила.")
+        client = FakeClient("\u0420\u045f\u0421\u0402\u0420\u0451\u0420\u0406\u0420\u00b5\u0421\u201a. \u0420\u0407 \u0420\u0406\u0420\u0491\u0421\u0402\u0421\u0453\u0420\u0456 \u0420\u0455 \u0421\u201a\u0420\u00b5\u0420\u00b1\u0420\u00b5 \u0420\u0406\u0421\u0403\u0420\u0457\u0420\u0455\u0420\u0458\u0420\u0405\u0420\u0451\u0420\u00bb\u0420\u00b0.")
         service = AIService(
             client=client,
             state_engine=FakeStateEngine(),
@@ -637,7 +738,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             user_id=1,
         )
 
-        self.assertEqual(text, "Для начала важно создать спокойный и естественный контакт.")
+        self.assertEqual(text, "\u0420\u201d\u0420\u00bb\u0421\u040f \u0420\u0405\u0420\u00b0\u0421\u2021\u0420\u00b0\u0420\u00bb\u0420\u00b0 \u0420\u0406\u0420\u00b0\u0420\u00b6\u0420\u0405\u0420\u0455 \u0421\u0403\u0420\u0455\u0420\u00b7\u0420\u0491\u0420\u00b0\u0421\u201a\u0421\u040a \u0421\u0403\u0420\u0457\u0420\u0455\u0420\u0454\u0420\u0455\u0420\u2116\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u0451 \u0420\u00b5\u0421\u0403\u0421\u201a\u0420\u00b5\u0421\u0403\u0421\u201a\u0420\u0406\u0420\u00b5\u0420\u0405\u0420\u0405\u0421\u2039\u0420\u2116 \u0420\u0454\u0420\u0455\u0420\u0405\u0421\u201a\u0420\u00b0\u0420\u0454\u0421\u201a.")
         self.assertEqual(tokens_used, 84)
         self.assertEqual(len(client.calls), 2)
         self.assertEqual(client.calls[0]["max_completion_tokens"], 200)
@@ -657,8 +758,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         )
 
         history = [
-            ChatMessage(role="assistant", content="Как ты на это смотришь?", timestamp=1.0),
-            ChatMessage(role="assistant", content="Что думаешь дальше?", timestamp=2.0),
+            ChatMessage(role="assistant", content="\u0420\u0459\u0420\u00b0\u0420\u0454 \u0421\u201a\u0421\u2039 \u0420\u0405\u0420\u00b0 \u0421\u040c\u0421\u201a\u0420\u0455 \u0421\u0403\u0420\u0458\u0420\u0455\u0421\u201a\u0421\u0402\u0420\u0451\u0421\u20ac\u0421\u040a?", timestamp=1.0),
+            ChatMessage(role="assistant", content="\u0420\u00a7\u0421\u201a\u0420\u0455 \u0420\u0491\u0421\u0453\u0420\u0458\u0420\u00b0\u0420\u00b5\u0421\u20ac\u0421\u040a \u0420\u0491\u0420\u00b0\u0420\u00bb\u0421\u040a\u0421\u20ac\u0420\u00b5?", timestamp=2.0),
         ]
 
         self.assertTrue(service._assistant_has_been_question_heavy(history))

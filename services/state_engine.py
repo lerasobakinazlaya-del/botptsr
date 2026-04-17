@@ -103,6 +103,8 @@ class StateEngine:
         current_state.setdefault("conversation_phase", "start")
         current_state.setdefault("active_mode", "base")
         current_state.setdefault("emotional_tone", "neutral")
+        current_state.setdefault("last_detected_intent", "")
+        current_state.setdefault("last_driver_question_id", "")
         return current_state
 
     def _derive_phase(self, interaction_count: int) -> str:

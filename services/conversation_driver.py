@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import re
+from typing import Any
+
+from services.response_guardrails import detect_crisis_signal
 
 
 INTENTS = {
@@ -13,9 +16,297 @@ INTENTS = {
     "explicit_request",
     "confusion",
 }
-
+DRIVER_STAGES = {"start", "warmup", "trust", "deep"}
 HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
+OPEN_LOOP_MARKERS = (
+    "это только часть",
+    "не вся картина",
+    "тут еще есть слой",
+    "здесь все меняется",
+)
 LIST_MARKER_RE = re.compile(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+")
+
+QUESTION_BANK: tuple[dict[str, Any], ...] = (
+    {
+        "id": "q01",
+        "intent": "desire",
+        "stages": ("start",),
+        "text": "Что тебя сюда тянет сильнее — результат или сам путь к нему?",
+    },
+    {
+        "id": "q02",
+        "intent": "desire",
+        "stages": ("warmup",),
+        "text": "В этом больше импульса попробовать или ощущения, что это давно назрело?",
+    },
+    {
+        "id": "q03",
+        "intent": "desire",
+        "stages": ("trust", "deep"),
+        "text": "Если убрать чужие ожидания, ты бы выбрал это так же уверенно или уже начал бы сомневаться?",
+    },
+    {
+        "id": "q04",
+        "intent": "emotion",
+        "stages": ("start",),
+        "text": "Что здесь сейчас звучит громче — тревога, обида или надежда?",
+    },
+    {
+        "id": "q05",
+        "intent": "emotion",
+        "stages": ("warmup",),
+        "text": "Тебя сильнее задевает сам факт, тон или то, что это меняет всю картину?",
+    },
+    {
+        "id": "q06",
+        "intent": "emotion",
+        "stages": ("trust", "deep"),
+        "text": "Если назвать это честно, это больше про страх потерять, злость не быть услышанным или усталость тащить всё самому?",
+    },
+    {
+        "id": "q07",
+        "intent": "fantasy",
+        "stages": ("start",),
+        "text": "В этой идее тебя держит свобода, масштаб или новая роль?",
+    },
+    {
+        "id": "q08",
+        "intent": "fantasy",
+        "stages": ("warmup",),
+        "text": "Если представить это без ограничений, тебе важнее влияние, признание или ощущение движения?",
+    },
+    {
+        "id": "q09",
+        "intent": "fantasy",
+        "stages": ("trust", "deep"),
+        "text": "Для тебя это скорее шанс вырасти, право быть другим или попытка вернуть себе контроль?",
+    },
+    {
+        "id": "q10",
+        "intent": "resistance",
+        "stages": ("start",),
+        "text": "Что стопорит сильнее — сомнение в себе или сомнение в самой идее?",
+    },
+    {
+        "id": "q11",
+        "intent": "resistance",
+        "stages": ("warmup",),
+        "text": "Ты тормозишь потому что рано, потому что не доверяешь или потому что цена кажется слишком высокой?",
+    },
+    {
+        "id": "q12",
+        "intent": "resistance",
+        "stages": ("trust", "deep"),
+        "text": "Если бы никто не оценивал тебя со стороны, ты бы всё ещё держал стоп или уже пошёл дальше?",
+    },
+    {
+        "id": "q13",
+        "intent": "curiosity",
+        "stages": ("start",),
+        "text": "Тебе сейчас нужнее понять механику, увидеть пример или примерить это на себя?",
+    },
+    {
+        "id": "q14",
+        "intent": "curiosity",
+        "stages": ("warmup",),
+        "text": "Ты хочешь разобраться в причине, в последствиях или в том, как этим управлять?",
+    },
+    {
+        "id": "q15",
+        "intent": "curiosity",
+        "stages": ("trust", "deep"),
+        "text": "Тебя здесь больше держит вопрос «почему так» или «что это меняет лично для меня»?",
+    },
+    {
+        "id": "q16",
+        "intent": "short_reply",
+        "stages": ("start",),
+        "text": "Скажи на один слой глубже: там больше интерес, осторожность или внутреннее «а вдруг»?",
+    },
+    {
+        "id": "q17",
+        "intent": "short_reply",
+        "stages": ("warmup", "trust"),
+        "text": "Если развернуть это в одну мысль, ты сейчас скорее за, против или пока на пороге?",
+    },
+    {
+        "id": "q18",
+        "intent": "short_reply",
+        "stages": ("deep",),
+        "text": "Твоя короткость сейчас про ясность, усталость или нежелание назвать главное?",
+    },
+    {
+        "id": "q19",
+        "intent": "explicit_request",
+        "stages": ("start",),
+        "text": "Тебе нужен быстрый ответ, рабочая формулировка или способ не ошибиться?",
+    },
+    {
+        "id": "q20",
+        "intent": "explicit_request",
+        "stages": ("warmup",),
+        "text": "Ты хочешь решение под задачу, под человека или под свой стиль?",
+    },
+    {
+        "id": "q21",
+        "intent": "explicit_request",
+        "stages": ("trust", "deep"),
+        "text": "В ответе для тебя ценнее точность, влияние на другого или ощущение, что это звучит по-твоему?",
+    },
+    {
+        "id": "q22",
+        "intent": "confusion",
+        "stages": ("start",),
+        "text": "Что именно не сходится — смысл, шаги или зачем это вообще нужно?",
+    },
+    {
+        "id": "q23",
+        "intent": "confusion",
+        "stages": ("warmup",),
+        "text": "Тебе мешает формулировка, логика или то, что это не стыкуется с твоим опытом?",
+    },
+    {
+        "id": "q24",
+        "intent": "confusion",
+        "stages": ("trust", "deep"),
+        "text": "Если убрать лишнее, где узел — в фактах, в интерпретации или в твоём отношении к этому?",
+    },
+    {
+        "id": "q25",
+        "intent": "any",
+        "stages": ("start", "warmup", "trust", "deep"),
+        "text": "Тебе сейчас важнее ясность, движение или ощущение, что это действительно твой выбор?",
+    },
+)
+
+DESIRE_MARKERS = (
+    "хочу",
+    "хочется",
+    "тянет",
+    "цепляет",
+    "манит",
+    "привлекает",
+    "нравится",
+    "назрело",
+)
+EMOTION_MARKERS = (
+    "чувствую",
+    "тревожно",
+    "обидно",
+    "задел",
+    "задело",
+    "задевает",
+    "злит",
+    "злость",
+    "больно",
+    "надежда",
+    "устал",
+    "страшно",
+)
+FANTASY_MARKERS = (
+    "представь",
+    "представим",
+    "если представить",
+    "если бы",
+    "идея",
+    "роль",
+    "сценарий",
+    "мечтаю",
+)
+RESISTANCE_MARKERS = (
+    "не хочу",
+    "не могу",
+    "не готов",
+    "стоп",
+    "торможу",
+    "сомневаюсь",
+    "не доверяю",
+    "рано",
+)
+CURIOSITY_MARKERS = (
+    "почему",
+    "зачем",
+    "как это",
+    "как этим",
+    "что значит",
+    "интересно",
+    "любопытно",
+    "разобраться",
+    "механика",
+)
+EXPLICIT_REQUEST_MARKERS = (
+    "скажи",
+    "дай",
+    "объясни",
+    "напиши",
+    "составь",
+    "распиши",
+    "подскажи",
+    "просто ответь",
+    "по делу",
+)
+CONFUSION_MARKERS = (
+    "не понимаю",
+    "не понял",
+    "не поняла",
+    "не сходится",
+    "неясно",
+    "запутался",
+    "запуталась",
+    "что ты имеешь в виду",
+)
+FULL_REVEAL_MARKERS = (
+    "дай полный ответ",
+    "скажи прямо",
+    "без вопросов",
+    "не раскручивай",
+    "просто ответь",
+    "просто скажи всё",
+    "сразу по делу",
+)
+UNSAFE_CONTEXT_MARKERS = (
+    "суицид",
+    "убить",
+    "оруж",
+    "бомб",
+    "наркот",
+    "меф",
+    "2cb",
+    "2-cb",
+    "секс",
+    "оргия",
+)
+LIST_REQUEST_MARKERS = (
+    "спис",
+    "по пунктам",
+    "чеклист",
+    "bullet",
+    "list",
+    "шаг",
+)
+BASE_REFLECTIONS = {
+    "desire": "Тут у тебя уже не просто интерес, а явное притяжение.",
+    "emotion": "Здесь уже звучит чувство, а не просто оценка ситуации.",
+    "fantasy": "Тебя держит не только сама идея, но и то, что она обещает внутри.",
+    "resistance": "Ты здесь скорее притормаживаешь, чем действительно отпускаешь тему.",
+    "curiosity": "Тебя цепляет не только факт, а слой под ним.",
+    "short_reply": "Ты оставил это коротко, но не пусто.",
+    "explicit_request": "Тебе нужен не общий разговор, а точное попадание в задачу.",
+    "confusion": "Здесь у тебя пока не сходится какая-то ключевая часть.",
+}
+SOFT_REFLECTIONS = {
+    "emotion": "Это у тебя сейчас звучит слишком живо, чтобы пройти мимо.",
+    "resistance": "Ты держишь паузу не просто так.",
+    "confusion": "Похоже, тут пока не сложился основной смысловой узел.",
+    "short_reply": "Ты ответил коротко, но главное там явно не названо.",
+}
+DEEP_REFLECTIONS = {
+    "desire": "По тому, как ты это держишь, там уже есть личный выбор, а не случайный импульс.",
+    "emotion": "По тону видно, что это задевает глубже, чем кажется снаружи.",
+    "fantasy": "Для тебя это уже не абстрактная идея, а способ сдвинуть внутреннюю рамку.",
+    "curiosity": "Ты уже не просто спрашиваешь, а подбираешься к личному смыслу этого хода.",
+    "explicit_request": "За запросом слышно, что тебе важна не только польза, но и точное ощущение своего ответа.",
+}
 
 
 def detect_intent(message: str) -> str:
@@ -44,19 +335,61 @@ def detect_intent(message: str) -> str:
 
 
 def build_followup(intent: str, state: dict) -> str:
-    normalized_intent = str(intent or "curiosity").strip().lower()
-    if normalized_intent not in INTENTS:
-        normalized_intent = "curiosity"
+    reflection = build_reflection(intent, state)
+    question = select_followup_question(intent, resolve_driver_stage(state), state)
+    return f"{reflection} {question}".strip()
 
-    intro = BASE_REFLECTIONS[normalized_intent]
-    if _is_high_engagement(state):
-        intro = PERSONALIZED_REFLECTIONS.get(normalized_intent, intro)
 
+def resolve_driver_stage(state: dict) -> str:
+    snapshot = state or {}
+    phase = str(snapshot.get("conversation_phase") or "").strip().lower()
+    if phase in DRIVER_STAGES:
+        return phase
+
+    interaction_count = int(snapshot.get("interaction_count", 0) or 0)
+    if interaction_count >= 20:
+        return "deep"
+    if interaction_count >= 8:
+        return "trust"
+    if interaction_count >= 3:
+        return "warmup"
+    return "start"
+
+
+def wants_full_reveal(message: str) -> bool:
+    return _contains_any(_normalize(message), FULL_REVEAL_MARKERS)
+
+
+def is_driver_safe_context(message: str, state: dict | None = None) -> bool:
+    normalized = _normalize(message)
+    if not normalized:
+        return False
+    if detect_crisis_signal(message) is not None:
+        return False
+    if _contains_any(normalized, UNSAFE_CONTEXT_MARKERS):
+        return False
+    if str((state or {}).get("safety_lock") or "").strip().lower() == "driver_off":
+        return False
+    return True
+
+
+def select_followup_question(intent: str, stage: str, state: dict) -> str:
+    return str(_select_question_entry(intent, stage, state)["text"])
+
+
+def build_reflection(intent: str, state: dict) -> str:
+    normalized_intent = _normalize_intent(intent)
+    stage = resolve_driver_stage(state)
     emotional_tone = str((state or {}).get("emotional_tone") or "").strip().lower()
     if emotional_tone in HEAVY_TONES:
-        intro = SOFT_REFLECTIONS.get(normalized_intent, intro)
+        return SOFT_REFLECTIONS.get(normalized_intent, BASE_REFLECTIONS.get(normalized_intent, BASE_REFLECTIONS["curiosity"]))
+    if stage in {"trust", "deep"}:
+        return DEEP_REFLECTIONS.get(normalized_intent, BASE_REFLECTIONS.get(normalized_intent, BASE_REFLECTIONS["curiosity"]))
+    return BASE_REFLECTIONS.get(normalized_intent, BASE_REFLECTIONS["curiosity"])
 
-    return f"{intro} {FOLLOWUP_QUESTIONS[normalized_intent]}".strip()
+
+def resolve_followup_entry(intent: str, state: dict) -> dict[str, Any]:
+    return dict(_select_question_entry(intent, resolve_driver_stage(state), state))
 
 
 def apply_driver_guardrails(
@@ -65,9 +398,11 @@ def apply_driver_guardrails(
     user_message: str,
     state: dict | None = None,
     intent: str | None = None,
+    followup_question: str | None = None,
 ) -> str:
+    snapshot = state or {}
     resolved_intent = intent or detect_intent(user_message)
-    fallback = build_followup(resolved_intent, state or {})
+    fallback = build_followup(resolved_intent, snapshot)
     normalized = _normalize_with_breaks(text)
     if not normalized:
         return fallback
@@ -81,162 +416,78 @@ def apply_driver_guardrails(
         return fallback
 
     if "?" not in normalized:
-        question = _extract_question(fallback)
+        question = str(followup_question or _extract_question(fallback)).strip()
         normalized = _append_sentence(normalized, question)
 
+    normalized = _trim_sentences(normalized, max_sentences=3)
+    normalized = _normalize_with_breaks(normalized)
+    if not normalized.endswith("?") and not any(marker in normalized.lower() for marker in OPEN_LOOP_MARKERS):
+        question = str(followup_question or _extract_question(fallback)).strip()
+        normalized = _append_sentence(normalized, question)
+        normalized = _trim_sentences(normalized, max_sentences=3)
     return normalized.strip()
 
 
-DESIRE_MARKERS = (
-    "хочу",
-    "хочется",
-    "тянет",
-    "цепляет",
-    "манит",
-    "нравится",
-    "привлекает",
-    "заводит",
-    "возбуждает",
-)
+def _select_question_entry(intent: str, stage: str, state: dict) -> dict[str, Any]:
+    normalized_intent = _normalize_intent(intent)
+    resolved_stage = stage if stage in DRIVER_STAGES else resolve_driver_stage(state)
+    emotional_tone = str((state or {}).get("emotional_tone") or "").strip().lower()
+    last_question_id = str((state or {}).get("last_driver_question_id") or "").strip()
 
-EMOTION_MARKERS = (
-    "чувствую",
-    "эмоци",
-    "страшно",
-    "тревожно",
-    "обидно",
-    "стыдно",
-    "ревную",
-    "больно",
-    "плохо",
-    "грустно",
-    "злюсь",
-    "бесит",
-    "одиноко",
-    "накрывает",
-    "нервно",
-)
+    stage_sequence = [resolved_stage]
+    if emotional_tone in HEAVY_TONES and resolved_stage != "start":
+        stage_sequence.insert(0, "start")
 
-FANTASY_MARKERS = (
-    "фантаз",
-    "представь",
-    "представим",
-    "вообрази",
-    "сценар",
-    "если бы",
-    "мечтаю",
-    "роль",
-    "как будто",
-)
+    candidates: list[dict[str, Any]] = []
+    for candidate_stage in stage_sequence:
+        candidates = _questions_for(normalized_intent, candidate_stage)
+        if candidates:
+            break
+    if not candidates:
+        candidates = _questions_for("any", resolved_stage)
+    if not candidates and emotional_tone in HEAVY_TONES:
+        candidates = _questions_for("any", "start")
+    if not candidates:
+        candidates = [dict(QUESTION_BANK[-1])]
 
-RESISTANCE_MARKERS = (
-    "не хочу",
-    "не готов",
-    "не могу",
-    "не буду",
-    "не сейчас",
-    "не надо",
-    "стоп",
-    "хватит",
-    "сомневаюсь",
-    "не уверен",
-    "не верю",
-)
+    filtered_candidates = [entry for entry in candidates if str(entry["id"]) != last_question_id]
+    if filtered_candidates:
+        return dict(filtered_candidates[_candidate_index(state, filtered_candidates)])
 
-CURIOSITY_MARKERS = (
-    "почему",
-    "зачем",
-    "что если",
-    "интересно",
-    "любопытно",
-    "как это",
-    "как работает",
-    "что значит",
-    "в чем",
-    "разбери",
-    "теория",
-)
+    fallback_candidates = [
+        entry
+        for entry in QUESTION_BANK
+        if resolved_stage in entry["stages"] and str(entry["id"]) != last_question_id
+    ]
+    if fallback_candidates:
+        return dict(fallback_candidates[_candidate_index(state, fallback_candidates)])
 
-EXPLICIT_REQUEST_MARKERS = (
-    "скажи",
-    "объясни",
-    "покажи",
-    "дай",
-    "напиши",
-    "составь",
-    "распиши",
-    "подскажи",
-    "перепиши",
-    "сделай",
-    "помоги",
-    "что делать",
-    "как ответить",
-    "что сказать",
-    "какой выбрать",
-    "нужен текст",
-    "нужен план",
-)
+    any_candidates = [entry for entry in QUESTION_BANK if entry["intent"] == "any"]
+    if any_candidates:
+        return dict(any_candidates[0])
+    return dict(QUESTION_BANK[-1])
 
-CONFUSION_MARKERS = (
-    "не понимаю",
-    "не понял",
-    "не поняла",
-    "в смысле",
-    "неясно",
-    "запутал",
-    "запутала",
-    "что ты имеешь в виду",
-    "что это значит",
-)
 
-LIST_REQUEST_MARKERS = (
-    "спис",
-    "по пунктам",
-    "пункт",
-    "1.",
-    "чеклист",
-    "bullet",
-    "list",
-    "этап",
-    "шаг",
-)
+def _questions_for(intent: str, stage: str) -> list[dict[str, Any]]:
+    return [
+        dict(entry)
+        for entry in QUESTION_BANK
+        if str(entry["intent"]) == intent and stage in tuple(entry["stages"])
+    ]
 
-BASE_REFLECTIONS = {
-    "desire": "Тут у тебя уже не просто интерес, а притяжение.",
-    "emotion": "Тут уже звучит чувство, а не просто мысль.",
-    "fantasy": "Тебя цепляет не картинка сама по себе, а заряд внутри нее.",
-    "resistance": "Ты сейчас скорее притормаживаешь, чем идешь дальше.",
-    "curiosity": "Тебя цепляет не факт, а слой под ним.",
-    "short_reply": "Ты оставил это приоткрытым.",
-    "explicit_request": "Тебе нужен не общий разговор, а точное попадание.",
-    "confusion": "Здесь что-то не щелкнуло до конца.",
-}
 
-PERSONALIZED_REFLECTIONS = {
-    "desire": "По тому, как ты это подаешь, там уже есть твой личный крючок.",
-    "emotion": "По твоему тону видно, что это задевает тебя глубже обычного.",
-    "fantasy": "У тебя здесь цепляет не схема, а совсем личный внутренний заряд.",
-    "curiosity": "Ты не просто спрашиваешь, а уже подбираешься к своему слою смысла.",
-    "explicit_request": "Ты просишь прямо, но за запросом уже чувствуется твой приоритет.",
-}
+def _candidate_index(state: dict | None, candidates: list[dict[str, Any]]) -> int:
+    if not candidates:
+        return 0
+    snapshot = state or {}
+    interaction_count = int(snapshot.get("interaction_count", 0) or 0)
+    interest = int(float(snapshot.get("interest", 0.0) or 0.0) * 100)
+    return (interaction_count + interest) % len(candidates)
 
-SOFT_REFLECTIONS = {
-    "emotion": "Это у тебя уже звучит слишком живо, чтобы отмахнуться.",
-    "resistance": "Ты сейчас держишь дистанцию не просто так.",
-    "confusion": "Тут у тебя пока не сошлась какая-то важная часть.",
-    "short_reply": "Ты оставил это коротко, но там явно не пусто.",
-}
 
-FOLLOWUP_QUESTIONS = {
-    "desire": "Что там тянет тебя сильнее — близость, контроль или сам риск?",
-    "emotion": "Что сейчас в этом громче — страх, злость или тяга все равно не отпускать?",
-    "fantasy": "Что там для тебя важнее — контроль, внимание или нарушение рамки?",
-    "resistance": "Что тебя держит сильнее — недоверие, страх последствий или то, что это просто не твой ритм?",
-    "curiosity": "Тебе сейчас нужнее теория, живой сценарий или разбор именно про тебя?",
-    "short_reply": "Что там на самом деле сильнее — интерес, сомнение или желание проверить границу?",
-    "explicit_request": "Что для тебя тут важнее — быстрый ответ, чувство контроля или эффект на другого?",
-    "confusion": "Что сейчас мешает больше — смысл, логика или ощущение, что это вообще не про тебя?",
-}
+def _normalize_intent(intent: str) -> str:
+    normalized = str(intent or "curiosity").strip().lower()
+    return normalized if normalized in INTENTS else "curiosity"
 
 
 def _normalize(text: str) -> str:
@@ -256,17 +507,8 @@ def _is_short_reply(text: str) -> bool:
     return len(words) <= 3 and len(text) <= 24 and "?" not in text
 
 
-def _is_high_engagement(state: dict | None) -> bool:
-    snapshot = state or {}
-    interest = float(snapshot.get("interest", 0.0) or 0.0)
-    attraction = float(snapshot.get("attraction", 0.0) or 0.0)
-    interaction_count = int(snapshot.get("interaction_count", 0) or 0)
-    return interest >= 0.68 or attraction >= 0.5 or (interest + attraction >= 1.0 and interaction_count >= 5)
-
-
 def _user_explicitly_requested_list(user_message: str) -> bool:
-    normalized = _normalize(user_message)
-    return _contains_any(normalized, LIST_REQUEST_MARKERS)
+    return _contains_any(_normalize(user_message), LIST_REQUEST_MARKERS)
 
 
 def _collapse_list_shape(text: str) -> str:

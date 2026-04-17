@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 from services.admin_settings_service import AdminSettingsService
+from services.conversation_driver import build_followup, detect_intent
 from services.conversation_engine_v2 import ConversationEngineV2
 
 
@@ -106,6 +107,33 @@ class ConversationProductEvalTests(unittest.TestCase):
 
         self.assertGreaterEqual(len(unique_outputs), 11)
         self.assertGreaterEqual(len(unique_questions), 10)
+
+    def test_example_product_decision_flow_stays_dialogue_driven(self):
+        followup = build_followup(
+            detect_intent("Меня к этому тянет, но я ещё не решился"),
+            {"conversation_phase": "warmup", "interaction_count": 4},
+        )
+
+        self.assertTrue(followup.endswith("?"))
+        self.assertIn("или", followup)
+
+    def test_example_interpersonal_emotional_flow_stays_dialogue_driven(self):
+        followup = build_followup(
+            detect_intent("Меня сильнее всего задел его тон"),
+            {"conversation_phase": "warmup", "interaction_count": 6},
+        )
+
+        self.assertTrue(followup.endswith("?"))
+        self.assertIn("или", followup)
+
+    def test_example_confusion_flow_stays_dialogue_driven(self):
+        followup = build_followup(
+            detect_intent("Я не понимаю, зачем это вообще нужно"),
+            {"conversation_phase": "start", "interaction_count": 1},
+        )
+
+        self.assertTrue(followup.endswith("?"))
+        self.assertIn("или", followup)
 
 
 if __name__ == "__main__":

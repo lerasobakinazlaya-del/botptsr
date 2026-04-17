@@ -8,8 +8,12 @@ from typing import Any, Dict, List
 from services.ai_profile_service import resolve_ai_profile
 from services.conversation_driver import (
     apply_driver_guardrails,
-    build_followup,
+    build_reflection,
     detect_intent,
+    is_driver_safe_context,
+    resolve_driver_stage,
+    resolve_followup_entry,
+    wants_full_reveal,
 )
 from services.conversation_engine_v2 import ConversationEngineV2
 from services.emotional_hooks import ensure_open_loop, inject_hook, select_hook
@@ -288,10 +292,6 @@ class AIService:
             active_mode=active_mode,
             user_message=user_message,
         )
-        detected_intent = self._detect_conversation_driver_intent(
-            user_message=user_message,
-            runtime_settings=runtime_settings,
-        )
         access_level = str(access_decision["level"])
         if bool(access_decision.get("clamped")):
             self._intimacy_clamp_count += 1
@@ -305,6 +305,13 @@ class AIService:
             history=history,
         )
         grounding_kind = self.keyword_memory_service.detect_grounding_need(user_message)
+        driver_context = self._resolve_conversation_driver_context(
+            user_message=user_message,
+            state=new_state,
+            runtime_settings=runtime_settings,
+            crisis_signal=crisis_signal,
+            grounding_kind=grounding_kind,
+        )
 
         logger.debug(
             "[AI] user_id=%s mode=%s access=%s history_messages=%s queue=%s",
@@ -325,9 +332,7 @@ class AIService:
                 base_instruction=ai_profile["prompt_suffix"],
                 user_message=user_message,
                 history=history,
-                state=new_state,
-                runtime_settings=runtime_settings,
-                detected_intent=detected_intent,
+                driver_context=driver_context,
             ),
             history=history,
             access_profile=access_decision.get("budget"),
@@ -384,13 +389,13 @@ class AIService:
             response_text,
             user_message=user_message,
         )
-        response_text = self._apply_conversation_driver_guardrails(
-            response_text,
-            user_message=user_message,
-            state=new_state,
-            runtime_settings=runtime_settings,
-            detected_intent=detected_intent,
-        )
+        if driver_context is not None:
+            response_text = self._apply_conversation_driver_guardrails(
+                response_text,
+                user_message=user_message,
+                state=new_state,
+                driver_context=driver_context,
+            )
         response_text, hook_used = self._apply_emotional_hook(
             response_text,
             state=new_state,
@@ -399,8 +404,9 @@ class AIService:
         )
         if hook_used:
             new_state["last_hook"] = hook_used
-        if detected_intent:
-            new_state["last_detected_intent"] = detected_intent
+        if driver_context is not None:
+            new_state["last_detected_intent"] = str(driver_context["intent"])
+            new_state["last_driver_question_id"] = str(driver_context["question_id"])
 
         new_state = self.human_memory_service.apply_assistant_message(
             new_state,
@@ -705,9 +711,7 @@ class AIService:
         base_instruction: str,
         user_message: str,
         history: list[dict[str, str]],
-        state: dict[str, Any],
-        runtime_settings: dict[str, Any],
-        detected_intent: str | None,
+        driver_context: dict[str, Any] | None,
     ) -> str:
         parts = [
             str(base_instruction or "").strip(),
@@ -720,12 +724,7 @@ class AIService:
                 user_message=user_message,
                 history=history,
             ),
-            self._build_conversation_driver_instruction(
-                user_message=user_message,
-                state=state,
-                runtime_settings=runtime_settings,
-                detected_intent=detected_intent,
-            ),
+            self._build_conversation_driver_instruction(driver_context),
         ]
         return "\n\n".join(part for part in parts if part)
 
@@ -739,7 +738,7 @@ class AIService:
         if not lowered:
             return ""
 
-        if not re.fullmatch(r"(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше)", lowered):
+        if not self._looks_like_continuation_request(lowered):
             return ""
 
         last_assistant_message = ""
@@ -750,24 +749,23 @@ class AIService:
 
         if not last_assistant_message.strip():
             return (
-                "Пользователь просит продолжить предыдущую мысль. Продолжи её без прелюдии, "
-                "не начинай тему заново и не задавай встречный вопрос в первой строке."
+                "The user asked you to continue the previous thought. Continue directly instead of restarting, "
+                "and do not open with a new follow-up question."
             )
 
         matches = re.findall(r"(?m)^\s*(\d+)[.)]\s+", last_assistant_message)
         if not matches:
             return (
-                "Пользователь просит продолжить предыдущий ответ. Продолжи его без прелюдии, "
-                "не начинай тему заново и не задавай встречный вопрос в первой строке."
+                "The user asked you to continue the previous answer. Continue directly instead of restarting, "
+                "and do not open with a new follow-up question."
             )
 
         next_number = max(int(value) for value in matches) + 1
         return (
-            "Пользователь просит продолжить уже начатый нумерованный список. "
-            f"Продолжи прямо с пункта {next_number}, не повторяй предыдущие пункты, "
-            "не начинай список заново и по возможности закончи оставшиеся пункты в этом ответе."
+            "The user asked you to continue an existing numbered list. "
+            f"Continue directly from item {next_number} instead of restarting, do not repeat earlier items, "
+            "and finish the remaining items in this reply if possible."
         )
-
     def _build_risky_topic_instruction(self, user_message: str) -> str:
         lowered = " ".join(str(user_message or "").lower().split())
         if not lowered:
@@ -795,11 +793,10 @@ class AIService:
             return ""
 
         return (
-            "Если тема связана с сексом на фоне веществ, не романтизируй сочетание и не давай "
-            "пошаговую инструкцию по употреблению или миксу. Сфокусируйся на harm reduction: "
-            "согласие, границы, стоп-сигнал, трезвый контроль, риски смешивания, план если кому-то станет плохо и утро после."
+            "Do not romanticize altered-state scenarios with blurred control. "
+            "Do not provide step-by-step use, mixing, or escalation instructions. "
+            "Stay on harm reduction: consent, boundaries, stop-signal, sober oversight, mixing risks, what to do if someone feels bad, and aftercare."
         )
-
     def _build_human_companion_instruction(
         self,
         *,
@@ -811,35 +808,34 @@ class AIService:
             return ""
 
         instructions = [
-            "Звучишь как живой собеседник, а не как осторожный интервьюер или терапевтический скрипт.",
-            "Не начинай ответ с дежурных подводок вроде 'это естественно', 'понимаю, что это непросто', 'это хороший подход', если можно сразу перейти к сути.",
+            "Sound like a vivid human companion, not a cautious interviewer or therapy script.",
+            "Do not open with canned reassurance or soft meta-prefaces if you can go straight to the point.",
         ]
 
         if self._user_explicitly_invites_questions(lowered):
             instructions.append(
-                "Пользователь сам разрешил тебе спрашивать. Можно задать один точный вопрос, но только после своей мысли, а не вместо неё."
+                "The user explicitly invited questions. You may ask one precise follow-up question, but only after your own point."
             )
         else:
             instructions.append(
-                "По умолчанию не задавай встречный вопрос, если без него можно ответить содержательно."
+                "By default, do not ask a follow-up question if you can answer well without it."
             )
 
         if self._looks_like_answer_first_request(lowered):
             instructions.extend(
                 [
-                    "Пользователь ждёт ответ по существу. Первая строка должна содержать сам ответ, совет, позицию или продолжение мысли.",
-                    "Не заканчивай ответ шаблонным вопросом вроде 'как ты на это смотришь?' или 'что думаешь?'.",
-                    "Если уместно, можно говорить прямее: 'я бы делал так', 'лучше вот так', 'тут риск в этом'.",
+                    "The user wants an answer-first reply. Put the actual answer in the first sentence.",
+                    "Do not end with a generic question like 'how do you see it?' or 'what do you think?'.",
+                    "If useful, speak plainly and take a position instead of hedging.",
                 ]
             )
 
         if self._assistant_has_been_question_heavy(history):
             instructions.append(
-                "В последних сообщениях было слишком много вопросительного ведения. В этом ответе держи инициативу у себя и не переводи всё обратно в опрос."
+                "Recent turns were too question-heavy. Keep initiative in this reply and do not turn it back into an interview."
             )
 
         return " ".join(instructions)
-
     def _apply_ptsd_response_contract(
         self,
         text: str,
@@ -934,31 +930,22 @@ class AIService:
 
         return ensure_open_loop(hooked_text), hook
 
-    def _build_conversation_driver_instruction(
-        self,
-        *,
-        user_message: str,
-        state: dict[str, Any],
-        runtime_settings: dict[str, Any],
-        detected_intent: str | None,
-    ) -> str:
-        if not self._conversation_driver_enabled(runtime_settings):
+    def _build_conversation_driver_instruction(self, driver_context: dict[str, Any] | None) -> str:
+        if driver_context is None:
             return ""
-
-        normalized_message = self._normalize(user_message)
-        if not normalized_message:
-            return ""
-
-        intent = detected_intent or detect_intent(user_message)
-        followup = build_followup(intent, state)
         return (
-            "Conversation driver:\n"
-            f"- detected intent: {intent}\n"
-            "- Use the skeleton below as the backbone of the reply, but do not quote it verbatim.\n"
-            f"- skeleton: {followup}\n"
-            "- Shape the reply as: reflect the user's intent, ask one sharp emotional follow-up question, and split that question between 2-3 motives.\n"
+            "Conversation driver override:\n"
+            "- This override has priority for this turn when it conflicts with generic no-question defaults.\n"
+            f"- detected intent: {driver_context['intent']}\n"
+            f"- engagement stage: {driver_context['stage']}\n"
+            f"- selected question id: {driver_context['question_id']}\n"
+            f"- reflection: {driver_context['reflection']}\n"
+            f"- exact follow-up question: {driver_context['question']}\n"
+            "- Shape the reply as: reflect the user's intent, then land on the exact follow-up question above.\n"
+            "- Split the question between 2-3 motives.\n"
             "- Max 3 sentences.\n"
             "- Do not use bullet lists or numbered lists unless the user explicitly asked for a list.\n"
+            "- End with the selected question or a compatible open loop.\n"
             "- Do not fully close the topic; keep the dialogue moving."
         )
 
@@ -968,34 +955,80 @@ class AIService:
         *,
         user_message: str,
         state: dict[str, Any],
-        runtime_settings: dict[str, Any],
-        detected_intent: str | None,
+        driver_context: dict[str, Any],
     ) -> str:
-        if not self._conversation_driver_enabled(runtime_settings):
-            return text
         return apply_driver_guardrails(
             text,
             user_message=user_message,
             state=state,
-            intent=detected_intent,
+            intent=str(driver_context["intent"]),
+            followup_question=str(driver_context["question"]),
         )
 
-    def _detect_conversation_driver_intent(
+    def _resolve_conversation_driver_context(
         self,
         *,
         user_message: str,
+        state: dict[str, Any],
         runtime_settings: dict[str, Any],
-    ) -> str | None:
+        crisis_signal: str | None,
+        grounding_kind: str | None,
+    ) -> dict[str, Any] | None:
         if not self._conversation_driver_enabled(runtime_settings):
             return None
         normalized_message = self._normalize(user_message)
         if not normalized_message:
             return None
-        return detect_intent(user_message)
+        intent = detect_intent(user_message)
+        if self._should_skip_conversation_driver(
+            normalized_message=normalized_message,
+            user_message=user_message,
+            state=state,
+            crisis_signal=crisis_signal,
+            grounding_kind=grounding_kind,
+            intent=intent,
+        ):
+            return None
+
+        stage = resolve_driver_stage(state)
+        entry = resolve_followup_entry(intent, state)
+        return {
+            "intent": intent,
+            "stage": stage,
+            "question_id": str(entry["id"]),
+            "question": str(entry["text"]),
+            "reflection": build_reflection(intent, state),
+        }
+
+    def _should_skip_conversation_driver(
+        self,
+        *,
+        normalized_message: str,
+        user_message: str,
+        state: dict[str, Any],
+        crisis_signal: str | None,
+        grounding_kind: str | None,
+        intent: str,
+    ) -> bool:
+        if crisis_signal is not None or grounding_kind is not None:
+            return True
+        if not is_driver_safe_context(user_message, state):
+            return True
+        if wants_full_reveal(user_message):
+            return True
+        if self._looks_like_continuation_request(normalized_message):
+            return True
+        if self._looks_like_scene_request(normalized_message):
+            return True
+        if intent == "explicit_request" and self._looks_like_answer_first_request(normalized_message):
+            return not self._looks_like_hook_turn(normalized_message)
+        return False
 
     def _conversation_driver_enabled(self, runtime_settings: dict[str, Any]) -> bool:
         engagement_settings = runtime_settings.get("engagement", {})
-        return bool(engagement_settings.get("adaptive_mode_enabled", True))
+        if engagement_settings.get("conversation_driver_enabled") is None:
+            return bool(engagement_settings.get("adaptive_mode_enabled", True))
+        return bool(engagement_settings.get("conversation_driver_enabled"))
 
     def _should_apply_emotional_hook(
         self,
@@ -1039,10 +1072,10 @@ class AIService:
             "помоги",
             "план",
             "инструкция",
-            "дале",
+            "по делу",
+            "прямо",
         )
         return any(hint in text for hint in answer_hints)
-
     def _user_explicitly_invites_questions(self, text: str) -> bool:
         question_hints = (
             "спрашивай",
@@ -1052,7 +1085,6 @@ class AIService:
             "поспрашивай",
         )
         return any(hint in text for hint in question_hints)
-
     def _apply_fast_lane_profile(
         self,
         ai_profile: dict[str, Any],
@@ -1165,15 +1197,18 @@ class AIService:
             "стоит ли",
         )
         return text.endswith("?") or any(hint in text for hint in hook_hints)
-
     @staticmethod
     def _normalize(text: str) -> str:
         return " ".join(str(text or "").lower().split())
 
     @staticmethod
     def _looks_like_continuation_request(text: str) -> bool:
-        return bool(re.fullmatch(r"(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше|давай)", text))
-
+        return bool(
+            re.fullmatch(
+                "(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше|давай)",
+                text,
+            )
+        )
     @staticmethod
     def _looks_like_scene_request(text: str) -> bool:
         hints = (
@@ -1194,7 +1229,6 @@ class AIService:
             "фантаз",
         )
         return any(hint in text for hint in hints)
-
     def _assistant_has_been_question_heavy(self, history: list[dict[str, str]]) -> bool:
         assistant_messages = [
             str(self._history_item_field(item, "content") or "")
