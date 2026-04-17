@@ -124,7 +124,52 @@ class StateEngine:
             return "overwhelmed"
         if any(
             phrase in text
+            for phrase in (
+                "ничего не радует",
+                "не радует",
+                "ничего не хочется",
+                "не хочется",
+                "нет сил",
+                "не могу",
+                "всё навалилось",
+                "все навалилось",
+                "слишком тяжело",
+            )
+        ):
+            return "overwhelmed"
+        if any(
+            phrase in text
+            for phrase in (
+                "смерть",
+                "умер",
+                "умерла",
+                "умерли",
+                "не стало",
+                "потеря",
+                "потерял",
+                "потеряла",
+                "похорон",
+                "траур",
+            )
+        ):
+            return "overwhelmed"
+        if any(
+            phrase in text
             for phrase in ("тревож", "страшно", "паник", "накрыва", "не могу успоко")
+        ):
+            return "anxious"
+        if any(
+            phrase in text
+            for phrase in (
+                "сердце",
+                "аритм",
+                "нарушение ритма",
+                "давление",
+                "боль в груди",
+                "одышк",
+                "обморок",
+                "скорая",
+            )
         ):
             return "anxious"
         if any(

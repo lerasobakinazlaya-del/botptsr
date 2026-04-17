@@ -151,6 +151,19 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertTrue(result.endswith("?"))
         self.assertIn("изменённому состоянию", result)
 
+    def test_human_style_guardrails_support_context_avoids_product_tone(self):
+        result = apply_human_style_guardrails(
+            "Понимаю.",
+            answer_first=True,
+            allow_follow_up_question=False,
+            prefer_follow_up_question=True,
+            user_message="Все цепляет",
+        )
+
+        self.assertTrue(result.endswith("?"))
+        self.assertIn("горе", result.lower())
+        self.assertNotIn("оффер", result.lower())
+
     def test_human_style_guardrails_compress_charged_probe_lecture(self):
         result = apply_human_style_guardrails(
             "Можно хотеть. Но делать это стоит только трезво и очень ясно. "

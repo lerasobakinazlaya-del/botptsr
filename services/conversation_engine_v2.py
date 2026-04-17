@@ -238,6 +238,7 @@ class ConversationEngineV2:
                 f"- pressure level: {pressure}\n"
                 f"- active mode: {active_mode}"
             ),
+            self._build_medical_safety_block(user_message),
             self._build_contract(
                 user_message=user_message,
                 active_mode=active_mode,
@@ -287,6 +288,35 @@ class ConversationEngineV2:
         )
 
         return "\n\n".join(part.strip() for part in parts if part and part.strip())
+
+    def _build_medical_safety_block(self, user_message: str) -> str:
+        normalized = self._normalize(user_message)
+        if not normalized:
+            return ""
+
+        medical_hints = (
+            "сердц",
+            "аритм",
+            "нарушение ритма",
+            "давление",
+            "боль в груди",
+            "одышк",
+            "обморок",
+            "предобморок",
+            "пульс",
+            "скор",
+        )
+        if not any(hint in normalized for hint in medical_hints):
+            return ""
+
+        return (
+            "Medical safety:\n"
+            "- The user mentions possible acute health symptoms (e.g., arrhythmia / chest symptoms).\n"
+            "- Do not diagnose and do not give medication dosing.\n"
+            "- Ask a short red-flag check (chest pain, severe shortness of breath, fainting, sudden severe weakness).\n"
+            "- If any red flags are present, advise urgent real-world medical help (local emergency services / urgent care).\n"
+            "- Keep the tone calm and supportive."
+        )
 
     def guard_response(self, text: str, *, user_message: str, force_dialogue_pull: bool = False) -> str:
         from services.response_guardrails import apply_human_style_guardrails
@@ -716,6 +746,9 @@ class ConversationEngineV2:
             "какими словами",
             "что написать",
             "текст сообщения",
+            "живой сценарий",
+            "сценарий разговора",
+            "сценарий сообщения",
         )
         return any(hint in text for hint in hints)
 
@@ -743,6 +776,10 @@ class ConversationEngineV2:
         return any(hint in text for hint in hints)
 
     def _looks_like_scene_request(self, text: str) -> bool:
+        # "Живой сценарий" in Russian often means "ready-to-say wording",
+        # not a fictional scene description.
+        if "живой сценарий" in text or "сценарий разговора" in text or "сценарий сообщения" in text:
+            return False
         hints = (
             "как это должно проходить",
             "как это должно быть",

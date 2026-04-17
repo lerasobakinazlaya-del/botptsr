@@ -244,6 +244,10 @@ EXPLICIT_REQUEST_MARKERS = (
     "подскажи",
     "просто ответь",
     "по делу",
+    "про меня",
+    "про себя",
+    "разбор",
+    "живой сценарий",
 )
 CONFUSION_MARKERS = (
     "не понимаю",
@@ -275,6 +279,25 @@ UNSAFE_CONTEXT_MARKERS = (
     "2-cb",
     "секс",
     "оргия",
+)
+
+SENSITIVE_SUPPORT_MARKERS = (
+    "смерт",
+    "умер",
+    "умерла",
+    "умерли",
+    "не стало",
+    "потер",
+    "похорон",
+    "пансионат",
+    "сердц",
+    "аритм",
+    "нарушение ритма",
+    "боль в груди",
+    "одышк",
+    "обморок",
+    "врач",
+    "скорая",
 )
 LIST_REQUEST_MARKERS = (
     "спис",
@@ -365,6 +388,10 @@ def is_driver_safe_context(message: str, state: dict | None = None) -> bool:
     if not normalized:
         return False
     if detect_crisis_signal(message) is not None:
+        return False
+    # When the user is in acute grief / caregiving / medical stress, "driver" probing
+    # questions tend to sound tone-deaf. Let the base system prompt handle support.
+    if _contains_any(normalized, SENSITIVE_SUPPORT_MARKERS):
         return False
     if _contains_any(normalized, UNSAFE_CONTEXT_MARKERS):
         return False

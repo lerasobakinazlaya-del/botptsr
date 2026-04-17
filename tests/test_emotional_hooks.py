@@ -71,7 +71,7 @@ class EmotionalHooksTests(unittest.TestCase):
     def test_ensure_open_loop_adds_open_ending(self):
         result = ensure_open_loop("Я бы не спешил с этим.")
 
-        self.assertIn("дальше все держится на одной детали", result)
+        self.assertIn("Если хочешь, продолжим.", result)
         self.assertTrue(result.endswith("."))
 
 

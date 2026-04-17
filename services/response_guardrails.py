@@ -351,6 +351,8 @@ def _compress_to_dialogue_turn(text: str, *, max_sentences: int = 2, max_chars: 
 
 def _build_dialogue_turn_fallback(user_message: str) -> str:
     topic = _classify_hook_topic(user_message)
+    if topic == "support":
+        return "Похоже, это правда давит и цепляет по-настоящему, без «правильного ответа»."
     if topic == "pricing":
         return "Цена тут редко решает в одиночку, если ценность бьёт сразу."
     if topic == "offer":
@@ -383,6 +385,60 @@ def _classify_hook_topic(user_message: str) -> str:
     if not request:
         return "generic"
 
+    if "цепляет" in request and not any(
+        marker in request
+        for marker in (
+            "оффер",
+            "лендинг",
+            "экран",
+            "прода",
+            "конвер",
+            "цена",
+            "цену",
+            "ценность",
+            "paywall",
+            "чек",
+        )
+    ):
+        return "support"
+
+    # In personal distress contexts ("всё цепляет", grief, family health) product-y topic pulls
+    # ("оффер", "первый импульс", etc.) sound alien and can break trust.
+    distress_markers = (
+        "мне плохо",
+        "мне тяжело",
+        "ничего не радует",
+        "не радует",
+        "не хочу",
+        "пусто",
+        "смерт",
+        "умер",
+        "умерла",
+        "умерли",
+        "не стало",
+        "потер",
+        "похорон",
+        "пансионат",
+        "сердц",
+        "аритм",
+        "ритм",
+        "давлен",
+        "боль в груди",
+        "одышк",
+        "обморок",
+        "врач",
+        "скорая",
+        "муж",
+        "мама",
+        "папа",
+        "ребен",
+        "ребён",
+        "собак",
+        "питом",
+    )
+    if any(marker in request for marker in distress_markers):
+        return "support"
+
     if any(marker in request for marker in ("цена", "цену", "ценность", "дорого", "paywall", "деньги", "чек")):
         return "pricing"
     if "оффер" in request:
@@ -395,7 +451,8 @@ def _classify_hook_topic(user_message: str) -> str:
         return "tone"
     if any(marker in request for marker in ("сейчас", "подождать", "пушить", "рано")):
         return "timing"
-    if any(marker in request for marker in ("почему", "не продаётся", "слабое место", "цепляет", "мертво", "пусто")):
+    # "цепляет" in human talk often means "болит/задевает", not product diagnostics.
+    if any(marker in request for marker in ("почему", "не продаётся", "слабое место", "мертво")):
         return "diagnostic"
     if "проще" in request:
         return "simplification"
@@ -418,6 +475,12 @@ def _build_dialogue_pull_question(user_message: str) -> str:
         return ""
 
     topic = _classify_hook_topic(user_message)
+    if topic == "support":
+        if any(marker in request for marker in ("дальше", "что делать", "куда", "как быть")):
+            return "С чего начнём — с самого срочного или с того, что даст тебе хоть 10% легче прямо сейчас?"
+        if any(marker in request for marker in ("ничего", "не радует", "пусто")):
+            return "Это больше похоже на усталость, тревогу или чувство пустоты?"
+        return "Что сейчас давит сильнее — горе, тревога за близких или усталость от решений?"
     if "хим" in request:
         return "Тебя здесь сильнее тянет к изменённому состоянию или к ощущению, что рамка исчезает?"
     if any(marker in request for marker in ("орг", "втроем", "вчетвером", "секс", "жмж", "мжм", "ммж", "мжмж", "тройнич", "группов")):
