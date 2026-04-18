@@ -69,6 +69,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["long_term_memory_service"] = container.long_term_memory_service
     dp["payment_service"] = container.payment_service
     dp["payment_repository"] = container.payment_repository
+    dp["monetization_repository"] = container.monetization_repository
     dp["referral_service"] = container.referral_service
     dp["state_repository"] = container.state_repository
     dp["chat_session_service"] = container.chat_session_service
