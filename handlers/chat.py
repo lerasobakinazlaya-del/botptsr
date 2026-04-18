@@ -7,11 +7,15 @@ from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
+from handlers.growth import CALLBACK_OPEN_REFERRAL_MENU, CALLBACK_REFERRAL_INFO, CALLBACK_SHARE_INSIGHT
+from keyboards.growth_keyboard import build_growth_reply_keyboard, build_referral_keyboard, build_telegram_share_url
 from handlers.modes import show_modes_menu
 from handlers.payments import (
+    OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT,
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
     OFFER_TRIGGER_PREVIEW_EXHAUSTED,
+    OFFER_TRIGGER_USEFUL_ADVICE,
     show_premium_menu,
 )
 from services.ai_profile_service import resolve_ai_profile
@@ -25,6 +29,85 @@ from services.telegram_formatting import (
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+
+def _truncate_sentence(text: str, limit: int) -> str:
+    normalized = " ".join(str(text or "").split()).strip()
+    if len(normalized) <= limit:
+        return normalized
+    truncated = normalized[: max(0, limit - 1)].rstrip(" ,.;:-")
+    return f"{truncated}…"
+
+
+def _build_share_card(response: str) -> dict[str, str] | None:
+    normalized = " ".join(str(response or "").split()).strip()
+    if len(normalized) < 90:
+        return None
+
+    segments = [segment.strip(" -•") for segment in normalized.replace("•", ". ").split(".") if segment.strip()]
+    summary = _truncate_sentence(segments[0] if segments else normalized, 180)
+    action = _truncate_sentence(segments[1] if len(segments) > 1 else "", 120)
+    title = "Инсайт, который мне дал AI-компаньон"
+    return {
+        "title": title,
+        "summary": summary,
+        "action": action,
+    }
+
+
+def _normalize_onboarding_prompts(ui_settings: dict) -> set[str]:
+    return {
+        str(item).strip().lower()
+        for item in (ui_settings.get("onboarding_prompt_buttons") or [])
+        if str(item).strip()
+    }
+
+
+async def _send_referral_menu(
+    message: Message,
+    referral_settings: dict,
+    user_id: int,
+    monetization_repository=None,
+) -> None:
+    me = await message.bot.get_me()
+    ref_link = f"https://t.me/{me.username}?start={referral_settings['start_parameter_prefix']}{user_id}"
+    reward_days = int(referral_settings.get("reward_premium_days", 0) or 0)
+    reward_plan_key = str(referral_settings.get("reward_plan_key") or "pro").strip().lower() or "pro"
+    reward_label = "Premium" if reward_plan_key == "premium" else "Pro"
+    share_text = str(referral_settings["share_text_template"]).replace("{ref_link}", ref_link)
+    share_url = build_telegram_share_url(share_text)
+    text = "\n\n".join(
+        part
+        for part in (
+            str(referral_settings.get("program_title") or "").strip(),
+            str(referral_settings.get("program_description") or "").strip(),
+            (
+                f"Бонус: тебе и другу по {reward_days} дней {reward_label} "
+                "после первой успешной оплаты друга."
+                if reward_days > 0
+                else ""
+            ),
+            share_text,
+        )
+        if part
+    )
+    await message.answer(
+        text,
+        reply_markup=build_referral_keyboard(
+            share_url=share_url,
+            share_button_text="Поделиться ссылкой",
+            info_callback=CALLBACK_REFERRAL_INFO,
+        ),
+    )
+    if monetization_repository is not None:
+        await monetization_repository.log_event(
+            user_id=user_id,
+            event_name="referral_menu_opened",
+            metadata={
+                "source": "chat_command",
+                "ref_link": ref_link,
+            },
+        )
 
 
 def _proactive_help_text() -> str:
@@ -58,6 +141,39 @@ def _set_user_timezone(state: dict, timezone_name: str | None) -> dict:
 
 def _today_key() -> str:
     return datetime.now(timezone.utc).date().isoformat()
+
+
+def _subscription_plan(user: dict[str, object] | None) -> str:
+    normalized = str((user or {}).get("subscription_plan") or "").strip().lower()
+    if normalized in {"free", "pro", "premium"}:
+        return normalized
+    return "premium" if bool((user or {}).get("is_premium")) else "free"
+
+
+def _plan_daily_limit(plan_key: str, limits_settings: dict) -> tuple[bool, int, str, str, list[int]]:
+    if plan_key == "premium":
+        return (
+            bool(limits_settings.get("premium_daily_messages_enabled")),
+            max(1, int(limits_settings.get("premium_daily_messages_limit", 200))),
+            str(limits_settings.get("premium_daily_limit_message") or "").strip(),
+            str(limits_settings.get("premium_daily_warning_template") or "").strip(),
+            _normalize_int_list(limits_settings.get("premium_daily_warning_thresholds")),
+        )
+    if plan_key == "pro":
+        return (
+            bool(limits_settings.get("pro_daily_messages_enabled", True)),
+            max(1, int(limits_settings.get("pro_daily_messages_limit", 80))),
+            str(limits_settings.get("pro_daily_limit_message") or "").strip(),
+            str(limits_settings.get("pro_daily_warning_template") or "").strip(),
+            _normalize_int_list(limits_settings.get("pro_daily_warning_thresholds")),
+        )
+    return (
+        bool(limits_settings.get("free_daily_messages_enabled")),
+        max(1, int(limits_settings.get("free_daily_messages_limit", 12))),
+        str(limits_settings.get("free_daily_limit_message") or "").strip(),
+        str(limits_settings.get("free_daily_warning_template") or "").strip(),
+        _normalize_int_list(limits_settings.get("free_daily_warning_thresholds")),
+    )
 
 
 def _normalize_int_list(raw: object) -> list[int]:
@@ -101,41 +217,79 @@ def _build_quota_notice(
     today_count: int,
     limits_settings: dict,
 ) -> tuple[dict, str | None]:
-    is_premium = bool(user.get("is_premium"))
-    if is_premium:
-        if not limits_settings.get("premium_daily_messages_enabled"):
-            return dict(state or {}), None
-        limit = max(1, int(limits_settings.get("premium_daily_messages_limit", 150)))
-        remaining = max(0, limit - today_count)
-        thresholds = set(_normalize_int_list(limits_settings.get("premium_daily_warning_thresholds")))
-        if remaining not in thresholds:
-            return dict(state or {}), None
-        updated_state, should_send = _remember_notice(state, "premium_daily", remaining)
-        if not should_send:
-            return updated_state, None
-        if remaining == 0:
-            return updated_state, str(limits_settings.get("premium_daily_limit_message") or "").strip() or None
-        template = str(limits_settings.get("premium_daily_warning_template") or "").strip()
-        if not template:
-            return updated_state, None
-        return updated_state, template.format(remaining=remaining, limit=limit)
-
-    if not limits_settings.get("free_daily_messages_enabled"):
+    plan_key = _subscription_plan(user)
+    enabled, limit, limit_message, warning_template, thresholds_raw = _plan_daily_limit(plan_key, limits_settings)
+    if not enabled:
         return dict(state or {}), None
-    limit = max(1, int(limits_settings.get("free_daily_messages_limit", 25)))
     remaining = max(0, limit - today_count)
-    thresholds = set(_normalize_int_list(limits_settings.get("free_daily_warning_thresholds")))
+    thresholds = set(thresholds_raw)
     if remaining not in thresholds:
         return dict(state or {}), None
-    updated_state, should_send = _remember_notice(state, "free_daily", remaining)
+    updated_state, should_send = _remember_notice(state, f"{plan_key}_daily", remaining)
     if not should_send:
         return updated_state, None
     if remaining == 0:
-        return updated_state, str(limits_settings.get("free_daily_limit_message") or "").strip() or None
-    template = str(limits_settings.get("free_daily_warning_template") or "").strip()
-    if not template:
+        return updated_state, limit_message or None
+    if not warning_template:
         return updated_state, None
-    return updated_state, template.format(remaining=remaining, limit=limit)
+    return updated_state, warning_template.format(remaining=remaining, limit=limit)
+
+
+def _contains_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+    lowered = str(text or "").lower()
+    return any(keyword in lowered for keyword in keywords)
+
+
+def _should_trigger_emotional_paywall(
+    *,
+    user: dict[str, object] | None,
+    state: dict | None,
+    user_text: str,
+    response: str,
+) -> bool:
+    if _subscription_plan(user) != "free":
+        return False
+    if len(str(response or "").strip()) < 140:
+        return False
+    if int((state or {}).get("interaction_count", 0) or 0) < 3:
+        return False
+    emotional_keywords = (
+        "тревог",
+        "тяжело",
+        "страш",
+        "одино",
+        "отношен",
+        "выгор",
+        "перегруз",
+        "больно",
+    )
+    return _contains_any_keyword(user_text, emotional_keywords)
+
+
+def _should_trigger_useful_advice_paywall(
+    *,
+    user: dict[str, object] | None,
+    active_mode: str,
+    user_text: str,
+    response: str,
+) -> bool:
+    if _subscription_plan(user) != "free":
+        return False
+    request_keywords = (
+        "помоги",
+        "разбери",
+        "разобрать",
+        "что делать",
+        "как лучше",
+        "план",
+        "шаг",
+    )
+    response_keywords = ("1.", "2.", "•", "шаг", "план")
+    return (
+        active_mode in {"mentor", "dominant", "base"}
+        and _contains_any_keyword(user_text, request_keywords)
+        and _contains_any_keyword(response, response_keywords)
+    )
 
 
 def _build_subscription_expiry_notice(
@@ -295,6 +449,7 @@ async def chat_handler(
     user_service,
     referral_service,
     admin_settings_service,
+    monetization_repository,
     conversation_summary_service,
     chat_session_service,
     mode_access_service,
@@ -314,6 +469,7 @@ async def chat_handler(
 
     user_id = message.from_user.id
     user_text = message.text.strip()
+    onboarding_prompt_texts = _normalize_onboarding_prompts(ui_settings)
     user = await user_service.get_user(user_id)
     if user is None and message.from_user is not None:
         await user_service.ensure_user(message.from_user)
@@ -337,14 +493,7 @@ async def chat_handler(
         return
 
     if user_text.lower() in {"/ref", "рефералка", "реферальная ссылка"} and referral_settings["enabled"]:
-        me = await message.bot.get_me()
-        ref_link = f"https://t.me/{me.username}?start={referral_settings['start_parameter_prefix']}{user_id}"
-        share_text = referral_settings["share_text_template"].replace("{ref_link}", ref_link)
-        await message.answer(
-            f"{referral_settings['program_title']}\n\n"
-            f"{referral_settings['program_description']}\n\n"
-            f"{share_text}"
-        )
+        await _send_referral_menu(message, referral_settings, user_id, monetization_repository)
         return
 
     async with chat_session_service.user_session(user_id):
@@ -356,33 +505,25 @@ async def chat_handler(
 
         if should_apply_limits:
             today_count = await message_repository.get_user_messages_count_today(user_id)
-
-            if user.get("is_premium"):
-                if (
-                    limits_settings.get("premium_daily_messages_enabled")
-                    and today_count >= limits_settings["premium_daily_messages_limit"]
-                ):
-                    await message.answer(limits_settings["premium_daily_limit_message"])
-                    return
-            elif (
-                limits_settings["free_daily_messages_enabled"]
-                and today_count >= limits_settings["free_daily_messages_limit"]
-            ):
-                await message.answer(limits_settings["free_daily_limit_message"])
-                await show_premium_menu(
-                    message,
-                    payment_service,
-                    user_service,
-                    admin_settings_service,
-                    trigger=OFFER_TRIGGER_LIMIT_REACHED,
-                    premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
-                )
+            plan_key = _subscription_plan(user)
+            limit_enabled, limit_value, limit_message, _, _ = _plan_daily_limit(plan_key, limits_settings)
+            if limit_enabled and today_count >= limit_value:
+                await message.answer(limit_message)
+                if plan_key != "premium":
+                    await show_premium_menu(
+                        message,
+                        payment_service,
+                        user_service,
+                        admin_settings_service,
+                        trigger=OFFER_TRIGGER_LIMIT_REACHED,
+                        premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
+                    )
                 return
 
         state = await state_repository.get(user_id)
         logger.debug("[STATE] Loaded for user %s", user_id)
         active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
-        ai_profile = resolve_ai_profile(ai_settings, active_mode)
+        ai_profile = resolve_ai_profile(ai_settings, active_mode, _subscription_plan(user))
         selection_status = mode_access_service.get_selection_status(
             user=user or {},
             mode_key=active_mode,
@@ -407,7 +548,7 @@ async def chat_handler(
                 admin_settings_service,
                 trigger=OFFER_TRIGGER_PREVIEW_EXHAUSTED,
                 mode_name=mode_name,
-                premium_limit=int(limits_settings.get("premium_daily_messages_limit", 150)),
+                premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
             )
             return
 
@@ -431,6 +572,7 @@ async def chat_handler(
                 history=history,
                 user_message=user_text,
                 state=state,
+                subscription_plan=_subscription_plan(user),
             )
         except AIBackpressureError:
             await message_repository.save(user_id, "user", user_text)
@@ -446,6 +588,7 @@ async def chat_handler(
 
         response = result.response
         new_state = result.new_state
+        share_card = _build_share_card(response)
 
         if new_state is None:
             logger.warning(
@@ -453,6 +596,27 @@ async def chat_handler(
                 user_id,
             )
             new_state = state
+        if share_card:
+            new_state = dict(new_state or {})
+            new_state["growth_share_card"] = share_card
+        onboarding_state = dict((new_state or {}).get("onboarding") or {})
+        acquisition_state = dict((new_state or {}).get("acquisition") or {})
+        growth_events: list[tuple[str, dict[str, object]]] = []
+        if not str(onboarding_state.get("completed_at") or "").strip():
+            onboarding_state["completed_at"] = datetime.now(timezone.utc).isoformat()
+            if user_text.strip().lower() in onboarding_prompt_texts:
+                onboarding_state["starter_prompt"] = user_text.strip()
+            growth_events.append(
+                (
+                    "onboarding_completed",
+                    {
+                        "source": acquisition_state.get("source") or "direct",
+                        "campaign": acquisition_state.get("campaign") or "",
+                        "starter_prompt": onboarding_state.get("starter_prompt") or "",
+                    },
+                )
+            )
+        new_state["onboarding"] = onboarding_state
 
         response_mode = str(new_state.get("adaptive_mode") or new_state.get("active_mode") or active_mode)
         mode_config = admin_settings_service.get_modes().get(response_mode, {})
@@ -462,6 +626,7 @@ async def chat_handler(
         )
         formatted_response = format_model_response_for_telegram(response, formatting_options)
         post_response_notices: list[str] = []
+        soft_paywall_trigger: str | None = None
 
         try:
             new_state = mode_access_service.register_successful_message(
@@ -487,6 +652,24 @@ async def chat_handler(
             )
             if expiry_notice:
                 post_response_notices.append(expiry_notice)
+            if _should_trigger_emotional_paywall(
+                user=user or {},
+                state=new_state,
+                user_text=user_text,
+                response=response,
+            ):
+                new_state, should_send = _remember_notice(new_state, "soft_paywall", "emotional")
+                if should_send:
+                    soft_paywall_trigger = OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT
+            elif _should_trigger_useful_advice_paywall(
+                user=user or {},
+                active_mode=active_mode,
+                user_text=user_text,
+                response=response,
+            ):
+                new_state, should_send = _remember_notice(new_state, "soft_paywall", "useful")
+                if should_send:
+                    soft_paywall_trigger = OFFER_TRIGGER_USEFUL_ADVICE
             async with db.transaction():
                 await message_repository.save(user_id, "user", user_text, commit=False)
                 await state_repository.save(user_id, new_state, commit=False)
@@ -498,15 +681,74 @@ async def chat_handler(
 
         await remember_user_message()
 
+        for event_name, metadata in growth_events:
+            await monetization_repository.log_event(
+                user_id=user_id,
+                event_name=event_name,
+                metadata=metadata,
+            )
+
+        activation_threshold = max(1, int(referral_settings.get("activation_user_messages_threshold", 10) or 10))
+        message_stats = await message_repository.get_user_message_stats(user_id)
+        if (
+            int(message_stats.get("user_messages", 0) or 0) >= activation_threshold
+            and not str((new_state.get("onboarding") or {}).get("activation_reached_at") or "").strip()
+        ):
+            onboarding_state = dict(new_state.get("onboarding") or {})
+            onboarding_state["activation_reached_at"] = datetime.now(timezone.utc).isoformat()
+            new_state["onboarding"] = onboarding_state
+            await state_repository.save(user_id, new_state)
+            await monetization_repository.log_event(
+                user_id=user_id,
+                event_name="activation_reached",
+                metadata={
+                    "source": acquisition_state.get("source") or "direct",
+                    "campaign": acquisition_state.get("campaign") or "",
+                    "user_messages": int(message_stats.get("user_messages", 0) or 0),
+                },
+            )
+            referral_reward = await referral_service.process_activation(user_id)
+            if referral_reward and referral_reward.get("reward_granted"):
+                try:
+                    await message.bot.send_message(
+                        referral_reward["referrer_user_id"],
+                        referral_settings["referrer_reward_message"],
+                    )
+                except Exception:
+                    logger.exception("REFERRAL REWARD NOTIFY ERROR")
+
         try:
             conversation_summary_service.schedule_refresh(user_id, new_state)
         except Exception:
             logger.exception("SUMMARY SCHEDULER ERROR")
 
+        reply_markup = (
+            build_growth_reply_keyboard(
+                share_callback=CALLBACK_SHARE_INSIGHT,
+                referral_callback=CALLBACK_OPEN_REFERRAL_MENU,
+            )
+            if share_card and referral_settings["enabled"]
+            else None
+        )
         try:
-            await message.answer(formatted_response or escape_plain_text_for_telegram(response))
+            await message.answer(
+                formatted_response or escape_plain_text_for_telegram(response),
+                reply_markup=reply_markup,
+            )
         except TelegramBadRequest:
             logger.exception("TELEGRAM FORMAT ERROR")
-            await message.answer(escape_plain_text_for_telegram(response))
+            await message.answer(
+                escape_plain_text_for_telegram(response),
+                reply_markup=reply_markup,
+            )
+        if soft_paywall_trigger:
+            await show_premium_menu(
+                message,
+                payment_service,
+                user_service,
+                admin_settings_service,
+                trigger=soft_paywall_trigger,
+                premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
+            )
         for notice in post_response_notices:
             await message.answer(notice)

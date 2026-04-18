@@ -476,9 +476,11 @@ class AdminSettingsService:
             "start_parameter_prefix": "ref_",
             "allow_self_referral": False,
             "require_first_paid_invoice": True,
+            "require_activation_before_reward": True,
             "award_referrer_premium": True,
             "award_referred_user_premium": False,
             "reward_premium_days": 7,
+            "activation_user_messages_threshold": 10,
             "program_title": "Реферальная программа",
             "program_description": "Приглашай друзей и получай бонусы после их первой успешной оплаты.",
             "share_text_template": "Приходи в бот по моей ссылке: {ref_link}",
@@ -529,6 +531,12 @@ class AdminSettingsService:
             "modes_button_text": "🧭 Режимы",
             "premium_button_text": "✨ Premium",
             "input_placeholder": "Напиши, что у тебя сейчас в голове...",
+            "onboarding_input_placeholder": "Выбери точку входа или напиши своими словами...",
+            "onboarding_prompt_buttons": [
+                "Мне тревожно, помоги успокоиться",
+                "Помоги разобрать ситуацию",
+                "Мне нужен план и ясность",
+            ],
             "start_avatar_path": "assets/bot-avatar.png",
             "welcome_user_text": "Привет.\n\nЯ личный AI-партнёр для моментов, когда нужно не просто спросить у бота, а выдохнуть, разложить хаос или быстро собрать себя в решение.\n\nЧто внутри:\n• Диалог — живой умный разговор без ассистентского лака\n• Психолог — бережная опора для тревоги, перегруза и ПТСР-чувствительных состояний\n• Разбор — ясность, структура и следующий шаг для задачи, идеи или решения\n• Фокус — коротко, твёрдо и собранно, когда нужен темп и рамка",
             "welcome_followup_text": "Быстрый старт:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Нужен жёсткий фокус на ближайший час»\n\nИли просто напиши как есть. Если нужна память диалога, инициатива от бота и все режимы без ограничений preview, открой Premium.",
@@ -545,6 +553,25 @@ class AdminSettingsService:
                 "Как ты сегодня на самом деле? Можно ответить одной фразой.",
                 "Если хочешь, можем спокойно вернуться к тому, что ты тогда не договорил.",
             ],
+        },
+        "cost_control": {
+            "plan_max_completion_tokens": {
+                "free": 160,
+                "pro": 280,
+                "premium": 420,
+            },
+            "plan_memory_max_tokens": {
+                "free": 650,
+                "pro": 1100,
+                "premium": 1600,
+            },
+            "plan_history_message_limit": {
+                "free": 10,
+                "pro": 16,
+                "premium": 22,
+            },
+            "long_user_message_chars": 900,
+            "long_message_completion_ratio": 0.72,
         },
     }
 
@@ -817,6 +844,7 @@ class AdminSettingsService:
                 "referral",
                 "payment",
                 "ui",
+                "cost_control",
             )
         ):
             return payload
@@ -1020,9 +1048,11 @@ class AdminSettingsService:
         referral["start_parameter_prefix"] = str(referral["start_parameter_prefix"]).strip() or "ref_"
         referral["allow_self_referral"] = bool(referral["allow_self_referral"])
         referral["require_first_paid_invoice"] = bool(referral["require_first_paid_invoice"])
+        referral["require_activation_before_reward"] = bool(referral.get("require_activation_before_reward", True))
         referral["award_referrer_premium"] = bool(referral["award_referrer_premium"])
         referral["award_referred_user_premium"] = bool(referral["award_referred_user_premium"])
         referral["reward_premium_days"] = max(0, int(referral.get("reward_premium_days", 7)))
+        referral["activation_user_messages_threshold"] = max(1, int(referral.get("activation_user_messages_threshold", 10)))
         for key in ("program_title", "program_description", "share_text_template", "referred_welcome_message", "referrer_reward_message"):
             referral[key] = self._normalize_text(referral[key], multiline=True)
 
@@ -1080,6 +1110,25 @@ class AdminSettingsService:
                 ui[key] = self._normalize_string_list(ui.get(key))
             else:
                 ui[key] = self._normalize_text(ui[key], multiline=True)
+
+        cost_control = current.setdefault("cost_control", {})
+        defaults = deepcopy(self.DEFAULT_RUNTIME_SETTINGS.get("cost_control", {}))
+        self._deep_merge(defaults, cost_control)
+        cost_control["plan_max_completion_tokens"] = self._normalize_int_map(
+            defaults.get("plan_max_completion_tokens"),
+            minimum=1,
+        )
+        cost_control["plan_memory_max_tokens"] = self._normalize_int_map(
+            defaults.get("plan_memory_max_tokens"),
+            minimum=1,
+        )
+        cost_control["plan_history_message_limit"] = self._normalize_int_map(
+            defaults.get("plan_history_message_limit"),
+            minimum=1,
+        )
+        cost_control["long_user_message_chars"] = max(200, int(defaults.get("long_user_message_chars", 900)))
+        ratio = float(defaults.get("long_message_completion_ratio", 0.72))
+        cost_control["long_message_completion_ratio"] = max(0.1, min(1.0, ratio))
 
         return current
 

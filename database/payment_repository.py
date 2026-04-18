@@ -232,6 +232,7 @@ class PaymentRepository:
                     "event_time": row[7],
                     "package_key": metadata.get("package_key") or "",
                     "package_title": metadata.get("package_title") or "",
+                    "plan_key": metadata.get("plan_key") or "",
                     "virtual_payment": bool(metadata.get("virtual_payment")),
                 }
             )

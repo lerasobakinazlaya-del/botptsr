@@ -23,6 +23,17 @@ class FakeUserService:
     async def get_recent_users(self, limit: int = 20):
         return [{"id": 1, "username": "u", "first_name": "User", "active_mode": "base", "is_premium": False, "is_admin": False, "created_at": "2026-03-29 10:00:00"}]
 
+    async def get_subscription_segments_overview(self):
+        return {
+            "all": 100,
+            "paid_active": 12,
+            "pro_active": 8,
+            "premium_active": 4,
+            "paid_expiring_3d": 2,
+            "paid_expired": 3,
+            "free": 88,
+        }
+
 
 class FakeMessageRepository:
     async def get_total_messages(self):
@@ -125,7 +136,38 @@ class FakeMonetizationRepository:
         }
 
     async def get_recent_events(self, limit: int = 20):
-        return [{"user_id": 1, "event_name": "offer_shown", "offer_trigger": "limit_reached", "offer_variant": "a", "payment_external_id": None, "created_at": "2026-03-29 10:00:00"}]
+        return [{"user_id": 1, "event_name": "offer_shown", "offer_trigger": "limit_reached", "offer_variant": "a", "payment_external_id": None, "metadata": {"source": "telegram"}, "created_at": "2026-03-29 10:00:00"}]
+
+    async def get_event_overview(self, *, days: int = 30, event_names=None):
+        return {
+            "onboarding_started": {"events": 18, "users": 18},
+            "onboarding_completed": {"events": 14, "users": 14},
+            "activation_reached": {"events": 9, "users": 9},
+            "referral_menu_opened": {"events": 6, "users": 5},
+            "insight_shared": {"events": 4, "users": 4},
+            "acquisition_attributed": {"events": 10, "users": 10},
+        }
+
+    async def get_segmented_event_overview(self, *, days: int = 30, event_name: str, metadata_field: str):
+        if metadata_field == "source":
+            return {
+                "days": days,
+                "event_name": event_name,
+                "metadata_field": metadata_field,
+                "segments": {
+                    "telegram": {"events": 7, "users": 7},
+                    "tiktok": {"events": 6, "users": 6},
+                },
+            }
+        return {
+            "days": days,
+            "event_name": event_name,
+            "metadata_field": metadata_field,
+            "segments": {
+                "spring_launch": {"events": 5, "users": 5},
+                "channel_a": {"events": 3, "users": 3},
+            },
+        }
 
 
 class FakeReferralService:
@@ -171,4 +213,7 @@ class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["monetization"]["funnel_30d"]["conversion"]["invoice_to_paid_pct"], 33.33)
         self.assertEqual(payload["monetization"]["by_trigger_30d"]["segments"]["limit_reached"]["stages"]["paid"]["users"], 5)
         self.assertEqual(payload["monetization"]["by_variant_30d"]["segments"]["a"]["conversion"]["offer_to_invoice_pct"], 57.14)
+        self.assertEqual(payload["growth"]["events_30d"]["activation_reached"]["users"], 9)
+        self.assertEqual(payload["growth"]["acquisition_by_source_30d"]["segments"]["telegram"]["events"], 7)
+        self.assertEqual(payload["users"]["subscription_segments"]["pro_active"], 8)
         self.assertEqual(payload["recent"]["monetization"][0]["event_name"], "offer_shown")

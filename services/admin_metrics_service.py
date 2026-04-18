@@ -91,6 +91,14 @@ class AdminMetricsService:
             logger.warning("Failed to store admin cache: %s", exc)
 
     async def _build_cached_payload(self) -> dict[str, Any]:
+        growth_event_names = [
+            "onboarding_started",
+            "onboarding_completed",
+            "activation_reached",
+            "referral_menu_opened",
+            "insight_shared",
+            "acquisition_attributed",
+        ]
         payment_overview = await self.payment_repository.get_overview()
         monetization_7d = await self.monetization_repository.get_funnel_overview(days=7)
         monetization_30d = await self.monetization_repository.get_funnel_overview(days=30)
@@ -102,6 +110,20 @@ class AdminMetricsService:
             days=30,
             segment_by="offer_variant",
         )
+        growth_overview_30d = await self.monetization_repository.get_event_overview(
+            days=30,
+            event_names=growth_event_names,
+        )
+        acquisition_by_source_30d = await self.monetization_repository.get_segmented_event_overview(
+            days=30,
+            event_name="onboarding_started",
+            metadata_field="source",
+        )
+        acquisition_by_campaign_30d = await self.monetization_repository.get_segmented_event_overview(
+            days=30,
+            event_name="onboarding_started",
+            metadata_field="campaign",
+        )
         referral_overview = await self.referral_service.get_overview()
         total_users = await self.user_service.get_total_users()
         premium_users = await self.user_service.get_premium_users_count()
@@ -111,6 +133,7 @@ class AdminMetricsService:
         support_stats = await self.state_repository.get_support_stats()
         proactive_overview = await self.proactive_repository.get_overview()
         preference_stats = await self.user_preference_repository.get_stats()
+        subscription_segments = await self.user_service.get_subscription_segments_overview()
 
         return {
             "users": {
@@ -121,6 +144,7 @@ class AdminMetricsService:
                 "premium_total": premium_users,
                 "admins_total": admin_users,
                 "active_with_messages": active_users,
+                "subscription_segments": subscription_segments,
             },
             "payments": {
                 **payment_overview,
@@ -136,6 +160,11 @@ class AdminMetricsService:
                 "funnel_30d": monetization_30d,
                 "by_trigger_30d": monetization_by_trigger_30d,
                 "by_variant_30d": monetization_by_variant_30d,
+            },
+            "growth": {
+                "events_30d": growth_overview_30d,
+                "acquisition_by_source_30d": acquisition_by_source_30d,
+                "acquisition_by_campaign_30d": acquisition_by_campaign_30d,
             },
             "content": {
                 "messages_total": total_messages,

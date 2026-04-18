@@ -1,11 +1,22 @@
 from typing import Any
 
 
-def resolve_ai_profile(ai_settings: dict[str, Any], active_mode: str) -> dict[str, Any]:
+def resolve_ai_profile(
+    ai_settings: dict[str, Any],
+    active_mode: str,
+    subscription_plan: str = "free",
+) -> dict[str, Any]:
     mode_overrides = ai_settings.get("mode_overrides", {})
     override = mode_overrides.get(active_mode, {}) if isinstance(mode_overrides, dict) else {}
+    plan_overrides = ai_settings.get("plan_overrides", {})
+    plan_override = plan_overrides.get(subscription_plan, {}) if isinstance(plan_overrides, dict) else {}
 
-    model = str(override.get("model") or ai_settings.get("openai_model") or "gpt-4o-mini").strip()
+    model = str(
+        override.get("model")
+        or plan_override.get("model")
+        or ai_settings.get("openai_model")
+        or "gpt-4o-mini"
+    ).strip()
     prompt_suffix = str(override.get("prompt_suffix") or "").strip()
 
     return {

@@ -118,6 +118,7 @@ class Container:
             db=self.db,
             user_service=self.user_service,
             settings_service=self.admin_settings_service,
+            state_repository=self.state_repository,
         )
         self.payment_service = PaymentService(
             settings=self.settings,

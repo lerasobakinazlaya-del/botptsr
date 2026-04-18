@@ -121,6 +121,7 @@ class MonetizationRepository:
                 offer_trigger,
                 offer_variant,
                 payment_external_id,
+                metadata_json,
                 created_at
             FROM monetization_events
             ORDER BY created_at DESC, id DESC
@@ -136,10 +137,89 @@ class MonetizationRepository:
                 "offer_trigger": row[2],
                 "offer_variant": row[3],
                 "payment_external_id": row[4],
-                "created_at": row[5],
+                "metadata": self._load_metadata(row[5]),
+                "created_at": row[6],
             }
             for row in rows
         ]
+
+    async def get_event_overview(
+        self,
+        *,
+        days: int = 30,
+        event_names: list[str] | tuple[str, ...] | None = None,
+    ) -> dict[str, dict[str, int]]:
+        params: list[Any] = [f"-{days} days"]
+        filter_sql = ""
+        if event_names:
+            placeholders = ", ".join("?" for _ in event_names)
+            filter_sql = f" AND event_name IN ({placeholders})"
+            params.extend(str(item) for item in event_names)
+
+        cursor = await self.db.connection.execute(
+            f"""
+            SELECT
+                event_name,
+                COUNT(*) AS total_events,
+                COUNT(DISTINCT user_id) AS unique_users
+            FROM monetization_events
+            WHERE created_at >= datetime('now', ?)
+            {filter_sql}
+            GROUP BY event_name
+            ORDER BY event_name ASC
+            """,
+            tuple(params),
+        )
+        rows = await cursor.fetchall()
+        return {
+            str(row[0] or ""): {
+                "events": int(row[1] or 0),
+                "users": int(row[2] or 0),
+            }
+            for row in rows
+        }
+
+    async def get_segmented_event_overview(
+        self,
+        *,
+        days: int = 30,
+        event_name: str,
+        metadata_field: str,
+    ) -> dict[str, Any]:
+        safe_field = "".join(
+            char for char in str(metadata_field or "").strip()
+            if char.isalnum() or char in {"_", "-"}
+        )
+        if not safe_field:
+            raise ValueError("Unsupported metadata field")
+
+        cursor = await self.db.connection.execute(
+            f"""
+            SELECT
+                COALESCE(NULLIF(json_extract(metadata_json, '$.{safe_field}'), ''), 'unknown') AS segment_value,
+                COUNT(*) AS total_events,
+                COUNT(DISTINCT user_id) AS unique_users
+            FROM monetization_events
+            WHERE created_at >= datetime('now', ?)
+              AND event_name = ?
+            GROUP BY COALESCE(NULLIF(json_extract(metadata_json, '$.{safe_field}'), ''), 'unknown')
+            ORDER BY total_events DESC, segment_value ASC
+            """,
+            (f"-{days} days", str(event_name).strip()),
+        )
+        rows = await cursor.fetchall()
+        return {
+            "days": days,
+            "event_name": str(event_name).strip(),
+            "metadata_field": safe_field,
+            "segments": {
+                str(row[0] or "unknown"): {
+                    "events": int(row[1] or 0),
+                    "users": int(row[2] or 0),
+                }
+                for row in rows
+            },
+        }
 
     def _ratio(self, numerator: int, denominator: int) -> float:
         if denominator <= 0:
@@ -180,3 +260,12 @@ class MonetizationRepository:
                 "paid_to_renewed_pct": self._ratio(renewed_users, paid_users),
             },
         }
+
+    def _load_metadata(self, raw_value: Any) -> dict[str, Any]:
+        if raw_value in (None, ""):
+            return {}
+        try:
+            value = json.loads(raw_value)
+        except Exception:
+            return {}
+        return value if isinstance(value, dict) else {}

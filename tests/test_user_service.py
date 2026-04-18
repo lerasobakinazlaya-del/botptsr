@@ -32,17 +32,18 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
                 first_name,
                 active_mode,
                 is_premium,
+                subscription_plan,
                 premium_expires_at,
                 is_admin,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                (1, "basic", "Basic", "base", 0, None, 0, created_basic),
-                (2, "soon", "Soon", "base", 1, soon_expiry, 0, created_soon),
-                (3, "later", "Later", "base", 1, later_expiry, 0, created_later),
-                (4, "expired", "Expired", "base", 1, expired_at, 0, created_expired),
+                (1, "basic", "Basic", "base", 0, "free", None, 0, created_basic),
+                (2, "soon", "Soon", "base", 1, "pro", soon_expiry, 0, created_soon),
+                (3, "later", "Later", "base", 1, "premium", later_expiry, 0, created_later),
+                (4, "expired", "Expired", "base", 1, "premium", expired_at, 0, created_expired),
             ],
         )
         await self.db.connection.commit()
@@ -83,9 +84,11 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
             segments,
             {
                 "all": 4,
-                "premium_active": 2,
-                "premium_expiring_3d": 1,
-                "premium_expired": 1,
-                "without_premium": 2,
+                "paid_active": 2,
+                "pro_active": 1,
+                "premium_active": 1,
+                "paid_expiring_3d": 1,
+                "paid_expired": 1,
+                "free": 2,
             },
         )

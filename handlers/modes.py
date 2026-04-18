@@ -110,7 +110,7 @@ async def change_mode_handler(
                 admin_settings_service,
                 trigger=OFFER_TRIGGER_MODE_LOCKED,
                 mode_name=mode_name,
-                premium_limit=int(runtime_settings["limits"].get("premium_daily_messages_limit", 150)),
+                premium_limit=int(runtime_settings["limits"].get("premium_daily_messages_limit", 200)),
                 edit_current=True,
             )
         return

@@ -57,6 +57,18 @@ class UserStateRepository:
                 "last_sent_at": None,
                 "last_triggered_from_user_at": None,
             },
+            "onboarding": {
+                "started_at": None,
+                "completed_at": None,
+                "starter_prompt": None,
+                "activation_reached_at": None,
+            },
+            "acquisition": {
+                "source": None,
+                "campaign": None,
+                "referrer_user_id": None,
+                "start_parameter": None,
+            },
             "premium_features_used": 0,
         }
 
@@ -83,6 +95,16 @@ class UserStateRepository:
         if not isinstance(reengagement, dict):
             reengagement = {}
         merged["reengagement"] = default["reengagement"] | reengagement
+
+        onboarding = state.get("onboarding", {})
+        if not isinstance(onboarding, dict):
+            onboarding = {}
+        merged["onboarding"] = default["onboarding"] | onboarding
+
+        acquisition = state.get("acquisition", {})
+        if not isinstance(acquisition, dict):
+            acquisition = {}
+        merged["acquisition"] = default["acquisition"] | acquisition
         return merged
 
     async def get(self, user_id: int) -> Dict[str, Any]:

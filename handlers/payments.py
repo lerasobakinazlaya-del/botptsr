@@ -18,12 +18,16 @@ OFFER_TRIGGER_DEFAULT = "default"
 OFFER_TRIGGER_LIMIT_REACHED = "limit_reached"
 OFFER_TRIGGER_MODE_LOCKED = "mode_locked"
 OFFER_TRIGGER_PREVIEW_EXHAUSTED = "preview_exhausted"
+OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT = "emotional_engagement"
+OFFER_TRIGGER_USEFUL_ADVICE = "useful_advice"
 
 SUPPORTED_OFFER_TRIGGERS = {
     OFFER_TRIGGER_DEFAULT,
     OFFER_TRIGGER_LIMIT_REACHED,
     OFFER_TRIGGER_MODE_LOCKED,
     OFFER_TRIGGER_PREVIEW_EXHAUSTED,
+    OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT,
+    OFFER_TRIGGER_USEFUL_ADVICE,
 }
 
 
@@ -40,6 +44,10 @@ def _build_offer_teaser(trigger: str, mode_name: str | None = None) -> str:
     normalized_mode = str(mode_name or "").strip().lower()
     if trigger == OFFER_TRIGGER_LIMIT_REACHED:
         return "Не хочу рвать это здесь. В Premium я продолжаю без обрыва, сушняка и урезанного темпа."
+    if trigger == OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT:
+        return "Похоже, здесь тебе важен не разовый ответ, а опора, которая помнит контекст и может идти глубже."
+    if trigger == OFFER_TRIGGER_USEFUL_ADVICE:
+        return "Я могу продолжить это глубже: с более длинным разбором, памятью контекста и без обрыва на самом полезном месте."
 
     if "доминир" in normalized_mode or "жестк" in normalized_mode or "фокус" in normalized_mode:
         return "Если хочешь, я продолжу жёстче, увереннее и с более собранным темпом."
@@ -102,6 +110,18 @@ def _build_offer_intro(
     elif trigger == OFFER_TRIGGER_PREVIEW_EXHAUSTED:
         trigger_line = str(
             payment_settings.get("offer_preview_exhausted_template")
+            or payment_settings.get("offer_locked_mode_template")
+            or ""
+        ).strip()
+    elif trigger == OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT:
+        trigger_line = str(
+            payment_settings.get("offer_emotional_engagement_template")
+            or payment_settings.get("offer_locked_mode_template")
+            or ""
+        ).strip()
+    elif trigger == OFFER_TRIGGER_USEFUL_ADVICE:
+        trigger_line = str(
+            payment_settings.get("offer_useful_advice_template")
             or payment_settings.get("offer_locked_mode_template")
             or ""
         ).strip()
@@ -608,7 +628,7 @@ async def successful_payment_handler(message: Message, payment_service, user_ser
         return
 
     await message.answer(payment_service.build_success_message(result))
-    if result and result.get("referral"):
+    if result and result.get("referral") and result["referral"].get("reward_granted"):
         referral_settings = payment_service.referral_service.get_settings()
         referrer_id = result["referral"]["referrer_user_id"]
         try:

@@ -89,6 +89,25 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
         self.assertIn("opener family: callback_thread", prompt)
         self.assertIn("callback_thread", prompt)
 
+    def test_reengagement_prompt_includes_stage_guidance_and_name_hint(self):
+        prompt = self.service.build_reengagement_prompt(
+            {
+                "relationship_state": {
+                    "last_user_topic": "work",
+                    "last_user_mood": "подъём или хорошее настроение",
+                },
+                "user_profile": {
+                    "identity_facts": ["пользователя зовут Лена"],
+                },
+            },
+            hours_silent=200,
+            active_mode="base",
+        )
+
+        self.assertIn("Retention stage: day_7_reset", prompt)
+        self.assertIn("user's name: Лена", prompt)
+        self.assertIn("Last notable mood: подъём или хорошее настроение", prompt)
+
     def test_reengagement_message_increments_sent_count(self):
         updated = self.service.apply_assistant_message(
             {
@@ -121,6 +140,24 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
         self.assertIn("Важные имена и связи", context)
         self.assertIn("пользователя зовут Лена", context)
         self.assertIn("подругу пользователя зовут Маша", context)
+
+
+    def test_reengagement_context_returns_name_and_mood(self):
+        context = self.service.get_reengagement_context(
+            {
+                "relationship_state": {
+                    "last_user_topic": "отношения",
+                    "last_user_mood": "нужда в контакте или тепле",
+                },
+                "user_profile": {
+                    "identity_facts": ["пользователя зовут Аня"],
+                },
+            }
+        )
+
+        self.assertEqual(context["topic"], "отношения")
+        self.assertEqual(context["name_hint"], "Аня")
+        self.assertEqual(context["last_mood"], "нужда в контакте или тепле")
 
 
 if __name__ == "__main__":

@@ -11,45 +11,49 @@ from services.payment_formatting import format_access_days_label, format_package
 class PaymentService:
     RECURRING_STARS_PERIOD_SECONDS = 30 * 24 * 60 * 60
     DEFAULT_PACKAGE_CATALOG = {
-        "day": {
+        "pro_month": {
             "enabled": True,
-            "title": "Premium на 1 день",
-            "description": "Быстрый тест: память диалога, инициатива от бота и все режимы на один день.",
-            "price_minor_units": 7900,
-            "access_duration_days": 1,
+            "title": "Pro на 30 дней",
+            "description": "Базовый платный план: больше сообщений, все режимы и память контекста.",
+            "price_minor_units": 44900,
+            "access_duration_days": 30,
             "sort_order": 10,
-            "badge": "Тест",
-            "recurring_stars_enabled": False,
+            "badge": "Старт",
+            "recurring_stars_enabled": True,
+            "plan_key": "pro",
         },
-        "week": {
+        "pro_year": {
             "enabled": True,
-            "title": "Premium на 7 дней",
-            "description": "Неделя, чтобы спокойно проверить формат и не упираться в лимит в первый же день.",
-            "price_minor_units": 24900,
-            "access_duration_days": 7,
+            "title": "Pro на 365 дней",
+            "description": "Годовой доступ к плану Pro по выгодной цене.",
+            "price_minor_units": 399000,
+            "access_duration_days": 365,
             "sort_order": 20,
-            "badge": "Популярно",
+            "badge": "Выгодно",
             "recurring_stars_enabled": False,
+            "plan_key": "pro",
         },
-        "month": {
+        "premium_month": {
             "enabled": True,
             "title": "Premium на 30 дней",
-            "description": "Основной план: память диалога, инициатива от бота и все режимы на месяц.",
-            "price_minor_units": 49900,
+            "description": "Максимальный план: длиннее ответы, глубокие разборы и приоритетный доступ.",
+            "price_minor_units": 99000,
             "access_duration_days": 30,
             "sort_order": 30,
-            "badge": "Основной",
+            "badge": "Глубже",
             "recurring_stars_enabled": True,
+            "plan_key": "premium",
         },
-        "year": {
+        "premium_year": {
             "enabled": True,
             "title": "Premium на 365 дней",
-            "description": "Самый выгодный доступ для тех, кто уже встроил бота в свою ежедневную рутину.",
-            "price_minor_units": 399000,
+            "description": "Годовой доступ к плану Premium по лучшей цене.",
+            "price_minor_units": 899000,
             "access_duration_days": 365,
             "sort_order": 40,
             "badge": "Выгодно",
             "recurring_stars_enabled": False,
+            "plan_key": "premium",
         },
     }
 
@@ -121,7 +125,7 @@ class PaymentService:
         enabled = self.get_enabled_packages(payment)
         if enabled:
             return str(enabled[0]["key"])
-        return "month"
+        return "pro_month"
 
     def get_default_package(self, payment_settings: dict | None = None) -> dict | None:
         payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
@@ -147,7 +151,7 @@ class PaymentService:
 
     def build_invoice_payload(self, user_id: int, package_key: str | None = None) -> str:
         safe_package_key = str(package_key or self.get_default_package_key()).strip().lower()
-        return f"premium:{user_id}:{safe_package_key}"
+        return f"subscription:{user_id}:{safe_package_key}"
 
     def validate_invoice_payload(self, payload: str, user_id: int) -> bool:
         parsed = self.parse_invoice_payload(payload)
@@ -159,7 +163,36 @@ class PaymentService:
 
     def parse_invoice_payload(self, payload: str | None) -> dict | None:
         raw = str(payload or "").strip()
-        if not raw.startswith("premium:"):
+        if raw.startswith("premium:"):
+            parts = raw.split(":")
+            if len(parts) == 2:
+                try:
+                    return {
+                        "user_id": int(parts[1]),
+                        "package_key": self.get_default_package_key(),
+                    }
+                except ValueError:
+                    return None
+
+            if len(parts) != 3:
+                return None
+
+            try:
+                legacy_package_key = str(parts[2]).strip().lower()
+                package_aliases = {
+                    "month": "premium_month",
+                    "year": "premium_year",
+                    "week": "pro_month",
+                    "day": "pro_month",
+                }
+                return {
+                    "user_id": int(parts[1]),
+                    "package_key": package_aliases.get(legacy_package_key, legacy_package_key),
+                }
+            except ValueError:
+                return None
+
+        if not raw.startswith("subscription:"):
             return None
 
         parts = raw.split(":")
@@ -327,8 +360,10 @@ class PaymentService:
         external_payment_id = f"virtual-{user_id}-{package['key']}-{uuid4().hex[:12]}"
         amount_minor_units = int(package.get("price_minor_units", 0))
         amount = self._to_major_units(amount_minor_units, payment["currency"])
-        premium_expires_at = await self.user_service.grant_premium_days(
+        plan_key = str(package.get("plan_key") or "premium").strip().lower() or "premium"
+        premium_expires_at = await self.user_service.grant_subscription_days(
             user_id,
+            plan_key,
             int(package.get("access_duration_days", 30)),
         )
         payment_info = await self.payment_repository.save_payment(
@@ -349,6 +384,7 @@ class PaymentService:
                 "premium_expires_at": premium_expires_at,
                 "package_key": package["key"],
                 "package_title": package["title"],
+                "plan_key": plan_key,
                 "access_duration_days": int(package.get("access_duration_days", 30)),
                 "package_price_minor_units": amount_minor_units,
                 "virtual_payment": True,
@@ -382,6 +418,7 @@ class PaymentService:
             "is_first_recurring": False,
             "package_key": package["key"],
             "package_title": package["title"],
+            "plan_key": plan_key,
             "virtual_payment": True,
         }
 
@@ -455,6 +492,7 @@ class PaymentService:
                 "premium_expires_at": premium_expires_at,
                 "package_key": package["key"],
                 "package_title": package["title"],
+                "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
                 "access_duration_days": int(package.get("access_duration_days", 30)),
                 "package_price_minor_units": int(package.get("price_minor_units", 0)),
             },
@@ -480,6 +518,7 @@ class PaymentService:
             "is_first_recurring": bool(payment.is_first_recurring),
             "package_key": package["key"],
             "package_title": package["title"],
+            "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
         }
 
     def build_success_message(self, result: dict | None) -> str:
@@ -492,6 +531,11 @@ class PaymentService:
         package_title = str(result.get("package_title") or "").strip()
         if package_title:
             parts.append(f"Тариф: {package_title}.")
+        plan_key = str(result.get("plan_key") or "").strip().lower()
+        if plan_key == "pro":
+            parts.append("План Pro уже активен.")
+        elif plan_key == "premium":
+            parts.append("План Premium уже активен.")
 
         premium_expires_at = str(result.get("premium_expires_at") or "").strip()
         if premium_expires_at:
@@ -503,14 +547,15 @@ class PaymentService:
         return "\n\n".join(parts)
 
     async def _apply_premium_access(self, user_id: int, payment, package: dict) -> str | None:
+        plan_key = str(package.get("plan_key") or "premium").strip().lower() or "premium"
         subscription_expiration_date = getattr(payment, "subscription_expiration_date", None)
         if subscription_expiration_date:
             expires_at = datetime.fromtimestamp(subscription_expiration_date, tz=timezone.utc)
-            await self.user_service.set_premium_until(user_id, expires_at)
+            await self.user_service.set_subscription_plan_until(user_id, plan_key, expires_at)
             return expires_at.strftime("%Y-%m-%d %H:%M:%S")
 
         access_duration_days = int(package.get("access_duration_days", 30))
-        return await self.user_service.grant_premium_days(user_id, access_duration_days)
+        return await self.user_service.grant_subscription_days(user_id, plan_key, access_duration_days)
 
     def format_expiry_text(self, value: str | None) -> str:
         if not value:
@@ -552,6 +597,7 @@ class PaymentService:
                 "is_first_payment": bool(payment_info.get("is_first_payment")),
                 "package_key": package["key"],
                 "package_title": package["title"],
+                "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
             },
         )
 
@@ -593,6 +639,9 @@ class PaymentService:
             package["recurring_stars_enabled"] = bool(
                 package.get("recurring_stars_enabled", payment["recurring_stars_enabled"])
             )
+            package["plan_key"] = str(
+                package.get("plan_key") or defaults.get("plan_key") or "premium"
+            ).strip().lower() or "premium"
             normalized_packages[package_key] = package
 
         payment["packages"] = normalized_packages
@@ -617,13 +666,13 @@ class PaymentService:
         ):
             if package.get("enabled"):
                 return str(package["key"])
-        return "month"
+        return "pro_month"
 
     def _build_legacy_packages(self, payment: dict) -> dict:
         packages = deepcopy(self.DEFAULT_PACKAGE_CATALOG)
-        default_key = str(payment.get("default_package_key") or "month").strip().lower()
+        default_key = str(payment.get("default_package_key") or "pro_month").strip().lower()
         if default_key not in packages:
-            default_key = "month"
+            default_key = "pro_month"
 
         packages[default_key]["price_minor_units"] = max(1, int(payment.get("price_minor_units", 49900) or 49900))
         packages[default_key]["access_duration_days"] = max(

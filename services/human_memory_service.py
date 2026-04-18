@@ -214,9 +214,13 @@ class HumanMemoryService:
         callback_hint = context["callback_hint"]
         relationship = self._normalize_relationship((state or {}).get("relationship_state"))
         reengagement = dict((state or {}).get("reengagement") or {})
+        profile = self._normalize_profile((state or {}).get("user_profile"))
         sent_count = self._coerce_int(reengagement.get("sent_count"), 0)
         preference = self._render_preferences(relationship.get("response_preferences", {}))
         style = style_settings or {}
+        stage = self._resolve_reengagement_stage(hours_silent)
+        name_hint = self._extract_name_hint(profile.get("identity_facts") or [])
+        last_mood = str(relationship.get("last_user_mood") or "").strip()
         starter_family = self._select_reengagement_starter_family(
             sent_count=sent_count,
             callback_hint=callback_hint,
@@ -237,6 +241,8 @@ class HumanMemoryService:
             "Keep it to at most two short paragraphs and no lists.",
             f"Target length: up to {max(120, int(style.get('max_chars', 220) or 220))} characters if possible.",
             "Do not reuse the same opener shape every time.",
+            f"Retention stage: {stage}.",
+            self._build_reengagement_stage_guidance(stage),
             f"For this message, prefer the opener family: {starter_family}.",
             self._build_reengagement_starter_guidance(starter_family, active_mode=active_mode),
         ]
@@ -250,6 +256,10 @@ class HumanMemoryService:
             parts.append(f"You may lean on this as a soft callback: {callback_hint}.")
         if preference:
             parts.append(f"User style preference: {preference}.")
+        if name_hint:
+            parts.append(f"If it feels natural, you may softly use the user's name: {name_hint}.")
+        if last_mood:
+            parts.append(f"Last notable mood: {last_mood}. Avoid escalating it; meet it gently.")
 
         return "\n".join(parts)
 
@@ -263,6 +273,8 @@ class HumanMemoryService:
         return {
             "topic": str(topic or "").strip(),
             "callback_hint": str(callback_hint or "").strip(),
+            "name_hint": self._extract_name_hint(profile["identity_facts"]),
+            "last_mood": str(relationship.get("last_user_mood") or "").strip(),
         }
 
     def get_reengagement_metadata(self, state: dict[str, Any]) -> dict[str, Any]:
@@ -553,6 +565,45 @@ class HumanMemoryService:
             family = "mood_ping" if relationship.get("warmth", 0.0) > 0.24 else "soft_presence"
 
         return family
+
+    def _resolve_reengagement_stage(self, hours_silent: int) -> str:
+        if hours_silent >= 24 * 14:
+            return "day_14_reopen"
+        if hours_silent >= 24 * 7:
+            return "day_7_reset"
+        if hours_silent >= 24 * 3:
+            return "day_3_reengage"
+        return "day_1_checkin"
+
+    def _build_reengagement_stage_guidance(self, stage: str) -> str:
+        guidance = {
+            "day_1_checkin": (
+                "Stage day_1_checkin: sound like a light daily check-in. "
+                "Keep it easy, warm, and low-pressure."
+            ),
+            "day_3_reengage": (
+                "Stage day_3_reengage: reopen the contact gently after a few days. "
+                "A soft callback to the last theme works well."
+            ),
+            "day_7_reset": (
+                "Stage day_7_reset: offer a simple weekly reset or a short emotional check-in. "
+                "Make replying feel effortless."
+            ),
+            "day_14_reopen": (
+                "Stage day_14_reopen: use the easiest possible entry point. "
+                "One calm line and a very low-friction invitation back is enough."
+            ),
+        }
+        return guidance.get(stage, guidance["day_1_checkin"])
+
+    def _extract_name_hint(self, identity_facts: list[str]) -> str:
+        for fact in identity_facts:
+            normalized = str(fact or "").strip()
+            prefix = "пользователя зовут "
+            lowered = normalized.lower()
+            if lowered.startswith(prefix):
+                return normalized[len(prefix):].strip()
+        return ""
 
     def _build_reengagement_starter_guidance(self, starter_family: str, *, active_mode: str) -> str:
         mode_note = ""

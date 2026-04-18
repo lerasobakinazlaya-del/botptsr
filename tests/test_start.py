@@ -42,6 +42,11 @@ class FakeAdminSettingsService:
                 "modes_button_text": "🧭 Режимы",
                 "premium_button_text": "✨ Полный доступ",
                 "input_placeholder": "Напиши...",
+                "onboarding_input_placeholder": "Выбери вход",
+                "onboarding_prompt_buttons": [
+                    "Мне тревожно, помоги успокоиться",
+                    "Помоги разобрать ситуацию",
+                ],
                 "start_avatar_path": self.avatar_path,
                 "welcome_user_text": "Привет, это тестовое приветствие.",
                 "welcome_followup_text": self.followup_text,
@@ -57,6 +62,25 @@ class FakeAdminSettingsService:
 class FakeReferralService:
     async def register_referral(self, **_kwargs):
         return False
+
+
+class FakeStateRepository:
+    def __init__(self):
+        self.saved = []
+
+    async def get(self, _user_id):
+        return {}
+
+    async def save(self, user_id, state, *, commit=True):
+        self.saved.append((user_id, state, commit))
+
+
+class FakeMonetizationRepository:
+    def __init__(self):
+        self.events = []
+
+    async def log_event(self, **kwargs):
+        self.events.append(kwargs)
 
 
 class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
@@ -104,8 +128,35 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(message.answers), 2)
         self.assertEqual(message.answers[0]["text"], "Привет, это тестовое приветствие.")
         self.assertEqual(message.answers[1]["text"], "Быстрый старт:\n• Напиши первую задачу")
-        self.assertIsNone(message.answers[1]["reply_markup"])
+        self.assertIsNotNone(message.answers[1]["reply_markup"])
         self.assertEqual(len(message.photos), 0)
+
+    async def test_start_handler_tracks_onboarding_state_and_acquisition(self):
+        message = FakeMessage(text="/start src_telegram__cmp_spring_launch", user_id=777)
+        state_repository = FakeStateRepository()
+        monetization_repository = FakeMonetizationRepository()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(is_new_user=True),
+            admin_settings_service=FakeAdminSettingsService(
+                avatar_path="assets/missing-avatar.png",
+                followup_text="Быстрый старт",
+            ),
+            referral_service=FakeReferralService(),
+            state_repository=state_repository,
+            monetization_repository=monetization_repository,
+        )
+
+        self.assertEqual(len(state_repository.saved), 1)
+        saved_state = state_repository.saved[0][1]
+        self.assertEqual(saved_state["acquisition"]["source"], "telegram")
+        self.assertEqual(saved_state["acquisition"]["campaign"], "spring_launch")
+        self.assertTrue(saved_state["onboarding"]["started_at"])
+        self.assertEqual(
+            [event["event_name"] for event in monetization_repository.events],
+            ["onboarding_started", "acquisition_attributed"],
+        )
 
 
 if __name__ == "__main__":

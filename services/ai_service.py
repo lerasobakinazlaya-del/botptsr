@@ -44,6 +44,7 @@ class AIRequest:
     history: List[Dict[str, str]]
     user_message: str
     state: Dict[str, Any]
+    subscription_plan: str
     future: asyncio.Future
     started_event: asyncio.Event
     enqueued_at: float
@@ -174,6 +175,7 @@ class AIService:
         history: List[Dict[str, str]],
         user_message: str,
         state: Dict[str, Any],
+        subscription_plan: str = "free",
     ) -> AIResult:
         if not self._started:
             raise RuntimeError("AI service is not started")
@@ -189,6 +191,7 @@ class AIService:
             user_message=user_message,
             state=state,
             user_id=user_id,
+            subscription_plan=subscription_plan,
             future=future,
             started_event=asyncio.Event(),
             enqueued_at=time.perf_counter(),
@@ -231,6 +234,7 @@ class AIService:
                     user_message=request.user_message,
                     state=request.state,
                     user_id=request.user_id,
+                    subscription_plan=getattr(request, "subscription_plan", "free"),
                 )
                 self._requests_completed += 1
                 if not request.future.done():
@@ -252,6 +256,7 @@ class AIService:
         user_message: str,
         state: Dict[str, Any],
         user_id: int,
+        subscription_plan: str = "free",
     ) -> AIResult:
         runtime_settings = self.settings_service.get_runtime_settings()
         ai_settings = runtime_settings["ai"]
@@ -281,9 +286,15 @@ class AIService:
             logger.info("[AI] user_id=%s crisis_signal=%s no_bypass", user_id, crisis_signal)
 
         ai_profile = self._apply_fast_lane_profile(
-            resolve_ai_profile(ai_settings, active_mode),
+            resolve_ai_profile(ai_settings, active_mode, subscription_plan),
             user_message=user_message,
             active_mode=active_mode,
+        )
+        ai_profile = self._apply_cost_control_profile(
+            ai_profile,
+            runtime_settings=runtime_settings,
+            user_message=user_message,
+            subscription_plan=subscription_plan,
         )
         access_level = self.access_engine.update_access_level(new_state)
         access_decision = self.access_engine.evaluate_access(
@@ -1162,6 +1173,51 @@ class AIService:
         optimized["max_retries"] = 0
         optimized["verbosity_override"] = "low"
         optimized["reasoning_effort_override"] = "low"
+        return optimized
+
+    def _apply_cost_control_profile(
+        self,
+        ai_profile: dict[str, Any],
+        *,
+        runtime_settings: dict[str, Any],
+        user_message: str,
+        subscription_plan: str,
+    ) -> dict[str, Any]:
+        optimized = dict(ai_profile)
+        cost_control = runtime_settings.get("cost_control", {}) if isinstance(runtime_settings, dict) else {}
+        if not isinstance(cost_control, dict):
+            return optimized
+
+        plan_key = str(subscription_plan or "free").strip().lower() or "free"
+        hard_caps = cost_control.get("plan_max_completion_tokens", {}) if isinstance(cost_control.get("plan_max_completion_tokens"), dict) else {}
+        memory_caps = cost_control.get("plan_memory_max_tokens", {}) if isinstance(cost_control.get("plan_memory_max_tokens"), dict) else {}
+        history_caps = cost_control.get("plan_history_message_limit", {}) if isinstance(cost_control.get("plan_history_message_limit"), dict) else {}
+
+        if plan_key in hard_caps:
+            optimized["max_completion_tokens"] = min(
+                int(optimized.get("max_completion_tokens", 220)),
+                max(64, int(hard_caps.get(plan_key, optimized.get("max_completion_tokens", 220)))),
+            )
+        if plan_key in memory_caps:
+            optimized["memory_max_tokens"] = min(
+                int(optimized.get("memory_max_tokens", 1200)),
+                max(150, int(memory_caps.get(plan_key, optimized.get("memory_max_tokens", 1200)))),
+            )
+        if plan_key in history_caps:
+            optimized["history_message_limit"] = min(
+                int(optimized.get("history_message_limit", 20)),
+                max(4, int(history_caps.get(plan_key, optimized.get("history_message_limit", 20)))),
+            )
+
+        long_message_threshold = max(300, int(cost_control.get("long_user_message_chars", 900) or 900))
+        if len(str(user_message or "").strip()) >= long_message_threshold:
+            reduction_ratio = float(cost_control.get("long_message_completion_ratio", 0.8) or 0.8)
+            reduction_ratio = max(0.35, min(1.0, reduction_ratio))
+            optimized["max_completion_tokens"] = max(
+                96,
+                int(int(optimized.get("max_completion_tokens", 220)) * reduction_ratio),
+            )
+
         return optimized
 
     def _get_fast_lane_settings(self) -> dict[str, Any]:

@@ -16,6 +16,8 @@ def _format_db_timestamp(value: datetime) -> str:
 
 
 class UserService:
+    VALID_SUBSCRIPTION_PLANS = {"free", "pro", "premium"}
+
     def __init__(self, db, settings=None):
         self.db = db
         self.settings = settings
@@ -28,6 +30,7 @@ class UserService:
                 username TEXT,
                 first_name TEXT,
                 active_mode TEXT DEFAULT 'base',
+                subscription_plan TEXT DEFAULT 'free',
                 is_premium INTEGER DEFAULT 0,
                 premium_expires_at TIMESTAMP NULL,
                 is_admin INTEGER DEFAULT 0,
@@ -35,6 +38,7 @@ class UserService:
             )
             """
         )
+        await self._ensure_column("subscription_plan", "TEXT DEFAULT 'free'")
         await self._ensure_column("premium_expires_at", "TIMESTAMP NULL")
         await self._ensure_column("is_admin", "INTEGER DEFAULT 0")
         await self.db.connection.execute(
@@ -44,6 +48,7 @@ class UserService:
                 username,
                 first_name,
                 active_mode,
+                subscription_plan,
                 is_premium,
                 premium_expires_at,
                 is_admin,
@@ -54,6 +59,7 @@ class UserService:
                 NULL,
                 '',
                 'base',
+                'free',
                 0,
                 NULL,
                 0,
@@ -71,8 +77,8 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             INSERT OR IGNORE INTO users
-            (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
-            VALUES (?, ?, ?, 'base', 0, NULL, ?)
+            (id, username, first_name, active_mode, subscription_plan, is_premium, premium_expires_at, is_admin)
+            VALUES (?, ?, ?, 'base', 'free', 0, NULL, ?)
             """,
             (
                 telegram_user.id,
@@ -111,6 +117,7 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
+            , subscription_plan
             FROM users
             WHERE id = ?
             """,
@@ -207,6 +214,7 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
+            , subscription_plan
             FROM users
             ORDER BY created_at DESC, id DESC
             LIMIT ?
@@ -233,6 +241,7 @@ class UserService:
             cursor = await self.db.connection.execute(
                 f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
+                , subscription_plan
                 FROM users
                 WHERE (
                     CAST(id AS TEXT) LIKE ?
@@ -264,6 +273,7 @@ class UserService:
             cursor = await self.db.connection.execute(
                 f"""
                 SELECT id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin, created_at
+                , subscription_plan
                 FROM users
                 WHERE {where_filter_clause}
                 ORDER BY {order_clause}
@@ -309,27 +319,37 @@ class UserService:
     async def get_subscription_segments_overview(self) -> dict[str, int]:
         queries = {
             "all": "SELECT COUNT(*) FROM users",
-            "premium_active": (
+            "paid_active": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE is_premium = 1 "
+                "WHERE subscription_plan IN ('pro', 'premium') "
                 "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
             ),
-            "premium_expiring_3d": (
+            "pro_active": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE is_premium = 1 "
+                "WHERE subscription_plan = 'pro' "
+                "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+            ),
+            "premium_active": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE subscription_plan = 'premium' "
+                "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+            ),
+            "paid_expiring_3d": (
+                "SELECT COUNT(*) FROM users "
+                "WHERE subscription_plan IN ('pro', 'premium') "
                 "AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at > CURRENT_TIMESTAMP "
                 "AND premium_expires_at <= datetime('now', '+3 days')"
             ),
-            "premium_expired": (
+            "paid_expired": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE is_premium = 1 "
+                "WHERE subscription_plan IN ('pro', 'premium') "
                 "AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at <= CURRENT_TIMESTAMP"
             ),
-            "without_premium": (
+            "free": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE is_premium = 0 OR premium_expires_at IS NULL "
+                "WHERE subscription_plan = 'free' OR premium_expires_at IS NULL "
                 "OR premium_expires_at <= CURRENT_TIMESTAMP"
             ),
         }
@@ -346,32 +366,32 @@ class UserService:
             "created_desc": "created_at DESC, id DESC",
             "premium_expiry_asc": (
                 "CASE "
-                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
-                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL THEN 1 "
+                "WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
+                "WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL THEN 1 "
                 "ELSE 2 END, "
                 "premium_expires_at ASC, id DESC"
             ),
             "premium_expiry_desc": (
                 "CASE "
-                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
-                "WHEN is_premium = 1 AND premium_expires_at IS NOT NULL THEN 1 "
+                "WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 "
+                "WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL THEN 1 "
                 "ELSE 2 END, "
                 "premium_expires_at DESC, id DESC"
             ),
             "premium_active_first": (
-                "CASE WHEN is_premium = 1 AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP) "
+                "CASE WHEN subscription_plan IN ('pro', 'premium') AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP) "
                 "THEN 0 ELSE 1 END, "
                 "premium_expires_at ASC, created_at DESC, id DESC"
             ),
             "premium_expiring_soon": (
-                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "CASE WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at > CURRENT_TIMESTAMP THEN 0 ELSE 1 END, "
-                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "CASE WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at > CURRENT_TIMESTAMP THEN premium_expires_at ELSE '9999-12-31 23:59:59' END ASC, "
                 "id DESC"
             ),
             "premium_expired": (
-                "CASE WHEN is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "CASE WHEN subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at <= CURRENT_TIMESTAMP THEN 0 ELSE 1 END, "
                 "premium_expires_at DESC, id DESC"
             ),
@@ -383,20 +403,20 @@ class UserService:
         clauses = {
             "all": "1 = 1",
             "premium_active": (
-                "is_premium = 1 AND "
+                "subscription_plan IN ('pro', 'premium') AND "
                 "(premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
             ),
             "premium_expiring_3d": (
-                "is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at > CURRENT_TIMESTAMP "
                 "AND premium_expires_at <= datetime('now', '+3 days')"
             ),
             "premium_expired": (
-                "is_premium = 1 AND premium_expires_at IS NOT NULL "
+                "subscription_plan IN ('pro', 'premium') AND premium_expires_at IS NOT NULL "
                 "AND premium_expires_at <= CURRENT_TIMESTAMP"
             ),
             "without_premium": (
-                "is_premium = 0 OR premium_expires_at IS NULL "
+                "subscription_plan = 'free' OR premium_expires_at IS NULL "
                 "OR premium_expires_at <= CURRENT_TIMESTAMP"
             ),
         }
@@ -437,49 +457,65 @@ class UserService:
         cursor = await self.db.connection.execute(
             """
             UPDATE users
-            SET is_premium = ?,
+            SET subscription_plan = ?,
+                is_premium = ?,
                 premium_expires_at = CASE
                     WHEN ? = 1 THEN premium_expires_at
                     ELSE NULL
                 END
             WHERE id = ?
             """,
-            (1 if value else 0, 1 if value else 0, user_id),
+            ("premium" if value else "free", 1 if value else 0, 1 if value else 0, user_id),
         )
         await self.db.connection.commit()
         return cursor.rowcount > 0
 
-    async def set_premium_until(self, user_id: int, expires_at: datetime | None) -> bool:
+    async def set_subscription_plan_until(self, user_id: int, plan_key: str, expires_at: datetime | None) -> bool:
+        normalized_plan = self._normalize_subscription_plan(plan_key, fallback="free")
+        active_flag = normalized_plan != "free" and expires_at is not None
         cursor = await self.db.connection.execute(
             """
             UPDATE users
             SET is_premium = ?,
+                subscription_plan = ?,
                 premium_expires_at = ?
             WHERE id = ?
             """,
             (
-                1 if expires_at is not None else 0,
-                _format_db_timestamp(expires_at) if expires_at is not None else None,
+                1 if active_flag else 0,
+                normalized_plan if active_flag else "free",
+                _format_db_timestamp(expires_at) if active_flag and expires_at is not None else None,
                 user_id,
             ),
         )
         await self.db.connection.commit()
         return cursor.rowcount > 0
 
+    async def set_premium_until(self, user_id: int, expires_at: datetime | None) -> bool:
+        return await self.set_subscription_plan_until(user_id, "premium", expires_at)
+
     async def grant_premium_days(self, user_id: int, days: int) -> str | None:
+        return await self.grant_subscription_days(user_id, "premium", days)
+
+    async def grant_subscription_days(self, user_id: int, plan_key: str, days: int) -> str | None:
         safe_days = max(1, int(days))
+        normalized_plan = self._normalize_subscription_plan(plan_key, fallback="premium")
         current_user = await self.get_user(user_id)
         current_expiry = _parse_db_timestamp(
             current_user.get("premium_expires_at") if current_user else None
         )
         start_at = current_expiry if current_expiry and current_expiry > datetime.now(timezone.utc) else datetime.now(timezone.utc)
         new_expiry = start_at + timedelta(days=safe_days)
-        await self.set_premium_until(user_id, new_expiry)
+        await self.set_subscription_plan_until(user_id, normalized_plan, new_expiry)
         return _format_db_timestamp(new_expiry)
 
     async def is_premium(self, user_id: int) -> bool:
         user = await self.get_user(user_id)
         return bool(user and user.get("is_premium"))
+
+    async def get_subscription_plan(self, user_id: int) -> str:
+        user = await self.get_user(user_id)
+        return self._normalize_subscription_plan((user or {}).get("subscription_plan"), fallback="free")
 
     async def set_admin(self, user_id: int, value: bool) -> bool:
         if self._is_static_admin(user_id):
@@ -517,16 +553,21 @@ class UserService:
         *,
         active_mode: str | None = None,
         is_premium: bool | None = None,
+        subscription_plan: str | None = None,
         is_admin: bool | None = None,
     ) -> dict[str, Any]:
         existing = await self.get_user(user_id)
 
         mode_value = active_mode or (existing["active_mode"] if existing else "base")
-        premium_value = (
-            bool(is_premium)
-            if is_premium is not None
-            else (existing["is_premium"] if existing else False)
+        existing_plan = self._normalize_subscription_plan((existing or {}).get("subscription_plan"), fallback="free")
+        normalized_plan = (
+            self._normalize_subscription_plan(subscription_plan, fallback=existing_plan)
+            if subscription_plan is not None
+            else existing_plan
         )
+        if is_premium is not None:
+            normalized_plan = "premium" if bool(is_premium) else "free"
+        premium_value = normalized_plan != "free"
         admin_value = (
             bool(is_admin)
             if is_admin is not None
@@ -535,6 +576,7 @@ class UserService:
         premium_expires_at = existing.get("premium_expires_at") if existing else None
         if not premium_value:
             premium_expires_at = None
+            normalized_plan = "free"
 
         if self._is_static_admin(user_id):
             admin_value = True
@@ -542,12 +584,13 @@ class UserService:
         await self.db.connection.execute(
             """
             INSERT OR IGNORE INTO users
-            (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
-            VALUES (?, NULL, '', ?, ?, ?, ?)
+            (id, username, first_name, active_mode, subscription_plan, is_premium, premium_expires_at, is_admin)
+            VALUES (?, NULL, '', ?, ?, ?, ?, ?)
             """,
             (
                 user_id,
                 mode_value,
+                normalized_plan,
                 1 if premium_value else 0,
                 premium_expires_at,
                 1 if admin_value else 0,
@@ -557,6 +600,7 @@ class UserService:
             """
             UPDATE users
             SET active_mode = ?,
+                subscription_plan = ?,
                 is_premium = ?,
                 premium_expires_at = ?,
                 is_admin = ?
@@ -564,6 +608,7 @@ class UserService:
             """,
             (
                 mode_value,
+                normalized_plan,
                 1 if premium_value else 0,
                 premium_expires_at,
                 1 if admin_value else 0,
@@ -592,8 +637,8 @@ class UserService:
             await self.db.connection.execute(
                 """
                 INSERT OR IGNORE INTO users
-                (id, username, first_name, active_mode, is_premium, premium_expires_at, is_admin)
-                VALUES (?, NULL, '', 'base', 0, NULL, 1)
+                (id, username, first_name, active_mode, subscription_plan, is_premium, premium_expires_at, is_admin)
+                VALUES (?, NULL, '', 'base', 'free', 0, NULL, 1)
                 """,
                 (admin_id,),
             )
@@ -619,21 +664,48 @@ class UserService:
 
     def _row_to_user(self, row) -> dict[str, Any]:
         premium_expires_at = row[5]
+        subscription_plan = self._resolve_row_subscription_plan(
+            row[8] if len(row) > 8 else None,
+            bool(row[4]),
+            premium_expires_at,
+        )
         return {
             "id": row[0],
             "username": row[1],
             "first_name": row[2],
             "active_mode": row[3],
-            "is_premium": self._is_premium_active(bool(row[4]), premium_expires_at),
+            "subscription_plan": subscription_plan,
+            "is_premium": self._is_paid_plan_active(subscription_plan, premium_expires_at),
             "premium_expires_at": premium_expires_at,
             "is_admin": bool(row[6]) or self._is_static_admin(int(row[0])),
             "created_at": row[7],
         }
 
-    def _is_premium_active(self, is_premium_flag: bool, premium_expires_at: str | None) -> bool:
+    def _resolve_row_subscription_plan(
+        self,
+        stored_plan: str | None,
+        is_premium_flag: bool,
+        premium_expires_at: str | None,
+    ) -> str:
+        normalized_stored = self._normalize_subscription_plan(stored_plan, fallback="")
+        if normalized_stored:
+            if normalized_stored == "free":
+                return "free"
+            return normalized_stored if self._is_paid_plan_active(normalized_stored, premium_expires_at) else "free"
         if not is_premium_flag:
+            return "free"
+        return "premium" if self._is_paid_plan_active("premium", premium_expires_at) else "free"
+
+    def _is_paid_plan_active(self, plan_key: str, premium_expires_at: str | None) -> bool:
+        if self._normalize_subscription_plan(plan_key, fallback="free") == "free":
             return False
         expires_at = _parse_db_timestamp(premium_expires_at)
         if expires_at is None:
             return True
         return expires_at > datetime.now(timezone.utc)
+
+    def _normalize_subscription_plan(self, plan_key: Any, *, fallback: str) -> str:
+        normalized = str(plan_key or "").strip().lower()
+        if normalized in self.VALID_SUBSCRIPTION_PLANS:
+            return normalized
+        return fallback
