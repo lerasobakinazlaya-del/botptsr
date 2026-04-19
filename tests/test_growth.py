@@ -1,6 +1,6 @@
 import unittest
 
-from handlers.chat import _build_share_card
+from handlers.chat import _build_share_card, _should_offer_growth_actions
 from handlers.growth import (
     build_ref_link,
     build_referral_message,
@@ -54,6 +54,40 @@ class GrowthHelpersTests(unittest.TestCase):
         self.assertIn("Инсайт дня", text)
         self.assertIn("Что можно сделать: Сделай один маленький шаг.", text)
         self.assertIn("https://t.me/mybot?start=ref_42", text)
+
+    def test_growth_actions_are_not_offered_for_sensitive_topics(self):
+        response = "Сначала отдели фантазию от реального согласия и безопасности. Потом решай, стоит ли идти дальше."
+        share_card = _build_share_card(response)
+
+        self.assertFalse(
+            _should_offer_growth_actions(
+                state={"interaction_count": 8},
+                user_text="Мне хочется групповой секс",
+                response=response,
+                share_card=share_card,
+            )
+        )
+
+    def test_growth_actions_need_mature_actionable_context(self):
+        response = "Сначала выпиши, что именно тебя перегружает. Потом выбери один шаг на сегодня и закрой только его."
+        share_card = _build_share_card(response)
+
+        self.assertFalse(
+            _should_offer_growth_actions(
+                state={"interaction_count": 2},
+                user_text="Мне тяжело с работой",
+                response=response,
+                share_card=share_card,
+            )
+        )
+        self.assertTrue(
+            _should_offer_growth_actions(
+                state={"interaction_count": 8},
+                user_text="Мне тяжело с работой",
+                response=response,
+                share_card=share_card,
+            )
+        )
 
 
 if __name__ == "__main__":

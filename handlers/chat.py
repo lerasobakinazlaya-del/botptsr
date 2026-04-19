@@ -55,6 +55,62 @@ def _build_share_card(response: str) -> dict[str, str] | None:
     }
 
 
+def _is_sensitive_growth_context(user_text: str, response: str) -> bool:
+    text = f"{user_text} {response}".lower()
+    sensitive_keywords = (
+        "секс",
+        "сексу",
+        "группов",
+        "фантаз",
+        "возбужд",
+        "тело",
+        "тел",
+        "ревност",
+        "интим",
+        "эрот",
+        "порно",
+        "стыд",
+        "птср",
+        "паник",
+        "самоповреж",
+        "суицид",
+    )
+    return any(keyword in text for keyword in sensitive_keywords)
+
+
+def _is_actionable_share_context(response: str) -> bool:
+    text = str(response or "").lower()
+    actionable_keywords = (
+        "шаг",
+        "план",
+        "сделай",
+        "выбери",
+        "попробуй",
+        "можно сделать",
+        "сначала",
+        "затем",
+        "сегодня",
+        "важно",
+    )
+    return any(keyword in text for keyword in actionable_keywords)
+
+
+def _should_offer_growth_actions(
+    *,
+    state: dict | None,
+    user_text: str,
+    response: str,
+    share_card: dict[str, str] | None,
+) -> bool:
+    if not share_card:
+        return False
+    if _is_sensitive_growth_context(user_text, response):
+        return False
+    if int((state or {}).get("interaction_count", 0) or 0) < 5:
+        return False
+    return _is_actionable_share_context(response)
+
+
 def _normalize_onboarding_prompts(ui_settings: dict) -> set[str]:
     return {
         str(item).strip().lower()
@@ -589,6 +645,8 @@ async def chat_handler(
         response = result.response
         new_state = result.new_state
         share_card = _build_share_card(response)
+        if _is_sensitive_growth_context(user_text, response):
+            share_card = None
 
         if new_state is None:
             logger.warning(
@@ -627,6 +685,7 @@ async def chat_handler(
         formatted_response = format_model_response_for_telegram(response, formatting_options)
         post_response_notices: list[str] = []
         soft_paywall_trigger: str | None = None
+        should_offer_growth_actions = False
 
         try:
             new_state = mode_access_service.register_successful_message(
@@ -670,6 +729,17 @@ async def chat_handler(
                 new_state, should_send = _remember_notice(new_state, "soft_paywall", "useful")
                 if should_send:
                     soft_paywall_trigger = OFFER_TRIGGER_USEFUL_ADVICE
+            if referral_settings["enabled"] and _should_offer_growth_actions(
+                state=new_state,
+                user_text=user_text,
+                response=response,
+                share_card=share_card,
+            ):
+                new_state, should_offer_growth_actions = _remember_notice(
+                    new_state,
+                    "growth_actions",
+                    "share",
+                )
             async with db.transaction():
                 await message_repository.save(user_id, "user", user_text, commit=False)
                 await state_repository.save(user_id, new_state, commit=False)
@@ -727,7 +797,7 @@ async def chat_handler(
                 share_callback=CALLBACK_SHARE_INSIGHT,
                 referral_callback=CALLBACK_OPEN_REFERRAL_MENU,
             )
-            if share_card and referral_settings["enabled"]
+            if should_offer_growth_actions
             else None
         )
         try:
