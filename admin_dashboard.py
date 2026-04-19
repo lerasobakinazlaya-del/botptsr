@@ -899,6 +899,8 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
     guarded_response = container.ai_service.conversation_engine.guard_response(
         guarded_response,
         user_message=context["user_message"],
+        active_mode=context["active_mode"],
+        history=history,
     )
     return {
         "response": guarded_response,

@@ -30,6 +30,20 @@ GENERIC_TRAILING_QUESTIONS = (
     "Как тебе такой вариант?",
     "Как тебе такой подход?",
 )
+ABSTRACT_FOG_REPLACEMENTS = {
+    "воздух стал плотнее": "напряжение стало заметнее",
+    "жизнь стала шире": "появилось больше вариантов",
+    "что-то глубже разворачивается": "это стало важнее",
+    "что-то глубже раскрывается": "это стало важнее",
+    "скрытые слои внутри тебя": "неочевидные причины",
+    "скрытые слои": "неочевидные причины",
+    "глубинный слой": "важная причина",
+    "внутренний узел": "место, где ты застрял",
+    "это может иметь значение": "это важно",
+    "это может держать смысл": "в этом есть конкретная причина",
+    "смысловой узел": "главная путаница",
+    "набирает силу": "становится заметнее",
+}
 META_SCRIPT_OPENERS = (
     "Вот что можно сказать:",
     "Вот несколько тем для разговора:",
@@ -349,6 +363,56 @@ def _compress_to_dialogue_turn(text: str, *, max_sentences: int = 2, max_chars: 
     return clipped.rstrip(" ,;:-") + ("." if clipped and clipped[-1] not in ".!?" else "")
 
 
+def _concretize_abstract_fog(text: str) -> str:
+    guarded = str(text or "")
+    for abstract, concrete in ABSTRACT_FOG_REPLACEMENTS.items():
+        guarded = re.sub(re.escape(abstract), concrete, guarded, flags=re.IGNORECASE)
+    guarded = re.sub(
+        r"\bчто-то\s+(?:очень\s+)?(?:глубокое|важное)\s+(?:внутри\s+)?(?:разворачивается|раскрывается|поднимается)\b",
+        "это стало заметнее",
+        guarded,
+        flags=re.IGNORECASE,
+    )
+    guarded = re.sub(
+        r"\bжизнь\s+(?:как\s+будто\s+)?стала\s+шире\b",
+        "появилось больше вариантов",
+        guarded,
+        flags=re.IGNORECASE,
+    )
+    return guarded
+
+
+def _strip_question_sentences(text: str) -> str:
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", str(text or "").strip()) if part.strip()]
+    if not sentences:
+        return str(text or "").strip()
+    kept = [sentence for sentence in sentences if "?" not in sentence]
+    if not kept:
+        return sentences[0].replace("?", ".")
+    return " ".join(kept).strip()
+
+
+def _tighten_comfort_response(text: str) -> str:
+    normalized = " ".join(str(text or "").split()).strip()
+    if not normalized:
+        return normalized
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
+    if len(normalized) <= 520 and len(sentences) <= 5:
+        return normalized
+    compact = " ".join(sentences[:5]).strip()
+    if len(compact) <= 520:
+        return compact
+    clipped = compact[:520].rstrip(" ,;:-")
+    last_break = max(clipped.rfind("."), clipped.rfind("!"), clipped.rfind("?"))
+    if last_break >= 260:
+        clipped = clipped[: last_break + 1]
+    else:
+        last_space = clipped.rfind(" ")
+        if last_space >= 260:
+            clipped = clipped[:last_space]
+    return clipped.rstrip(" ,;:-") + ("." if clipped and clipped[-1] not in ".!?" else "")
+
+
 def _build_dialogue_turn_fallback(user_message: str) -> str:
     topic = _classify_hook_topic(user_message)
     if topic == "support":
@@ -519,8 +583,10 @@ def _build_dialogue_pull_question(user_message: str) -> str:
 def apply_human_style_guardrails(
     text: str,
     *,
+    active_mode: str = "",
     answer_first: bool,
     allow_follow_up_question: bool,
+    suppress_follow_up_question: bool = False,
     strip_meta_framing: bool = False,
     soften_hard_rejection: bool = False,
     compress_risky_scene_lecture: bool = False,
@@ -535,6 +601,8 @@ def apply_human_style_guardrails(
     guarded = " ".join(str(text or "").split()).strip()
     if not guarded:
         return guarded
+
+    guarded = _concretize_abstract_fog(guarded)
 
     if answer_first:
         for opener in LOW_VALUE_OPENERS:
@@ -577,6 +645,9 @@ def apply_human_style_guardrails(
         if not guarded:
             guarded = _build_dialogue_turn_fallback(user_message)
 
+    if suppress_follow_up_question:
+        guarded = _strip_question_sentences(guarded)
+
     if answer_first and not allow_follow_up_question:
         for question in GENERIC_TRAILING_QUESTIONS:
             suffix = " " + question
@@ -590,12 +661,18 @@ def apply_human_style_guardrails(
         first_index = guarded.find("?")
         guarded = guarded[: first_index + 1] + guarded[first_index + 1 :].replace("?", ".")
 
-    if prefer_follow_up_question and "?" not in guarded:
+    if not allow_follow_up_question and active_mode == "comfort" and guarded.endswith("?"):
+        guarded = _strip_question_sentences(guarded)
+
+    if prefer_follow_up_question and "?" not in guarded and not suppress_follow_up_question:
         question = _build_dialogue_pull_question(user_message) if topic_questions_enabled else ""
         if question:
             if guarded and guarded[-1] not in ".!?":
                 guarded += "."
             guarded = f"{guarded} {question}".strip()
+
+    if active_mode == "comfort":
+        guarded = _tighten_comfort_response(guarded)
 
     return guarded.strip()
 

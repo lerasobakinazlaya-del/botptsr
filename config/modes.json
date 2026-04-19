@@ -13,10 +13,10 @@
   "comfort": {
     "warmth": 8,
     "flirt": 0,
-    "depth": 6,
-    "structure": 4,
-    "dominance": 1,
-    "initiative": 2,
+    "depth": 5,
+    "structure": 3,
+    "dominance": 2,
+    "initiative": 3,
     "emoji_level": 0,
     "allow_bold": false,
     "allow_italic": false

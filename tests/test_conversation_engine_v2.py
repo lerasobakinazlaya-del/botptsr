@@ -133,6 +133,34 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertLessEqual(len(result), 330)
         self.assertTrue(result.endswith("?"))
 
+    def test_comfort_mode_contract_discourages_default_questions(self):
+        prompt = self.engine.build_system_prompt(
+            state={"active_mode": "comfort", "emotional_tone": "neutral"},
+            access_level="analysis",
+            active_mode="comfort",
+            user_message="Мне тревожно",
+            history=[],
+        )
+
+        self.assertIn("talk like a calm smart person", prompt)
+        self.assertIn("do not ask a question by default", prompt)
+        self.assertIn("Preferred shape: direct reaction, useful insight, then stop.", prompt)
+
+    def test_comfort_question_cooldown_removes_next_question(self):
+        result = self.engine.guard_response(
+            "Да, это похоже на перегруз. Что ты чувствуешь сейчас?",
+            user_message="Не знаю",
+            active_mode="comfort",
+            history=[
+                {"role": "assistant", "content": "Что сейчас сильнее всего давит?"},
+                {"role": "user", "content": "Работа"},
+                {"role": "assistant", "content": "Ты больше устал или злишься?"},
+            ],
+        )
+
+        self.assertNotIn("?", result)
+        self.assertIn("перегруз", result)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -399,6 +399,8 @@ class AIService:
         response_text = self.conversation_engine.guard_response(
             response_text,
             user_message=user_message,
+            active_mode=active_mode,
+            history=history,
         )
         if driver_context is not None:
             response_text = self._apply_conversation_driver_guardrails(
@@ -526,6 +528,8 @@ class AIService:
         response_text = self.conversation_engine.guard_response(
             response_text,
             user_message="Сформулируй одно живое сообщение первой инициативы.",
+            active_mode=active_mode,
+            history=history,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", True)),
         )
         response_text, hook_used = self._apply_emotional_hook(

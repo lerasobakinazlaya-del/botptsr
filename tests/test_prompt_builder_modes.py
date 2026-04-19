@@ -42,7 +42,7 @@ class PromptBuilderModeTests(unittest.TestCase):
     def test_mode_specific_contracts_are_present(self):
         expectations = {
             "base": "dialogue focus: one real person talking naturally, with no heavy role pressure.",
-            "comfort": "psychologist focus: slower pace, softer edges, one safe next step at most.",
+            "comfort": "psychologist focus: talk like a calm smart person, not a clinical therapist.",
             "mentor": "mentor focus: create clarity without turning the answer into a lecture.",
             "passion": "focus: adult tension without vulgarity or pushiness",
             "night": "night focus: quieter, denser, slower, more intimate.",
@@ -79,6 +79,12 @@ class PromptBuilderModeTests(unittest.TestCase):
         free_talk_profile = resolve_ai_profile(ai_settings, "free_talk")
         night_profile = resolve_ai_profile(ai_settings, "night")
         dominant_profile = resolve_ai_profile(ai_settings, "dominant")
+
+        comfort_profile = resolve_ai_profile(ai_settings, "comfort")
+
+        self.assertEqual(comfort_profile["temperature"], 0.82)
+        self.assertEqual(comfort_profile["max_completion_tokens"], 280)
+        self.assertIn("живой, тёплый", comfort_profile["prompt_suffix"])
 
         self.assertEqual(mentor_profile["temperature"], 0.58)
         self.assertEqual(mentor_profile["max_completion_tokens"], 360)

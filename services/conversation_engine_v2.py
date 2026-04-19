@@ -49,17 +49,17 @@ class ConversationEngineV2:
             "syntax": "clean varied sentences",
         },
         "comfort": {
-            "voice_style": "warm, soft, steady, lower-pressure",
-            "focus": "support first, simple grounding, no clinical tone",
-            "warmth": 0.88,
-            "playfulness": 0.06,
-            "dominance": 0.08,
-            "initiative": 0.22,
+            "voice_style": "warm, perceptive, natural human texting",
+            "focus": "emotionally intelligent support without therapy-script tone",
+            "warmth": 0.78,
+            "playfulness": 0.10,
+            "dominance": 0.18,
+            "initiative": 0.34,
             "closeness_bias": 0.30,
             "explicitness_ceiling": 0.00,
-            "question_rate": 0.10,
-            "tempo": "slower",
-            "syntax": "shorter softer sentences",
+            "question_rate": 0.04,
+            "tempo": "calm but alive",
+            "syntax": "short-medium natural messages",
         },
         "mentor": {
             "voice_style": "clear, structured, thoughtful",
@@ -176,10 +176,16 @@ class ConversationEngineV2:
         },
         "comfort": {
             "good": [
-                "Make the reply feel safer by making it simpler, not more clinical.",
+                "Sound like a smart calm person texting, not a therapist running a session.",
+                "Answer first, then add one useful emotional read if it helps.",
+                "Use concrete human language: 'Yeah, that can mess with your head.'",
+                "Sometimes drop one sharp insight instead of asking a question.",
             ],
             "avoid": [
-                "Do not drown the user in techniques or coping scripts.",
+                "Do not ask a question in every reply.",
+                "Do not use abstract fog, hidden-layer language, or vague metaphors.",
+                "Do not use therapy clichés like 'your feelings are valid' or 'thank you for sharing'.",
+                "Do not overanalyze casual messages.",
             ],
         },
     }
@@ -318,7 +324,15 @@ class ConversationEngineV2:
             "- Keep the tone calm and supportive."
         )
 
-    def guard_response(self, text: str, *, user_message: str, force_dialogue_pull: bool = False) -> str:
+    def guard_response(
+        self,
+        text: str,
+        *,
+        user_message: str,
+        active_mode: str = "base",
+        history: list[Any] | None = None,
+        force_dialogue_pull: bool = False,
+    ) -> str:
         from services.response_guardrails import apply_human_style_guardrails
 
         normalized_message = self._normalize(user_message)
@@ -326,14 +340,25 @@ class ConversationEngineV2:
         dialogue_settings = self._resolve_dialogue_settings(
             runtime_settings.get("ai", {}).get("dialogue")
         )
+        question_cooldown = active_mode == "comfort" and self._recent_assistant_questions(history or [])
+        user_invited_questions = self._user_explicitly_invites_questions(normalized_message)
+        allow_question = (
+            user_invited_questions
+            or (
+                not question_cooldown
+                and active_mode != "comfort"
+                and (
+                    self._looks_like_hook_turn(normalized_message)
+                    or self._looks_like_charged_probe(normalized_message)
+                )
+            )
+        )
         return apply_human_style_guardrails(
             text,
+            active_mode=active_mode,
             answer_first=self._looks_like_answer_first_request(normalized_message),
-            allow_follow_up_question=(
-                self._user_explicitly_invites_questions(normalized_message)
-                or self._looks_like_hook_turn(normalized_message)
-                or self._looks_like_charged_probe(normalized_message)
-            ),
+            allow_follow_up_question=allow_question,
+            suppress_follow_up_question=question_cooldown,
             strip_meta_framing=(
                 self._looks_like_answer_first_request(normalized_message)
                 or self._looks_like_plan_request(normalized_message)
@@ -353,7 +378,9 @@ class ConversationEngineV2:
             ),
             compress_to_dialogue_turn=self._looks_like_hook_turn(normalized_message),
             prefer_follow_up_question=(
-                bool(dialogue_settings.get("hook_require_follow_up_question", True))
+                not question_cooldown
+                and active_mode != "comfort"
+                and bool(dialogue_settings.get("hook_require_follow_up_question", True))
                 and (force_dialogue_pull or self._should_pull_dialogue(normalized_message))
             ),
             user_message=user_message,
@@ -395,10 +422,21 @@ class ConversationEngineV2:
             )
         elif active_mode == "comfort":
             lines.append(
-                "- comfort focus: support first, but stay human and simple."
+                "- comfort focus: emotionally intelligent, warm, perceptive, and easy to talk to."
             )
             lines.append(
-                "- psychologist focus: slower pace, softer edges, one safe next step at most."
+                "- psychologist focus: talk like a calm smart person, not a clinical therapist."
+            )
+            lines.extend(
+                [
+                    "- answer first when the user asks directly; do not turn direct questions back on them.",
+                    "- questions are rare: only one sharp question when it genuinely moves the conversation.",
+                    "- no abstract fog: avoid 'hidden layers', 'deeper unfolding', 'life became wider', or vague symbolic language.",
+                    "- depth must be earned: casual user messages get simple grounded replies, not analysis.",
+                    "- warmth should be subtle: 'Yeah, that sounds rough' beats scripted validation.",
+                    "- occasional high-insight punchline is good: short, concrete, and a little memorable.",
+                    "- dry humor or light realism is allowed when the user is stable.",
+                ]
             )
         elif active_mode == "mentor":
             lines.append(
@@ -636,6 +674,16 @@ class ConversationEngineV2:
 
         if self._user_explicitly_invites_questions(normalized_message):
             lines.append("- The user explicitly invited questions. One sharp follow-up is allowed after you give a real answer.")
+        elif active_mode == "comfort":
+            lines.extend(
+                [
+                    "- In psychologist mode, do not ask a question by default.",
+                    "- If the last assistant turns already asked questions, this reply must contain no question.",
+                    "- Preferred shape: direct reaction, useful insight, then stop.",
+                    "- If advice was requested, give the practical answer first and only then a short psychological layer.",
+                    "- Keep the average reply concise-medium: usually 2-5 short sentences.",
+                ]
+            )
         else:
             lines.append("- Ask at most one follow-up question, and only if it is truly needed after a real answer.")
 
@@ -666,6 +714,19 @@ class ConversationEngineV2:
             )
 
         return "\n".join(lines)
+
+    def _recent_assistant_questions(self, history: list[Any]) -> bool:
+        assistant_turns: list[str] = []
+        for item in reversed(history or []):
+            role = str(self._history_item_field(item, "role") or "")
+            if role != "assistant":
+                continue
+            content = str(self._history_item_field(item, "content") or "")
+            if content.strip():
+                assistant_turns.append(content)
+            if len(assistant_turns) >= 2:
+                break
+        return len(assistant_turns) >= 2 and all("?" in turn for turn in assistant_turns[:2])
 
     def _resolve_mode_pack(self, payload: Any, active_mode: str) -> dict[str, Any]:
         pack = dict(self.DEFAULT_MODE_PACKS.get(active_mode, self.DEFAULT_MODE_PACKS["base"]))

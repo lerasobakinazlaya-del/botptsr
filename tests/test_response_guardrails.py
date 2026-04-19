@@ -209,5 +209,41 @@ class ResponseGuardrailsTests(unittest.TestCase):
 
         self.assertFalse(result.endswith("?"))
 
+    def test_comfort_guardrails_strip_abstract_fog_and_question_on_cooldown(self):
+        result = apply_human_style_guardrails(
+            "Понимаю. Здесь есть скрытые слои внутри тебя, и жизнь как будто стала шире. Что ты чувствуешь?",
+            active_mode="comfort",
+            answer_first=True,
+            allow_follow_up_question=False,
+            suppress_follow_up_question=True,
+            user_message="Мне тревожно",
+        )
+
+        self.assertNotIn("скрытые слои", result.lower())
+        self.assertNotIn("жизнь как будто стала шире", result.lower())
+        self.assertNotIn("?", result)
+        self.assertIn("неочевидные причины", result.lower())
+
+    def test_comfort_guardrails_keep_reply_concise(self):
+        result = apply_human_style_guardrails(
+            " ".join(
+                [
+                    "Да, это может сильно выматывать.",
+                    "Сейчас важнее не раскопать всю историю, а увидеть ближайший кусок.",
+                    "Ты не слабый, ты перегружен.",
+                    "Когда человек долго держится, психика начинает экономить силы.",
+                    "Поэтому даже простые решения могут казаться неподъёмными.",
+                    "Дальше можно было бы долго разбирать детство, отношения и паттерны, но сейчас это только утяжелит ответ.",
+                ]
+            ),
+            active_mode="comfort",
+            answer_first=True,
+            allow_follow_up_question=False,
+        )
+
+        self.assertLessEqual(len(result), 520)
+        self.assertLessEqual(result.count(".") + result.count("!") + result.count("?"), 5)
+
+
 if __name__ == "__main__":
     unittest.main()
