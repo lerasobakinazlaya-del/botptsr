@@ -177,8 +177,8 @@ class ResponseGuardrailsTests(unittest.TestCase):
             user_message="Хочу групповой секс",
         )
 
-        self.assertIn("Нормальный заряженный запрос", result)
-        self.assertIn("Тебя здесь", result)
+        self.assertIn("Ок, желание понятно", result)
+        self.assertIn("фантазия, разговор с партнёрами или уже реальный план", result)
         self.assertIn("?", result)
         self.assertNotIn("только трезво", result.lower())
 

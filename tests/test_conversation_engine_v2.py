@@ -161,6 +161,21 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertNotIn("?", result)
         self.assertIn("перегруз", result)
 
+    def test_question_cooldown_applies_outside_comfort_mode(self):
+        result = self.engine.guard_response(
+            "Тут важнее сначала понять реальность намерения. Это фантазия или уже план?",
+            user_message="Сдвиг границ",
+            active_mode="base",
+            history=[
+                {"role": "assistant", "content": "Тебя цепляет новизна или сдвиг?"},
+                {"role": "user", "content": "Сдвиг"},
+                {"role": "assistant", "content": "А это фантазия или реальный план?"},
+            ],
+        )
+
+        self.assertNotIn("?", result)
+        self.assertIn("реальность намерения", result)
+
 
 if __name__ == "__main__":
     unittest.main()

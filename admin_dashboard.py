@@ -961,7 +961,7 @@ def _dashboard_html() -> str:
     label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:104px;resize:vertical}
     .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
     pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
-    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.preset-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.preset-bar button{border-radius:999px}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.preset-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.preset-bar button{border-radius:999px}.readiness-list{display:grid;gap:10px}.readiness-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:12px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.03)}.readiness-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--muted)}.readiness-dot.ok{background:#60d27c}.readiness-dot.warn{background:#f7c971}.readiness-dot.bad{background:#ff7b72}.qa-note{display:grid;gap:8px;margin-top:12px}.qa-note .kv-row{align-items:flex-start}.shortcut-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
     table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
     .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.overview-hero-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.overview-table table{min-width:0}.overview-details .panel{background:rgba(255,255,255,.02)}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
     @media (max-width:1380px){.users-layout,.conversations-layout,.hero{grid-template-columns:1fr}}
@@ -979,6 +979,7 @@ def _dashboard_html() -> str:
         </div>
         <div class="nav">
           <button class="active" data-view="overview">Обзор</button>
+          <button data-view="setup">Setup</button>
           <button data-view="users">Пользователи</button>
           <button data-view="conversations">Диалоги</button>
           <button data-view="runtime">ИИ и интерфейс</button>
@@ -1037,6 +1038,16 @@ def _dashboard_html() -> str:
           <h2>Обзор</h2>
           <p class="muted">Метрики пользователей, платежей, поддержки и состояние инфраструктуры.</p>
         </div>
+        <div class="panel">
+          <div class="mode-head">
+            <div>
+              <h3>Launch readiness</h3>
+              <p class="muted section-note">Быстрая SaaS-проверка: можно ли показывать этот бот оператору и запускать первых пользователей.</p>
+            </div>
+            <button data-open-view="setup">Открыть Setup</button>
+          </div>
+          <div id="overview-launch-readiness"></div>
+        </div>
         <div id="overview-cards" class="grid overview-hero-grid"></div>
         <div class="three">
           <div class="panel"><h3>Аудитория</h3><div id="overview-audience"></div></div>
@@ -1064,6 +1075,36 @@ def _dashboard_html() -> str:
             </div>
           </div>
         </details>
+      </section>
+
+      <section class="page" data-view="setup">
+        <div><h2>Setup и запуск</h2><p class="muted">Срез для оператора SaaS: что настроено, что мешает запуску и куда идти править.</p></div>
+        <div class="cols">
+          <div class="panel">
+            <h3>Launch readiness</h3>
+            <div id="setup-readiness"></div>
+          </div>
+          <div class="panel">
+            <h3>Bot identity</h3>
+            <div id="setup-identity"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Быстрые переходы</h3>
+          <p class="muted section-note">Это не отдельная копия настроек, а навигация по тем местам, где оператор реально готовит запуск.</p>
+          <div class="shortcut-grid">
+            <button data-open-view="runtime">Тексты старта и меню</button>
+            <button data-open-view="modes">Режимы и платность</button>
+            <button data-open-view="payments">Plans и paywall</button>
+            <button data-open-view="testing">Conversation Lab</button>
+            <button data-open-view="users">Пользователи и сегменты</button>
+            <button data-open-view="logs">Health и логи</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>SaaS MVP фокус</h3>
+          <div id="setup-saas-summary"></div>
+        </div>
       </section>
 
       <section class="page" data-view="users">
@@ -1554,11 +1595,11 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="payments">
-        <div><h2>Оплата</h2><p class="muted">Управление провайдером, тарифами, текстами paywall и реферальной программой в одном разделе.</p></div>
+        <div><h2>Plans и оплата</h2><p class="muted">Тарифы конечного пользователя, paywall, провайдер и реферальная программа в одном revenue-разделе.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Основное</h3>
-            <p class="muted section-note">Базовые настройки провайдера, валюты и продукта, которые влияют на весь premium-flow.</p>
+            <p class="muted section-note">Базовые настройки провайдера, валюты и продукта, которые влияют на весь paid-flow.</p>
             <div class="two">
               <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
               <label>Режим оплаты
@@ -1584,7 +1625,7 @@ def _dashboard_html() -> str:
           <div class="panel">
             <h3>Короткий оффер</h3>
             <p class="muted section-note">Главные тексты, которые чаще всего видит пользователь при покупке и ошибках оплаты.</p>
-            <label>Преимущества премиум-доступа<textarea id="payment_premium_benefits_text"></textarea></label>
+            <label>Преимущества платного плана<textarea id="payment_premium_benefits_text"></textarea></label>
             <label>CTA оплаты<input id="payment_buy_cta_text"></label>
             <label>Недоступно<textarea id="payment_unavailable_message"></textarea></label>
             <label>Ошибка счета<textarea id="payment_invoice_error_message"></textarea></label>
@@ -1592,12 +1633,12 @@ def _dashboard_html() -> str:
           </div>
         </div>
         <details class="panel details-panel">
-          <summary>Тексты premium-меню и paywall</summary>
+          <summary>Тексты Plans-меню и paywall</summary>
           <div class="details-content stack">
             <div class="soft-panel">
-              <h3>Premium-меню</h3>
+              <h3>Plans-меню</h3>
               <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
-              <label>Описание premium-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
+              <label>Описание plans-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
               <div class="two">
                 <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
                 <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
@@ -1618,8 +1659,8 @@ def _dashboard_html() -> str:
           </div>
         </details>
         <div class="panel">
-          <h3>Пакеты Premium</h3>
-          <p class="muted section-note">Именно эти варианты увидит пользователь в едином Premium-меню.</p>
+          <h3>Пакеты Plans</h3>
+          <p class="muted section-note">Именно эти варианты увидит пользователь в едином меню платных планов.</p>
           <div class="package-grid">
             <div class="mode-card">
               <div class="mode-head"><strong>1 день</strong><span class="badge">day</span></div>
@@ -1703,13 +1744,20 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="testing">
-        <div><h2>Тестирование</h2><p class="muted">Проверка промпта, состояния и реального ответа модели из текущих настроек.</p></div>
+        <div><h2>Conversation Lab</h2><p class="muted">Проверка промпта, состояния и живости ответа до запуска. Здесь видно не только JSON, но и качество reply-loop.</p></div>
         <div class="cols">
           <div class="panel">
+            <h3>Тестовый диалог</h3>
             <div class="two">
               <label>Активный режим<input id="test_active_mode"></label>
               <label>Уровень доступа<input id="test_access_level"></label>
               <label>User ID<input id="test_user_id" type="number" min="0"></label>
+            </div>
+            <div class="template-list" id="test-case-buttons">
+              <button type="button" class="template-chip" data-test-case="start">Первое сообщение</button>
+              <button type="button" class="template-chip" data-test-case="advice">Полезный разбор</button>
+              <button type="button" class="template-chip" data-test-case="short">Короткий hook</button>
+              <button type="button" class="template-chip" data-test-case="sensitive">Sensitive edge</button>
             </div>
             <label>Сообщение<textarea id="test_user_message"></textarea></label>
             <label>История (`user:` / `assistant:`)<textarea id="test_history"></textarea></label>
@@ -1721,7 +1769,12 @@ def _dashboard_html() -> str:
               <button id="test-reengagement">Re-engagement</button>
             </div>
           </div>
-          <div class="panel"><h3>Результат</h3><pre id="test-result">Здесь появится результат.</pre></div>
+          <div class="panel">
+            <h3>Quality notes</h3>
+            <div id="test-quality">Запусти live reply, чтобы увидеть оценку ответа.</div>
+            <h3 style="margin-top:16px">Результат</h3>
+            <pre id="test-result">Здесь появится результат.</pre>
+          </div>
         </div>
       </section>
 
@@ -1747,17 +1800,18 @@ def _dashboard_html() -> str:
       'Как ты сегодня? Можешь ответить в любом темпе.',
       'Если хочешь, можем спокойно вернуться к тому, на чем остановились.'
     ];
-    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null,activeView:'overview',lastSyncedAt:null};
+    const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null,lastTestResult:null,activeView:'overview',lastSyncedAt:null};
     const VIEW_META={
       overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
+      setup:{kicker:'Launch readiness',title:'Setup и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
       runtime:{kicker:'Настройки рантайма',title:'ИИ и интерфейс',subtitle:'Живые runtime-параметры модели, лимитов, инициативы и редактора шаблонов без похода в JSON вручную.'},
       safety:{kicker:'Guardrails',title:'Безопасность и ограничения',subtitle:'Guardrails, кризисные настройки и стоп-линии, которые реально формируют поведение бота на проде.'},
       prompts:{kicker:'Prompt control plane',title:'Промпты и шаблоны',subtitle:'Редактирование базовых инструкций, fallback-слоёв и prompt-контура без расползания по legacy-конфигам.'},
       modes:{kicker:'Mode engine',title:'Режимы и голос',subtitle:'Каталог режимов, model overrides и UX-параметры, которые определяют, как бот звучит для пользователя.'},
-      payments:{kicker:'Revenue surface',title:'Оплата и пакеты',subtitle:'Пакеты Premium, провайдеры и монетизация в одной витрине без ощущения недоделанной панели.'},
-      testing:{kicker:'QA panel',title:'Тесты и песочница',subtitle:'Проверка промпта, state и reply прямо из админки, чтобы поведение можно было валидировать до выката.'},
+      payments:{kicker:'Revenue surface',title:'Plans и оплата',subtitle:'Тарифы, провайдеры и монетизация в одной витрине без ощущения недоделанной панели.'},
+      testing:{kicker:'Conversation Lab',title:'Тесты качества диалога',subtitle:'Проверка промпта, state и reply прямо из админки, чтобы поведение можно было валидировать до выката.'},
       logs:{kicker:'Runtime trace',title:'Логи и сигналы',subtitle:'Последние записи сервиса, быстрый экспорт и просмотр проблем без отдельного захода на сервер.'},
     };
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -1787,6 +1841,36 @@ def _dashboard_html() -> str:
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
     function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
     function healthSummary(ai){const queue=ai?.queue_size??0,capacity=ai?.queue_capacity??0,workers=ai?.workers??0,busy=ai?.busy_workers??0;return metricCards([['Очередь',`${queue}/${capacity}`,'Задачи ИИ в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['Режимов',String(state.health?.modes_count??0),'Загружено в панели']])}
+    function enabledPackages(payment){return Object.values(payment?.packages||{}).filter(item=>item&&item.enabled)}
+    function launchReadinessItems(){
+      const runtime=state.settings?.runtime||{},ui=runtime.ui||{},payment=runtime.payment||{},limits=runtime.limits||{},catalog=state.settings?.mode_catalog||{},health=state.health||{};
+      const modeItems=Object.values(catalog||{}),paidModes=modeItems.filter(item=>item&&item.is_premium),packages=enabledPackages(payment);
+      const hasProvider=String(payment.provider_token||'').trim()||payment.mode==='virtual';
+      const items=[
+        {key:'identity',label:'Bot identity',ok:String(ui.welcome_user_text||'').trim()&&String(ui.write_button_text||'').trim(),detail:'Welcome, main buttons and first prompt are configured.',action:'runtime'},
+        {key:'onboarding',label:'Onboarding prompts',ok:(ui.onboarding_prompt_buttons||[]).filter(Boolean).length>0,detail:'Sample prompts help a cold user start without guessing.',action:'runtime',warn:true},
+        {key:'modes',label:'Free and paid modes',ok:modeItems.length>=2&&paidModes.length>=1,detail:`Modes: ${modeItems.length}, paid: ${paidModes.length}.`,action:'modes'},
+        {key:'plans',label:'Plans and paywall',ok:packages.length>0&&String(payment.buy_cta_text||'').trim(),detail:`Enabled packages: ${packages.length}. Default: ${payment.default_package_key||'—'}.`,action:'payments'},
+        {key:'payment',label:'Payment mode',ok:!!hasProvider,detail:`Mode: ${payment.mode||'telegram'}${payment.mode==='virtual'?' (test checkout)':''}.`,action:'payments',warn:payment.mode==='virtual'},
+        {key:'limits',label:'Usage limits',ok:!!(limits.free_daily_messages_enabled||limits.premium_daily_messages_enabled||limits.mode_preview_enabled),detail:'Limits keep AI cost and paid access predictable.',action:'safety',warn:true},
+        {key:'lab',label:'Conversation Lab',ok:true,detail:'Run launch prompts before sending traffic.',action:'testing'},
+        {key:'system',label:'System health',ok:!!(health.db?.ok&&(health.redis?.ok||health.redis?.mode==='fallback')),detail:`DB: ${health.db?.ok?'ok':'check'}, Redis: ${health.redis?.ok?'ok':(health.redis?.mode||'check')}.`,action:'logs'},
+      ];
+      return items.map(item=>({...item,status:item.ok?(item.warn?'warn':'ok'):'bad'}));
+    }
+    function renderReadiness(items){return `<div class="readiness-list">${(items||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${esc(item.status)}"></span><div><strong>${esc(item.label)}</strong><div class="muted">${esc(item.detail)}</div></div><button data-open-view="${esc(item.action)}">${item.status==='bad'?'Fix':'Open'}</button></div>`).join('')}</div>`}
+    function renderLaunchReadiness(){
+      const items=launchReadinessItems(),bad=items.filter(item=>item.status==='bad').length,warn=items.filter(item=>item.status==='warn').length,ok=items.filter(item=>item.status==='ok').length;
+      const summary=metricCards([['Ready',String(ok),`${bad} blockers • ${warn} warnings`],['Plans',String(enabledPackages(state.settings?.runtime?.payment||{}).length),'Enabled paid packages'],['Modes',String(Object.keys(state.settings?.mode_catalog||{}).length),'Configured bot modes']]);
+      return `<div class="stack">${summary}${renderReadiness(items)}</div>`;
+    }
+    function renderSetup(){
+      if(!state.settings)return;
+      const runtime=state.settings.runtime||{},ui=runtime.ui||{},payment=runtime.payment||{},catalog=state.settings.mode_catalog||{},paidModes=Object.values(catalog).filter(item=>item&&item.is_premium);
+      $('#setup-readiness').innerHTML=renderLaunchReadiness();
+      $('#setup-identity').innerHTML=`<div class="stack">${metricCards([['Menu',`${esc(ui.write_button_text||'—')} / ${esc(ui.modes_button_text||'—')}`,esc(ui.premium_button_text||'paid CTA missing')],['Modes',String(Object.keys(catalog).length),`Paid modes: ${paidModes.length}`],['Payment',esc(payment.mode||'telegram'),`Default package: ${payment.default_package_key||'—'}`]])}${kvList([['Welcome text',escText(String(ui.welcome_user_text||'').slice(0,280)||'—')],['Follow-up',escText(String(ui.welcome_followup_text||'').slice(0,220)||'—')],['Avatar path',esc(ui.start_avatar_path||'—')],['Paywall CTA',esc(payment.buy_cta_text||'—')]])}</div>`;
+      $('#setup-saas-summary').innerHTML=kvList([['Product',esc('Control center for launching and monetizing a Telegram AI companion')],['Operator promise',esc('Configure identity, modes, plans, quality tests, users, broadcasts and health from one dashboard.')],['Next build focus',esc('Setup readiness -> Conversation Lab -> Plans/revenue clarity -> deploy smoke test')]]);
+    }
     function fileTable(files){const rows=Object.entries(files||{}).map(([name,info])=>({name,path:info?.path||'',exists:info?.exists?'Да':'Нет',size:info?.exists?`${num(info?.size_bytes)} B`:'-'}));return table(['name','path','exists','size'],rows)}
     function prettyStateLabel(key){return ({active_mode:'Активный режим',interaction_count:'Число взаимодействий',conversation_phase:'Фаза диалога',emotional_tone:'Эмоциональный тон',premium_features_used:'Использований премиума',enabled:'Инициатива бота',updated_at:'Обновлено',timezone:'Часовой пояс',goals:'Цели',interests:'Интересы',personality_traits:'Черты',identity_facts:'Имена и связи',current_focus:'Что сейчас особенно живо',recent_topics:'Недавние темы',open_loops:'Незавершённые темы',support_profile:'Профиль поддержки',support_stats:'Статистика поддержки',episodic_summary:'Сводка эпизода',episodic_summary_meta:'Мета сводки',recent_arc:'Недавняя дуга',emotional_direction:'Эмоциональное направление',response_hint:'Подсказка для ответа',response_preferences:'Предпочтения по ответу',shared_threads:'Нити прошлых разговоров',callback_candidates:'Что можно мягко вспомнить позже',recent_thread:'Последняя живая нить'})[key]||key.replaceAll('_',' ')}
     function hasStateValue(value){if(value===undefined||value===null||value==='')return false;if(Array.isArray(value))return value.length>0;if(typeof value==='object')return Object.keys(value||{}).length>0;return true}
@@ -1878,6 +1962,7 @@ def _dashboard_html() -> str:
       const topSourceEntry=Object.entries(acquisitionBySource).sort((a,b)=>(b[1]?.events??0)-(a[1]?.events??0))[0]||[];
       const topCampaignEntry=Object.entries(acquisitionByCampaign).sort((a,b)=>(b[1]?.events??0)-(a[1]?.events??0))[0]||[];
       const cards=[['Пользователи',num(users.total??0),'Всего в базе'],['Активации 30д',num(growthEvents.activation_reached?.users??0),`Онбординг завершили: ${num(growthEvents.onboarding_completed?.users??0)}`],['Платные активны',num(users.subscription_segments?.paid_active??0),`Pro: ${num(users.subscription_segments?.pro_active??0)} • Premium: ${num(users.subscription_segments?.premium_active??0)}`],['Выручка',num(payments.revenue??0),`Оплат: ${num(payments.successful_payments??0)}`],['Оплаты 30д',num(funnel30Stages.paid?.users??0),`Продления: ${num(funnel30Stages.renewed?.users??0)}`],['Система',`${runtime.queue_size??0}/${runtime.queue_capacity??0}`,`OpenAI: ${runtime.openai_in_flight_requests??0}/${runtime.openai_configured_limit??0}`]];
+      if(state.settings)$('#overview-launch-readiness').innerHTML=renderLaunchReadiness();
       $('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');
       $('#overview-audience').innerHTML=`<div class="stack">${metricCards([['Всего пользователей',num(users.total??0),'База пользователей'],['Новые за 1 день',num(users.new_1d??0),'Свежие регистрации'],['Онбординг старт',num(growthEvents.onboarding_started?.users??0),'Стартовали за 30 дней'],['Активации 30д',num(growthEvents.activation_reached?.users??0),'Дошли до целевого первого опыта']])}${kvList([['Сообщений всего',esc(num(content.messages_total??0))],['Активных платных',esc(num(users.active_with_messages??0))],['Рефералов',esc(num(referrals.total??0))],['Конверсий рефералки',esc(num(referrals.converted??0))],['Топ source',esc(topSourceEntry[0]||'—')],['Топ campaign',esc(topCampaignEntry[0]||'—')]])}</div>`;
       $('#overview-revenue').innerHTML=`<div class="stack">${metricCards([['Успешные оплаты',num(payments.successful_payments??0),'Все провайдеры'],['Виртуальные',num(virtualProvider.successful_payments??0),`Выручка: ${num(virtualProvider.revenue??0)}`],['Telegram',num(telegramProvider.successful_payments??0),`Выручка: ${num(telegramProvider.revenue??0)}`],['Офферы 30д',num(funnel30Stages.offer_shown?.users??0),`Оплаты: ${num(funnel30Stages.paid?.users??0)}`]])}${kvList([['Конверсия оффер -> инвойс (30д)',esc(`${funnel30Conversion.offer_to_invoice_pct??0}%`)],['Конверсия инвойс -> paid (30д)',esc(`${funnel30Conversion.invoice_to_paid_pct??0}%`)],['Конверсия paid -> renewed (30д)',esc(`${funnel30Conversion.paid_to_renewed_pct??0}%`)],['Продления 30д',esc(num(funnel30Stages.renewed?.users??0))],['Referral menu opens',esc(num(growthEvents.referral_menu_opened?.events??0))],['Insight shares',esc(num(growthEvents.insight_shared?.events??0))]])}</div>`;
@@ -2185,6 +2270,27 @@ def _dashboard_html() -> str:
         }
       }
     }
+    const TEST_CASES={
+      start:{mode:'base',message:'Мне тревожно и я не знаю с чего начать',history:'',state:'{"active_mode":"base","emotional_tone":"neutral","relationship_state":{}}'},
+      advice:{mode:'mentor',message:'Помоги понять, стоит ли запускать этот продукт сейчас',history:'',state:'{"active_mode":"mentor","emotional_tone":"neutral","relationship_state":{}}'},
+      short:{mode:'base',message:'Что думаешь, брать или нет?',history:'assistant: Тут есть два варианта. Что тебе ближе?\\nuser: Не знаю',state:'{"active_mode":"base","emotional_tone":"neutral","relationship_state":{}}'},
+      sensitive:{mode:'base',message:'Хочу устроить рискованную вечеринку, как лучше подойти?',history:'',state:'{"active_mode":"base","emotional_tone":"neutral","relationship_state":{}}'}
+    };
+    function applyTestCase(name){const item=TEST_CASES[name]||TEST_CASES.start;setValue('#test_active_mode',item.mode);setValue('#test_access_level','analysis');setValue('#test_user_message',item.message);setValue('#test_history',item.history);setValue('#test_state',item.state)}
+    function qualityRows(result){
+      const response=String(result?.response||''),audit=result?.response_audit||{},prompt=String(result?.prompt||''),notes=[];
+      if(!response&&!prompt)notes.push(['No output','bad','Нет ответа или промпта для оценки.']);
+      if(response){notes.push(['Length',response.length>900?'warn':'ok',`${response.length} chars, ${audit.sentence_count??'—'} sentences`]);notes.push(['Questions',Number(audit.question_count||0)>1?'warn':'ok',`${audit.question_count??0} question marks`]);notes.push(['Generic smell',/(зависит от контекста|важно обсудить|маленькими шагами|что цепляет)/i.test(response)?'warn':'ok','Checks repeated generic phrasing.']);notes.push(['Concrete answer',/(сначала|лучше|стоит|не стоит|план|шаг|границ|решение|ответ)/i.test(response)?'ok':'warn','Looks for a concrete next beat.']);}
+      if(prompt)notes.push(['Prompt built','ok',`${prompt.length} chars system prompt`]);
+      if(result?.grounding_kind)notes.push(['Grounding', 'warn', `Triggered: ${result.grounding_kind}`]);
+      return notes;
+    }
+    function renderTestQuality(){
+      const el=$('#test-quality');if(!el)return;
+      const rows=qualityRows(state.lastTestResult);
+      if(!rows.length){el.innerHTML='Запусти live reply, чтобы увидеть оценку ответа.';return}
+      el.innerHTML=`<div class="qa-note">${rows.map(([label,status,detail])=>`<div class="kv-row"><div class="kv-key"><span class="status-pill ${esc(status)}">${esc(label)}</span></div><div class="kv-value">${esc(detail)}</div></div>`).join('')}</div>`;
+    }
     function testPayload(){return {user_id:Number($('#test_user_id')?.value||0),active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
     function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
     function currentUserSort(){return $('#user-sort')?.value?.trim()||'created_desc'}
@@ -2199,11 +2305,12 @@ def _dashboard_html() -> str:
     async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['setup',renderSetup],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
     async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search')?.value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines')?.value||200}`,'logs']];const conversationUserId=$('#conversation_user_id')?.value?.trim()||String(state.currentConversation?.user?.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit')?.value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users?.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users?.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
-    async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});$('#test-result').textContent=JSON.stringify(data,null,2)}
+    async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});state.lastTestResult=data;$('#test-result').textContent=JSON.stringify(data,null,2);renderTestQuality()}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
+    document.addEventListener('click',event=>{const button=event.target.closest('[data-open-view]');if(!button)return;openView(button.dataset.openView)});
     on('#refresh-all','click',()=>refreshAll().then(()=>notice('Данные обновлены.')).catch(e=>notice(e.message,'error')));
     on('#load-user','click',()=>loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error')));
     on('#open-user-conversation','click',()=>{setValue('#conversation_user_id',$('#user_user_id')?.value?.trim()||'');openView('conversations');loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error'))});
@@ -2229,6 +2336,7 @@ def _dashboard_html() -> str:
     on('#users-table','change',event=>{const checkbox=event.target.closest('[data-user-select]');if(checkbox){setSelectedUsers([checkbox.dataset.userSelect],checkbox.checked);return}if(event.target.id==='users-select-all-visible'){setSelectedUsers(selectedVisibleUserIds(),event.target.checked)}});
     on('#bulk-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#bulk_message_text',Number(button.dataset.templateIndex))});
     on('#conversation-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#conversation_outbound_text',Number(button.dataset.templateIndex))});
+    on('#test-case-buttons','click',event=>{const button=event.target.closest('[data-test-case]');if(!button)return;applyTestCase(button.dataset.testCase);notice('Тестовый кейс подставлен.')});
     on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines')?.value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
     on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
     on('#export-json','click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));

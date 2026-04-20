@@ -926,6 +926,8 @@ class AIService:
         response_text = " ".join(str(text or "").split()).strip()
         if not response_text:
             return response_text, ""
+        if self._looks_like_sensitive_intimacy_context(user_message) or self._looks_like_sensitive_intimacy_context(response_text):
+            return response_text, ""
 
         if not self._should_apply_emotional_hook(
             user_message=user_message,
@@ -1061,6 +1063,8 @@ class AIService:
 
         if not normalized_message:
             return False
+        if self._looks_like_sensitive_intimacy_context(normalized_message):
+            return False
         if self._looks_like_continuation_request(normalized_message):
             return False
         if self._looks_like_scene_request(normalized_message):
@@ -1069,6 +1073,36 @@ class AIService:
             return False
 
         return self._looks_like_hook_turn(normalized_message) or len(normalized_message) <= 140
+
+    def _looks_like_sensitive_intimacy_context(self, text: str) -> bool:
+        normalized = self._normalize(text)
+        if not normalized:
+            return False
+        markers = (
+            "секс",
+            "группов",
+            "оргия",
+            "тройнич",
+            "мжмж",
+            "мжм",
+            "жмж",
+            "ммж",
+            "втроем",
+            "втроём",
+            "вчетвером",
+            "меф",
+            "мефедрон",
+            "2cb",
+            "2-cb",
+            "наркот",
+            "веществ",
+            "согласие",
+            "границ",
+            "стоп-сигнал",
+            "защит",
+            "трезв",
+        )
+        return any(marker in normalized for marker in markers)
 
     def _looks_like_answer_first_request(self, text: str) -> bool:
         answer_hints = (

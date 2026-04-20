@@ -277,7 +277,7 @@ class ConversationEngineV2:
         dialogue_settings = self._resolve_dialogue_settings(
             runtime_settings.get("ai", {}).get("dialogue")
         )
-        question_cooldown = active_mode == "comfort" and self._recent_assistant_questions(history or [])
+        question_cooldown = self._recent_assistant_questions(history or [])
         user_invited_questions = self._user_explicitly_invites_questions(normalized_message)
         allow_question = (
             user_invited_questions
@@ -483,6 +483,7 @@ class ConversationEngineV2:
         hook_sentences = int(dialogue.get("hook_max_sentences", 2))
         hook_chars = int(dialogue.get("hook_max_chars", 260))
         lines = ["Reply contract:"]
+        recent_question_loop = self._recent_assistant_questions(history or [])
 
         if is_proactive:
             lines.extend(
@@ -553,7 +554,7 @@ class ConversationEngineV2:
                 [
                     "- This is a short conversational probe, not a request for an essay.",
                     f"- Default to {hook_sentences} compact sentences and keep the whole reply around {hook_chars} characters when possible.",
-                    "- Shape: one clear take, one vivid or friction line, one sharp question.",
+                    "- Shape: one clear take, one vivid or friction line, then stop or ask one sharp question only if it is genuinely useful.",
                     "- No mini-lecture, no taxonomy, no multi-step breakdown unless the user explicitly asks for it.",
                     "- Write like a live person making a move in the dialogue, not like a helper covering the whole topic.",
                 ]
@@ -574,10 +575,19 @@ class ConversationEngineV2:
             lines.extend(
                 [
                     "- This is a short charged probe or conversation opener, not a logistics request.",
-                    "- Default to 2-3 sentences: one live opinion, one tension/image line, one sharp question.",
+                    "- Default to 2-3 sentences: one live opinion, one tension/image line, then stop or ask one sharp question that has not already been asked.",
                     "- Do not pivot into rules, logistics, negotiation, or risk management unless the user asks how to make it real or adds concrete risk.",
                     "- Name what makes the pull interesting before naming what makes it risky.",
                     "- The reply should feel like a person leaning in, not like a moderator stepping in.",
+                ]
+            )
+
+        if recent_question_loop:
+            lines.extend(
+                [
+                    "- Recent assistant turns were already question-heavy.",
+                    "- Do not repeat the same motive menu or ask another generic follow-up.",
+                    "- Continue the thread by giving substance, a concrete next beat, or a useful framing instead.",
                 ]
             )
 

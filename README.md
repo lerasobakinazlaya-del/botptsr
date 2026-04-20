@@ -1,6 +1,10 @@
-# Bot
+# AI Companion SaaS Bot
 
-Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной админкой на FastAPI.
+Single-tenant SaaS-платформа для запуска, настройки и монетизации Telegram AI-компаньона.
+
+Технически это Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и FastAPI control center. Продуктово это не просто consumer-бот, а основа SaaS для оператора: владелец бота настраивает личность, режимы, paywall, платежи, пользователей, рассылки, качество ответов и health-метрики из одной панели.
+
+SaaS-MVP направление зафиксировано в [`docs/saas-mvp.md`](docs/saas-mvp.md).
 
 ## Что умеет проект
 

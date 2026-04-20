@@ -79,6 +79,26 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn('id="sidebar-meta"', source)
         self.assertIn("function renderChrome()", source)
 
+    def test_dashboard_exposes_saas_setup_and_conversation_lab(self):
+        source = self._admin_source()
+
+        self.assertIn('data-view="setup"', source)
+        self.assertIn('id="setup-readiness"', source)
+        self.assertIn('id="overview-launch-readiness"', source)
+        self.assertIn("function launchReadinessItems()", source)
+        self.assertIn("function renderSetup()", source)
+        self.assertIn("Conversation Lab", source)
+        self.assertIn('id="test-quality"', source)
+        self.assertIn("function renderTestQuality()", source)
+        self.assertIn("data-test-case", source)
+
+    def test_payments_page_is_reframed_as_plans(self):
+        source = self._admin_source()
+
+        self.assertIn("Plans и оплата", source)
+        self.assertIn("Пакеты Plans", source)
+        self.assertIn("Тарифы конечного пользователя", source)
+
     def test_static_id_selectors_used_by_js_exist_in_markup(self):
         source = self._admin_source()
         html_ids = set(re.findall(r'id="([A-Za-z0-9_-]+)"', source))
