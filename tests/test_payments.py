@@ -239,8 +239,8 @@ class FakeAdminSettingsServiceForOffer:
                 "is_premium": False,
                 "sort_order": 10,
             },
-            "passion": {
-                "key": "passion",
+            "comfort": {
+                "key": "comfort",
                 "name": "Близость",
                 "icon": "🔥",
                 "is_premium": True,
@@ -253,8 +253,8 @@ class FakeAdminSettingsServiceForOffer:
                 "is_premium": True,
                 "sort_order": 30,
             },
-            "free_talk": {
-                "key": "free_talk",
+            "dominant": {
+                "key": "dominant",
                 "name": "Свободный",
                 "icon": "🌘",
                 "is_premium": True,
@@ -749,7 +749,7 @@ class ModeAccessServiceTests(unittest.TestCase):
             }
         }
         mode_catalog = {
-            "free_talk": {"is_premium": True},
+            "dominant": {"is_premium": True},
             "mentor": {"is_premium": True},
         }
         user = {"is_premium": False}
@@ -757,7 +757,7 @@ class ModeAccessServiceTests(unittest.TestCase):
 
         status = service.get_selection_status(
             user=user,
-            mode_key="free_talk",
+            mode_key="dominant",
             state=state,
             runtime_settings=runtime_settings,
             mode_catalog=mode_catalog,
@@ -768,14 +768,14 @@ class ModeAccessServiceTests(unittest.TestCase):
 
         state = service.register_successful_message(
             state,
-            mode_key="free_talk",
+            mode_key="dominant",
             user=user,
             runtime_settings=runtime_settings,
             mode_catalog=mode_catalog,
         )
         state = service.register_successful_message(
             state,
-            mode_key="free_talk",
+            mode_key="dominant",
             user=user,
             runtime_settings=runtime_settings,
             mode_catalog=mode_catalog,
@@ -783,7 +783,7 @@ class ModeAccessServiceTests(unittest.TestCase):
 
         status = service.get_selection_status(
             user=user,
-            mode_key="free_talk",
+            mode_key="dominant",
             state=state,
             runtime_settings=runtime_settings,
             mode_catalog=mode_catalog,

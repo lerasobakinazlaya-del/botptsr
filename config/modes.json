@@ -21,45 +21,12 @@
     "allow_bold": false,
     "allow_italic": false
   },
-  "passion": {
-    "warmth": 7,
-    "flirt": 7,
-    "depth": 5,
-    "structure": 1,
-    "dominance": 3,
-    "initiative": 4,
-    "emoji_level": 1,
-    "allow_bold": false,
-    "allow_italic": false
-  },
   "mentor": {
     "warmth": 4,
     "flirt": 0,
     "depth": 9,
     "structure": 9,
     "dominance": 4,
-    "initiative": 3,
-    "emoji_level": 0,
-    "allow_bold": false,
-    "allow_italic": false
-  },
-  "night": {
-    "warmth": 6,
-    "flirt": 2,
-    "depth": 6,
-    "structure": 4,
-    "dominance": 3,
-    "initiative": 3,
-    "emoji_level": 0,
-    "allow_bold": false,
-    "allow_italic": false
-  },
-  "free_talk": {
-    "warmth": 7,
-    "flirt": 1,
-    "depth": 7,
-    "structure": 2,
-    "dominance": 1,
     "initiative": 3,
     "emoji_level": 0,
     "allow_bold": false,
@@ -72,17 +39,6 @@
     "structure": 7,
     "dominance": 8,
     "initiative": 6,
-    "emoji_level": 0,
-    "allow_bold": false,
-    "allow_italic": false
-  },
-  "ptsd": {
-    "warmth": 8,
-    "flirt": 0,
-    "depth": 3,
-    "structure": 3,
-    "dominance": 0,
-    "initiative": 1,
     "emoji_level": 0,
     "allow_bold": false,
     "allow_italic": false

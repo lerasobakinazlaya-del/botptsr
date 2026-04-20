@@ -4,8 +4,6 @@ from __future__ import annotations
 class AccessEngine:
     VALID_ACCESS_LEVELS = {"observation", "analysis", "tension", "personal_focus", "rare_layer"}
     INTIMATE_MODE_LEVELS = {
-        "passion": "personal_focus",
-        "night": "tension",
         "dominant": "tension",
     }
     HEAVY_EMOTIONAL_TONES = {"overwhelmed", "anxious", "guarded"}
@@ -94,11 +92,7 @@ class AccessEngine:
         "base": {"dominance": 0.00, "initiative": 0.00, "care": 0.00, "emotional_pressure": 0.00},
         "comfort": {"dominance": -0.12, "initiative": -0.08, "care": 0.30, "emotional_pressure": -0.10},
         "mentor": {"dominance": 0.10, "initiative": 0.12, "care": 0.04, "emotional_pressure": 0.02},
-        "passion": {"closeness": 0.08, "sexual_tension": 0.12, "explicitness": 0.04, "care": 0.04},
-        "night": {"dominance": 0.24, "initiative": 0.18, "sexual_tension": 0.10, "emotional_pressure": 0.08},
-        "free_talk": {"play": 0.00},
         "dominant": {"dominance": 0.38, "initiative": 0.30, "sexual_tension": 0.06, "emotional_pressure": 0.12},
-        "ptsd": {"dominance": -0.16, "initiative": -0.10, "care": 0.20, "emotional_pressure": -0.12},
     }
 
     def __init__(self, settings_service=None):

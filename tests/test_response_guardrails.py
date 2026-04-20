@@ -14,7 +14,7 @@ class ResponseGuardrailsTests(unittest.TestCase):
     def test_guardrails_replace_canned_phrases_and_limit_questions(self):
         result = apply_ptsd_response_guardrails(
             "Я понимаю, что тебе тяжело. Твои чувства валидны. Что сейчас рядом? Чем помочь?",
-            active_mode="free_talk",
+            active_mode="comfort",
             emotional_tone="anxious",
             enabled=True,
         )

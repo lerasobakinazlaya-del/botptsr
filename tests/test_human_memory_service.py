@@ -83,7 +83,7 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
                 },
             },
             hours_silent=18,
-            active_mode="free_talk",
+            active_mode="base",
         )
 
         self.assertIn("opener family: callback_thread", prompt)

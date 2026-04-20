@@ -607,7 +607,7 @@ class HumanMemoryService:
 
     def _build_reengagement_starter_guidance(self, starter_family: str, *, active_mode: str) -> str:
         mode_note = ""
-        if active_mode in {"night", "dominant"}:
+        if active_mode == "dominant":
             mode_note = "Keep the phrasing denser and more collected, but never theatrical."
         elif active_mode == "comfort":
             mode_note = "Keep the tone softer and simpler, with no extra push."

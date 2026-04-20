@@ -10,7 +10,7 @@ DEFAULT_PTSD_BLOCKED_PHRASES = [
     "твои чувства валидны",
 ]
 
-PTSD_GUARDED_MODES = {"free_talk", "ptsd", "comfort"}
+PTSD_GUARDED_MODES = {"comfort"}
 PTSD_HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
 PTSD_MAX_SENTENCES = 4
 PTSD_MAX_CHARS = 340

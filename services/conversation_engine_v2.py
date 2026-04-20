@@ -7,7 +7,6 @@ from services.prompt_safety import sanitize_untrusted_context
 
 
 HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
-PTSD_ALWAYS_ON_MODES = {"free_talk", "ptsd"}
 PTSD_CONDITIONAL_MODES = {"comfort"}
 
 
@@ -74,45 +73,6 @@ class ConversationEngineV2:
             "tempo": "steady",
             "syntax": "structured but human",
         },
-        "passion": {
-            "voice_style": "warm, close, responsive, lightly flirtatious when invited",
-            "focus": "adult tension without vulgarity or pushiness",
-            "warmth": 0.72,
-            "playfulness": 0.58,
-            "dominance": 0.36,
-            "initiative": 0.46,
-            "closeness_bias": 0.60,
-            "explicitness_ceiling": 0.20,
-            "question_rate": 0.12,
-            "tempo": "slower",
-            "syntax": "softer denser phrases",
-        },
-        "night": {
-            "voice_style": "quieter, denser, slower, more intimate",
-            "focus": "controlled adult tension and calm leading energy",
-            "warmth": 0.54,
-            "playfulness": 0.30,
-            "dominance": 0.70,
-            "initiative": 0.64,
-            "closeness_bias": 0.58,
-            "explicitness_ceiling": 0.18,
-            "question_rate": 0.08,
-            "tempo": "slow",
-            "syntax": "shorter denser sentences",
-        },
-        "free_talk": {
-            "voice_style": "vivid, direct, human, unpolished in a good way",
-            "focus": "real conversation without assistant polish",
-            "warmth": 0.56,
-            "playfulness": 0.34,
-            "dominance": 0.16,
-            "initiative": 0.38,
-            "closeness_bias": 0.30,
-            "explicitness_ceiling": 0.04,
-            "question_rate": 0.14,
-            "tempo": "adaptive",
-            "syntax": "naturally uneven length",
-        },
         "dominant": {
             "voice_style": "collected, leading, firm, calm",
             "focus": "hold the frame without humiliation or crude aggression",
@@ -125,19 +85,6 @@ class ConversationEngineV2:
             "question_rate": 0.05,
             "tempo": "slow",
             "syntax": "short decisive sentences",
-        },
-        "ptsd": {
-            "voice_style": "steady, grounded, careful, human",
-            "focus": "reduce pressure and keep the reply simple",
-            "warmth": 0.70,
-            "playfulness": 0.00,
-            "dominance": 0.05,
-            "initiative": 0.16,
-            "closeness_bias": 0.20,
-            "explicitness_ceiling": 0.00,
-            "question_rate": 0.06,
-            "tempo": "slow",
-            "syntax": "plain steady sentences",
         },
     }
 
@@ -162,16 +109,6 @@ class ConversationEngineV2:
             "avoid": [
                 "Do not ask permission for every sentence.",
                 "Do not confuse dominance with aggression, humiliation, or vulgarity.",
-            ],
-        },
-        "night": {
-            "good": [
-                "Keep the tone denser and slower, with a little more gravity.",
-                "Use intimacy as atmosphere, not as explicit escalation.",
-            ],
-            "avoid": [
-                "Do not become melodramatic.",
-                "Do not over-sexualize the reply just because the mode is darker.",
             ],
         },
         "comfort": {
@@ -416,10 +353,6 @@ class ConversationEngineV2:
             lines.append(
                 "- focus mode: shorter answers, firmer framing, fewer softeners, faster move to the point."
             )
-        elif active_mode == "night":
-            lines.append(
-                "- night focus: quieter, denser, slower, more intimate."
-            )
         elif active_mode == "comfort":
             lines.append(
                 "- comfort focus: emotionally intelligent, warm, perceptive, and easy to talk to."
@@ -444,10 +377,6 @@ class ConversationEngineV2:
             )
             lines.append(
                 "- analysis focus: extract signal, structure the answer, and reduce ambiguity."
-            )
-        elif active_mode == "free_talk":
-            lines.append(
-                "- free_talk focus: vivid, direct, human. No facilitator voice, no assistant polish."
             )
         elif active_mode == "base":
             lines.append(
@@ -527,14 +456,6 @@ class ConversationEngineV2:
         emotional_tone: str,
         user_message: str,
     ) -> str:
-        if active_mode in PTSD_ALWAYS_ON_MODES:
-            return (
-                "PTSD support mode:\n"
-                "- Lower pressure.\n"
-                "- Keep replies simple, grounded, and non-clinical.\n"
-                "- In heavy states, give one stabilizing next step at most.\n"
-                "- Do not romanticize trauma and do not force disclosure."
-            )
         if active_mode not in PTSD_CONDITIONAL_MODES:
             return ""
         if emotional_tone in HEAVY_TONES or self._contains_ptsd_signal(user_message):
@@ -696,7 +617,7 @@ class ConversationEngineV2:
                 ]
             )
 
-        if active_mode in PTSD_ALWAYS_ON_MODES | PTSD_CONDITIONAL_MODES and emotional_tone in HEAVY_TONES:
+        if active_mode in PTSD_CONDITIONAL_MODES and emotional_tone in HEAVY_TONES:
             lines.extend(
                 [
                     "- Keep the reply short and uncluttered.",

@@ -245,7 +245,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 "max_retries": 2,
             },
             user_message="\u0420\u00a7\u0421\u201a\u0420\u0455 \u0420\u0491\u0421\u0453\u0420\u0458\u0420\u00b0\u0420\u00b5\u0421\u20ac\u0421\u040a, \u0420\u00b1\u0421\u0402\u0420\u00b0\u0421\u201a\u0421\u040a \u0420\u0451\u0420\u00bb\u0420\u0451 \u0420\u0405\u0420\u00b5\u0421\u201a?",
-            active_mode="free_talk",
+            active_mode="base",
         )
 
         self.assertEqual(optimized["max_completion_tokens"], 110)
@@ -302,7 +302,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u0421\u043e\u0441\u0442\u0430\u0432\u044c \u043f\u043b\u0430\u043d, \u043a\u0430\u043a \u043b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435 \u043e\u0431\u0441\u0443\u0434\u0438\u0442\u044c \u0437\u0430\u0440\u0430\u043d\u0435\u0435.",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -333,7 +333,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u0420\u0459\u0420\u00b0\u0420\u0454 \u0421\u201a\u0420\u00b5\u0420\u00b1\u0420\u00b5 \u0421\u201a\u0420\u00b0\u0420\u0454\u0420\u0455\u0420\u2116 \u0421\u2026\u0420\u0455\u0420\u0491?",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "conversation_phase": "warmup",
                     "interaction_count": 4,
@@ -372,7 +372,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="Меня к этому тянет",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -409,7 +409,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u0420\u045a\u0420\u00b5\u0420\u0405\u0421\u040f \u0421\u040c\u0421\u201a\u0420\u0455 \u0421\u2020\u0420\u00b5\u0420\u0457\u0420\u00bb\u0421\u040f\u0420\u00b5\u0421\u201a",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -441,7 +441,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="Скажи прямо, без вопросов и сразу по делу",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -472,7 +472,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u042f \u043d\u0435 \u0445\u043e\u0447\u0443 \u0436\u0438\u0442\u044c \u0442\u0430\u043a",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -502,7 +502,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u0420\u045f\u0420\u0455\u0421\u2021\u0420\u00b5\u0420\u0458\u0421\u0453 \u0421\u040c\u0421\u201a\u0420\u0455 \u0420\u0406\u0420\u0455\u0420\u0455\u0420\u00b1\u0421\u2030\u0420\u00b5 \u0421\u2020\u0420\u00b5\u0420\u0457\u0420\u00bb\u0421\u040f\u0420\u00b5\u0421\u201a?",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -538,7 +538,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 ],
                 user_message="Ок далее",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -572,7 +572,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="Составь план на групповой секс под мефом и 2cb",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -604,7 +604,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="Можешь спрашивать и вести разговор сама",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "base",
                     "emotional_tone": "neutral",
                     "relationship_state": {},
                 },
@@ -641,7 +641,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 history=[],
                 user_message="\u041c\u043d\u0435 \u043e\u0447\u0435\u043d\u044c \u0442\u0440\u0435\u0432\u043e\u0436\u043d\u043e \u0438 \u0442\u0440\u0443\u0434\u043d\u043e \u0441\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f.",
                 state={
-                    "active_mode": "free_talk",
+                    "active_mode": "comfort",
                     "emotional_tone": "anxious",
                     "relationship_state": {},
                 },
@@ -673,7 +673,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             user_id=1,
             history=[],
             state={
-                "active_mode": "free_talk",
+                "active_mode": "comfort",
                 "emotional_tone": "anxious",
                 "relationship_state": {},
             },
@@ -701,7 +701,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             user_id=1,
             history=[],
             state={
-                "active_mode": "free_talk",
+                "active_mode": "base",
                 "emotional_tone": "neutral",
                 "relationship_state": {},
             },

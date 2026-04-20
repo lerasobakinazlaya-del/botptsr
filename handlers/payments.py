@@ -51,18 +51,10 @@ def _build_offer_teaser(trigger: str, mode_name: str | None = None) -> str:
 
     if "доминир" in normalized_mode or "жестк" in normalized_mode or "фокус" in normalized_mode:
         return "Если хочешь, я продолжу жёстче, увереннее и с более собранным темпом."
-    if "полуноч" in normalized_mode or "ночн" in normalized_mode or "night" in normalized_mode:
-        return "Если хочешь, я продолжу темнее, тише и плотнее, не ломая атмосферу."
-    if "близост" in normalized_mode or "отношен" in normalized_mode or "passion" in normalized_mode:
-        return "Если хочешь, я продолжу ближе, теплее и с большим напряжением между строк."
     if "наставник" in normalized_mode or "разбор" in normalized_mode or "mentor" in normalized_mode:
         return "Если хочешь, я соберу это в более точную и сильную линию без воды."
     if "психолог" in normalized_mode or "comfort" in normalized_mode:
         return "Если хочешь, я пойду глубже, бережнее и точнее, без поверхностных ответов."
-    if "птср" in normalized_mode or "ptsd" in normalized_mode:
-        return "Если хочешь, я продолжу медленнее и устойчивее, не перегружая тебя лишним."
-    if "свободн" in normalized_mode or "free_talk" in normalized_mode:
-        return "Если хочешь, я буду говорить свободнее, живее и без этого ощущения обрыва на входе."
 
     if trigger in {OFFER_TRIGGER_MODE_LOCKED, OFFER_TRIGGER_PREVIEW_EXHAUSTED}:
         return "Если хочешь, я продолжу в этом голосе дальше, глубже и без обрыва после пробного касания."

@@ -40,9 +40,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
     def test_continuation_request_uses_next_list_number_for_chat_message_objects(self):
         prompt = self.engine.build_system_prompt(
-            state={"active_mode": "free_talk", "emotional_tone": "neutral"},
+            state={"active_mode": "base", "emotional_tone": "neutral"},
             access_level="analysis",
-            active_mode="free_talk",
+            active_mode="base",
             user_message="Ок дальше",
             history=[
                 ChatMessage(
@@ -57,9 +57,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
     def test_risky_scene_request_adds_redirect_not_reject_contract(self):
         prompt = self.engine.build_system_prompt(
-            state={"active_mode": "night", "emotional_tone": "neutral"},
+            state={"active_mode": "dominant", "emotional_tone": "neutral"},
             access_level="analysis",
-            active_mode="night",
+            active_mode="dominant",
             user_message="Давай но наркотики точно будут и презервативов точно не будет, опиши как это должно быть втроем.",
             history=[],
         )
@@ -72,9 +72,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
     def test_continuation_after_clean_adjacent_offer_continues_not_rejection(self):
         prompt = self.engine.build_system_prompt(
-            state={"active_mode": "night", "emotional_tone": "neutral"},
+            state={"active_mode": "dominant", "emotional_tone": "neutral"},
             access_level="analysis",
-            active_mode="night",
+            active_mode="dominant",
             user_message="Давай",
             history=[
                 ChatMessage(
@@ -99,9 +99,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
     def test_charged_probe_prefers_dialogue_over_logistics(self):
         prompt = self.engine.build_system_prompt(
-            state={"active_mode": "free_talk", "emotional_tone": "neutral"},
+            state={"active_mode": "base", "emotional_tone": "neutral"},
             access_level="analysis",
-            active_mode="free_talk",
+            active_mode="base",
             user_message="Хочу групповой секс",
             history=[],
         )
@@ -113,9 +113,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
     def test_short_hook_turn_prefers_live_dialogue_move(self):
         prompt = self.engine.build_system_prompt(
-            state={"active_mode": "free_talk", "emotional_tone": "neutral"},
+            state={"active_mode": "base", "emotional_tone": "neutral"},
             access_level="analysis",
-            active_mode="free_talk",
+            active_mode="base",
             user_message="Что думаешь, брать или нет?",
             history=[],
         )

@@ -62,9 +62,9 @@ class ConversationProductEvalTests(unittest.TestCase):
         for user_message in PRODUCT_HOOK_CASES:
             with self.subTest(user_message=user_message):
                 prompt = self.engine.build_system_prompt(
-                    state={"active_mode": "free_talk", "emotional_tone": "neutral"},
+                    state={"active_mode": "base", "emotional_tone": "neutral"},
                     access_level="analysis",
-                    active_mode="free_talk",
+                    active_mode="base",
                     user_message=user_message,
                     history=[],
                 )

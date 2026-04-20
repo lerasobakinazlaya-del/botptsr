@@ -871,7 +871,7 @@ class AIService:
         )
         if not enabled:
             return response_text
-        if active_mode not in {"free_talk", "ptsd", "comfort"}:
+        if active_mode != "comfort":
             return response_text
         if emotional_tone not in {"overwhelmed", "anxious", "guarded"}:
             return response_text
@@ -1229,7 +1229,7 @@ class AIService:
         return dict(runtime_settings.get("ai", {}).get("fast_lane") or {})
 
     def _should_use_fast_lane(self, text: str, *, active_mode: str) -> bool:
-        if active_mode in {"mentor", "ptsd"}:
+        if active_mode == "mentor":
             return False
         if self._looks_like_hook_turn(text):
             return True
@@ -1265,7 +1265,7 @@ class AIService:
     def _looks_like_continuation_request(text: str) -> bool:
         return bool(
             re.fullmatch(
-                "(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше|давай)",
+                r"(ок[,.!]?\s*)?(далее|дальше|продолжай|продолжи|и дальше|давай)",
                 text,
             )
         )

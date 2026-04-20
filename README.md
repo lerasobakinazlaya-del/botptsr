@@ -48,7 +48,7 @@ Telegram-бот на `aiogram` с OpenAI, Redis, SQLite и отдельной а
 - добавлены PTSD response guardrails и regression-тесты на различимость режимов
 - добавлен жёсткий crisis bypass: при явных сигналах риска самоповреждения или вреда другим бот не идёт в обычную генерацию, а сразу возвращает безопасную кризисную инструкцию
 - добавлен safety clamp для близости: уровни `tension`, `personal_focus` и `rare_layer` больше не включаются без явного сигнала пользователя и не используются в тяжёлом эмоциональном состоянии
-- PTSD-support в `free_talk`/`ptsd` остается постоянным, а в `comfort` включается только по тяжелому состоянию или PTSD-сигналам
+- PTSD-support is now conditional in `comfort` for heavy emotional states or PTSD-like signals.
 - adaptive mode больше не может тихо откатить явно выбранный пользователем `comfort` обратно в `base`
 - исправлены битые user-facing fallback и runtime default строки, чтобы на свежем окружении не было mojibake в лимитах и оплате
 - память для модели теперь проходит двухступенчатую защиту: instruction-like фрагменты отсекаются при сохранении и повторно санитизируются перед отправкой в OpenAI
@@ -424,9 +424,9 @@ CLI-запуск из PowerShell:
 - не включайте `AI_LOG_FULL_PROMPT` на проде
 - если временно включаете `AI_LOG_FULL_PROMPT` для отладки, помните: лог теперь безопаснее, но всё равно содержит служебный prompt-контекст и не предназначен для постоянного прод-режима
 - crisis-сообщения о немедленном вреде себе или другим теперь обрабатываются deterministic bypass без обычной генерации модели
-- PTSD-support всегда активен в `free_talk`/`ptsd`, а в `comfort` включается только при тяжелом состоянии или PTSD-похожих сигналах
+- PTSD-support is now conditional in `comfort` for heavy emotional states or PTSD-like signals.
 - proactive и re-engagement сообщения теперь принудительно остаются в безопасном уровне близости и не должны первыми эскалировать intimacy
-- даже в режимах `passion`, `night` и `dominant` доступ к более близкой подаче дополнительно ограничен: без явного сигнала пользователя остаётся только безопасный уровень `analysis`
+- In `dominant`, closer delivery is still clamped without an explicit user signal; safe fallback stays `analysis`.
 - память для модели считается недоверенным источником: даже если в ней окажутся команды или псевдо-system инструкции, они должны отфильтровываться и не исполняться как промт
 
 ## Ограничения текущей архитектуры

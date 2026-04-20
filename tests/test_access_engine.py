@@ -11,7 +11,7 @@ class AccessEngineSafetyTests(unittest.TestCase):
         result = self.engine.apply_safety_guardrails(
             state={"emotional_tone": "neutral"},
             access_level="rare_layer",
-            active_mode="passion",
+            active_mode="dominant",
             user_message="Спасибо, с тобой спокойно.",
         )
 
@@ -21,17 +21,17 @@ class AccessEngineSafetyTests(unittest.TestCase):
         result = self.engine.apply_safety_guardrails(
             state={"emotional_tone": "warm"},
             access_level="personal_focus",
-            active_mode="passion",
+            active_mode="dominant",
             user_message="Флиртуй со мной и будь ближе.",
         )
 
-        self.assertEqual(result, "personal_focus")
+        self.assertEqual(result, "tension")
 
     def test_heavy_state_blocks_intimate_access_even_with_signal(self):
         result = self.engine.apply_safety_guardrails(
             state={"emotional_tone": "anxious"},
             access_level="tension",
-            active_mode="night",
+            active_mode="dominant",
             user_message="Хочу, чтобы ты была ближе.",
         )
 
@@ -41,7 +41,7 @@ class AccessEngineSafetyTests(unittest.TestCase):
         result = self.engine.apply_safety_guardrails(
             state={"emotional_tone": "warm"},
             access_level="analysis",
-            active_mode="free_talk",
+            active_mode="base",
             user_message="Флиртуй со мной и будь ближе.",
         )
 

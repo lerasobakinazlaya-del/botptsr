@@ -1493,7 +1493,7 @@ def _dashboard_html() -> str:
                 <label>Текст при исчерпании предпросмотра<textarea id="limits_mode_preview_exhausted_message"></textarea></label>
               </div>
               <label>Лимиты по режимам
-                <textarea id="limits_mode_daily_limits" placeholder="passion=5&#10;mentor=3"></textarea>
+                <textarea id="limits_mode_daily_limits" placeholder="comfort=2&#10;mentor=3"></textarea>
               </label>
             </div>
           </div>

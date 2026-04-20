@@ -44,9 +44,6 @@ class PromptBuilderModeTests(unittest.TestCase):
             "base": "dialogue focus: one real person talking naturally, with no heavy role pressure.",
             "comfort": "psychologist focus: talk like a calm smart person, not a clinical therapist.",
             "mentor": "mentor focus: create clarity without turning the answer into a lecture.",
-            "passion": "focus: adult tension without vulgarity or pushiness",
-            "night": "night focus: quieter, denser, slower, more intimate.",
-            "free_talk": "free_talk focus: vivid, direct, human. No facilitator voice, no assistant polish.",
             "dominant": "focus mode: shorter answers, firmer framing, fewer softeners, faster move to the point.",
         }
 
@@ -59,10 +56,7 @@ class PromptBuilderModeTests(unittest.TestCase):
         base_prompt = self._build_prompt("base")
         thresholds = {
             "comfort": 0.93,
-            "passion": 0.96,
             "mentor": 0.94,
-            "night": 0.93,
-            "free_talk": 0.91,
             "dominant": 0.93,
         }
 
@@ -76,8 +70,6 @@ class PromptBuilderModeTests(unittest.TestCase):
         ai_settings = self.settings.get_runtime_settings()["ai"]
 
         mentor_profile = resolve_ai_profile(ai_settings, "mentor")
-        free_talk_profile = resolve_ai_profile(ai_settings, "free_talk")
-        night_profile = resolve_ai_profile(ai_settings, "night")
         dominant_profile = resolve_ai_profile(ai_settings, "dominant")
 
         comfort_profile = resolve_ai_profile(ai_settings, "comfort")
@@ -90,13 +82,7 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertEqual(mentor_profile["max_completion_tokens"], 360)
         self.assertIn("быстро выделяй главное", mentor_profile["prompt_suffix"])
 
-        self.assertEqual(free_talk_profile["temperature"], 0.95)
-        self.assertEqual(free_talk_profile["max_completion_tokens"], 420)
-        self.assertIn("живой взрослый человек", free_talk_profile["prompt_suffix"])
 
-        self.assertEqual(night_profile["model"], "gpt-4o-mini")
-        self.assertEqual(night_profile["temperature"], 0.9)
-        self.assertEqual(night_profile["max_completion_tokens"], 420)
 
         self.assertEqual(dominant_profile["model"], "gpt-4o")
         self.assertEqual(dominant_profile["temperature"], 0.52)
@@ -138,18 +124,9 @@ class PromptBuilderModeTests(unittest.TestCase):
 
         self.assertNotIn("Trauma-aware support:", prompt)
 
-    def test_free_talk_mode_keeps_full_ptsd_support_prompt(self):
-        prompt = self._build_prompt(
-            "free_talk",
-            state_override={"emotional_tone": "reflective"},
-            user_message="Хочу просто поговорить, без формальностей.",
-        )
-
-        self.assertIn("PTSD support mode:", prompt)
-
     def test_plan_request_adds_answer_first_rules(self):
         prompt = self._build_prompt(
-            "free_talk",
+            "base",
             state_override={"emotional_tone": "neutral"},
             user_message="Составь план и распиши, как лучше сделать.",
         )
