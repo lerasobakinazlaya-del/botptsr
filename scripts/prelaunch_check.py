@@ -10,6 +10,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 
+import redis
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -43,6 +45,13 @@ DEFAULT_ADMIN_DASHBOARD_PASSWORDS = {
     "change-me",
     "change-this-strong-password",
 }
+
+MOJIBAKE_MARKERS = ("Рџ", "Рќ", "РЎ", "Р°", "вЂ", "рџ")
+PUBLIC_COPY_PATHS = [
+    REPO_ROOT / "config" / "runtime_settings.json",
+    REPO_ROOT / "docs" / "launch-kit.md",
+    REPO_ROOT / "docs" / "product-copy.md",
+]
 
 
 @dataclass
@@ -196,6 +205,82 @@ def _check_admin_smoke(strict_env: bool) -> CheckResult:
     )
 
 
+def _check_launch_copy_encoding() -> CheckResult:
+    offenders: list[str] = []
+    for path in PUBLIC_COPY_PATHS:
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        markers = [marker for marker in MOJIBAKE_MARKERS if marker in text]
+        if markers:
+            offenders.append(f"{path.relative_to(REPO_ROOT)} ({', '.join(markers)})")
+
+    if offenders:
+        return CheckResult(
+            name="launch-copy-encoding",
+            status="failed",
+            detail="Potential mojibake in public copy",
+            stdout="\n".join(offenders),
+        )
+
+    return CheckResult(
+        name="launch-copy-encoding",
+        status="passed",
+        detail="Public launch copy looks UTF-8 clean",
+    )
+
+
+def _check_launch_payments() -> CheckResult:
+    runtime_path = REPO_ROOT / "config" / "runtime_settings.json"
+    runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
+    payment = dict(runtime.get("payment") or {})
+    mode = str(payment.get("mode") or "telegram").strip().lower()
+    provider_token = str(payment.get("provider_token") or os.getenv("PAYMENT_PROVIDER_TOKEN") or "").strip()
+
+    if mode == "virtual":
+        return CheckResult(
+            name="launch-payments",
+            status="failed",
+            detail="Payment mode is virtual; paid traffic would not collect real revenue",
+        )
+    if not provider_token:
+        return CheckResult(
+            name="launch-payments",
+            status="failed",
+            detail="Payment provider token is missing",
+        )
+
+    return CheckResult(
+        name="launch-payments",
+        status="passed",
+        detail=f"Payment mode is {mode} and provider token is present",
+    )
+
+
+def _check_launch_redis() -> CheckResult:
+    redis_url = str(os.getenv("REDIS_URL") or "redis://localhost:6379/0").strip()
+    try:
+        client = redis.Redis.from_url(redis_url, socket_connect_timeout=2, socket_timeout=2)
+        if client.ping():
+            return CheckResult(
+                name="launch-redis",
+                status="passed",
+                detail="Redis ping succeeded",
+            )
+    except Exception as exc:
+        return CheckResult(
+            name="launch-redis",
+            status="failed",
+            detail=f"Redis ping failed for {redis_url}: {exc}",
+        )
+
+    return CheckResult(
+        name="launch-redis",
+        status="failed",
+        detail=f"Redis ping failed for {redis_url}",
+    )
+
+
 def _write_report(path: Path, results: list[CheckResult], summary: dict[str, Any]) -> None:
     payload = {
         "summary": summary,
@@ -217,6 +302,11 @@ def main() -> int:
         default="logs/prelaunch_report.json",
         help="Path to JSON report file relative to repo root",
     )
+    parser.add_argument(
+        "--launch-mode",
+        action="store_true",
+        help="Run stricter checks before sending paid advertising traffic",
+    )
     args = parser.parse_args()
 
     python_executable = sys.executable
@@ -224,13 +314,21 @@ def main() -> int:
     pytest_command = [python_executable, "-m", "pytest", "-q"]
 
     results = [
-        _check_settings_env(strict_env=args.strict_env),
-        _check_admin_dashboard_password(strict_env=args.strict_env),
+        _check_settings_env(strict_env=args.strict_env or args.launch_mode),
+        _check_admin_dashboard_password(strict_env=args.strict_env or args.launch_mode),
         _check_config_json(),
         _run_command("compileall", compile_command),
         _run_command("pytest", pytest_command),
-        _check_admin_smoke(strict_env=args.strict_env),
+        _check_admin_smoke(strict_env=args.strict_env or args.launch_mode),
     ]
+    if args.launch_mode:
+        results.extend(
+            [
+                _check_launch_copy_encoding(),
+                _check_launch_payments(),
+                _check_launch_redis(),
+            ]
+        )
 
     failed = [result for result in results if result.status == "failed"]
     passed = [result for result in results if result.status == "passed"]

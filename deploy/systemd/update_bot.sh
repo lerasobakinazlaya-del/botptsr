@@ -78,6 +78,15 @@ ensure_redis
 
 ensure_service_user
 
+echo "==> Backing up SQLite database"
+mkdir -p backups
+if [ -f bot.db ]; then
+  BACKUP_PATH="backups/bot-$(date -u +"%Y%m%dT%H%M%SZ").db"
+  cp bot.db "${BACKUP_PATH}"
+  gzip -f "${BACKUP_PATH}"
+  ls -1t backups/bot-*.db.gz 2>/dev/null | tail -n +15 | xargs -r rm -f
+fi
+
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
 
