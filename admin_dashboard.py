@@ -973,13 +973,13 @@ def _dashboard_html() -> str:
     <aside class="sidebar">
       <div class="sidebar-inner">
         <div class="brand-card">
-          <div class="brand-eyebrow">Bot admin cockpit</div>
+          <div class="brand-eyebrow">Пульт SaaS-бота</div>
           <h1 class="brand-title">Пульт управления</h1>
           <p class="brand-copy">Один экран для состояния продукта, живых настроек, промптов, режимов, оплаты и проверки поведения бота.</p>
         </div>
         <div class="nav">
           <button class="active" data-view="overview">Обзор</button>
-          <button data-view="setup">Setup</button>
+          <button data-view="setup">Настройка</button>
           <button data-view="users">Пользователи</button>
           <button data-view="conversations">Диалоги</button>
           <button data-view="runtime">ИИ и интерфейс</button>
@@ -1041,10 +1041,10 @@ def _dashboard_html() -> str:
         <div class="panel">
           <div class="mode-head">
             <div>
-              <h3>Launch readiness</h3>
+              <h3>Готовность к запуску</h3>
               <p class="muted section-note">Быстрая SaaS-проверка: можно ли показывать этот бот оператору и запускать первых пользователей.</p>
             </div>
-            <button data-open-view="setup">Открыть Setup</button>
+            <button data-open-view="setup">Открыть настройку</button>
           </div>
           <div id="overview-launch-readiness"></div>
         </div>
@@ -1078,14 +1078,14 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="setup">
-        <div><h2>Setup и запуск</h2><p class="muted">Срез для оператора SaaS: что настроено, что мешает запуску и куда идти править.</p></div>
+        <div><h2>Настройка и запуск</h2><p class="muted">Срез для оператора SaaS: что настроено, что мешает запуску и куда идти править.</p></div>
         <div class="cols">
           <div class="panel">
-            <h3>Launch readiness</h3>
+            <h3>Готовность к запуску</h3>
             <div id="setup-readiness"></div>
           </div>
           <div class="panel">
-            <h3>Bot identity</h3>
+            <h3>Образ бота</h3>
             <div id="setup-identity"></div>
           </div>
         </div>
@@ -1095,14 +1095,14 @@ def _dashboard_html() -> str:
           <div class="shortcut-grid">
             <button data-open-view="runtime">Тексты старта и меню</button>
             <button data-open-view="modes">Режимы и платность</button>
-            <button data-open-view="payments">Plans и paywall</button>
-            <button data-open-view="testing">Conversation Lab</button>
+            <button data-open-view="payments">Тарифы и paywall</button>
+            <button data-open-view="testing">Лаборатория диалога</button>
             <button data-open-view="users">Пользователи и сегменты</button>
             <button data-open-view="logs">Health и логи</button>
           </div>
         </div>
         <div class="panel">
-          <h3>SaaS MVP фокус</h3>
+          <h3>Фокус SaaS-MVP</h3>
           <div id="setup-saas-summary"></div>
         </div>
       </section>
@@ -1332,14 +1332,14 @@ def _dashboard_html() -> str:
               <label>Часовой пояс для тихих часов<input id="initiative_timezone"></label>
             </div>
             <div class="soft-panel">
-              <h3>Re-engagement style</h3>
+              <h3>Стиль инициативы</h3>
               <div class="three">
                 <label>Макс. длина, символов<input id="initiative_style_max_chars" type="number" min="120" max="500"></label>
                 <label>Макс. токенов<input id="initiative_style_max_completion_tokens" type="number" min="32" max="300"></label>
                 <label class="checkbox"><input id="initiative_style_allow_question" type="checkbox">Можно завершать лёгким вопросом</label>
               </div>
               <div class="two">
-                <label class="checkbox"><input id="initiative_style_prefer_callback_thread" type="checkbox">Сначала подхватывать прошлую нить</label>
+                <label class="checkbox"><input id="initiative_style_prefer_callback_thread" type="checkbox">Можно подхватить прошлую нить</label>
               </div>
               <div class="preset-bar">
                 <button type="button" data-initiative-preset="warm">Тёплый старт</button>
@@ -1348,7 +1348,7 @@ def _dashboard_html() -> str:
               </div>
               <div class="two">
                 <label class="checkbox"><input id="initiative_family_soft_presence" type="checkbox">Soft presence</label>
-                <label class="checkbox"><input id="initiative_family_callback_thread" type="checkbox">Callback thread</label>
+                <label class="checkbox"><input id="initiative_family_callback_thread" type="checkbox">Подхват прошлой нити</label>
                 <label class="checkbox"><input id="initiative_family_mood_ping" type="checkbox">Mood ping</label>
                 <label class="checkbox"><input id="initiative_family_playful_hook" type="checkbox">Playful hook</label>
               </div>
@@ -1357,26 +1357,26 @@ def _dashboard_html() -> str:
         </div>
         <div class="cols">
           <div class="panel">
-            <h3>Conversation lab</h3>
+            <h3>Лаборатория диалога</h3>
             <p class="muted section-note">Настройки коротких живых ответов, которые тянут разговор дальше вместо лекций.</p>
             <div class="preset-bar">
-              <button type="button" id="preset_dialogue_balanced">Balanced</button>
-              <button type="button" id="preset_dialogue_live">Live</button>
-              <button type="button" id="preset_dialogue_compact">Compact</button>
+              <button type="button" id="preset_dialogue_balanced">Баланс</button>
+              <button type="button" id="preset_dialogue_live">Живее</button>
+              <button type="button" id="preset_dialogue_compact">Коротко</button>
             </div>
             <div class="three">
               <label>Фраз в hook-ответе<input id="dialogue_hook_max_sentences" type="number" min="1" max="6"></label>
               <label>Лимит символов<input id="dialogue_hook_max_chars" type="number" min="120" max="500"></label>
-              <label class="checkbox"><input id="dialogue_hook_require_follow_up_question" type="checkbox">Обязательно оставлять follow-up</label>
+              <label class="checkbox"><input id="dialogue_hook_require_follow_up_question" type="checkbox">Разрешать follow-up, когда он нужен</label>
             </div>
             <div class="two">
-              <label class="checkbox"><input id="dialogue_hook_topic_questions_enabled" type="checkbox">Вопросы по теме, а не общий шаблон</label>
+              <label class="checkbox"><input id="dialogue_hook_topic_questions_enabled" type="checkbox">Разрешать тематические вопросы</label>
               <label class="checkbox"><input id="dialogue_risky_scene_compact_redirect" type="checkbox">Сжимать рискованные лекции</label>
-              <label class="checkbox"><input id="dialogue_charged_probe_compact_redirect" type="checkbox">Сжимать charged probe-лекции</label>
+              <label class="checkbox"><input id="dialogue_charged_probe_compact_redirect" type="checkbox">Сжимать заряженные мини-лекции</label>
             </div>
           </div>
           <div class="panel">
-            <h3>Fast lane</h3>
+            <h3>Быстрая линия</h3>
             <p class="muted section-note">Тонкая настройка скорости, длины ответа и объёма контекста для коротких сообщений.</p>
             <div class="soft-panel">
               <div class="three">
@@ -1595,11 +1595,11 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="payments">
-        <div><h2>Plans и оплата</h2><p class="muted">Тарифы конечного пользователя, paywall, провайдер и реферальная программа в одном revenue-разделе.</p></div>
+        <div><h2>Тарифы и оплата</h2><p class="muted">Тарифы конечного пользователя, paywall, провайдер и реферальная программа в одном разделе монетизации.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Основное</h3>
-            <p class="muted section-note">Базовые настройки провайдера, валюты и продукта, которые влияют на весь paid-flow.</p>
+            <p class="muted section-note">Базовые настройки провайдера, валюты и продукта, которые влияют на весь платёжный сценарий.</p>
             <div class="two">
               <label>Токен провайдера<textarea id="payment_provider_token"></textarea></label>
               <label>Режим оплаты
@@ -1633,12 +1633,12 @@ def _dashboard_html() -> str:
           </div>
         </div>
         <details class="panel details-panel">
-          <summary>Тексты Plans-меню и paywall</summary>
+          <summary>Тексты меню тарифов и paywall</summary>
           <div class="details-content stack">
             <div class="soft-panel">
-              <h3>Plans-меню</h3>
+              <h3>Меню тарифов</h3>
               <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
-              <label>Описание plans-меню<textarea id="payment_premium_menu_description_template"></textarea></label>
+              <label>Описание меню тарифов<textarea id="payment_premium_menu_description_template"></textarea></label>
               <div class="two">
                 <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
                 <label>Кнопка назад из premium-меню<input id="payment_premium_menu_back_button_text"></label>
@@ -1659,7 +1659,7 @@ def _dashboard_html() -> str:
           </div>
         </details>
         <div class="panel">
-          <h3>Пакеты Plans</h3>
+          <h3>Пакеты тарифов</h3>
           <p class="muted section-note">Именно эти варианты увидит пользователь в едином меню платных планов.</p>
           <div class="package-grid">
             <div class="mode-card">
@@ -1744,7 +1744,7 @@ def _dashboard_html() -> str:
       </section>
 
       <section class="page" data-view="testing">
-        <div><h2>Conversation Lab</h2><p class="muted">Проверка промпта, состояния и живости ответа до запуска. Здесь видно не только JSON, но и качество reply-loop.</p></div>
+        <div><h2>Лаборатория диалога</h2><p class="muted">Проверка промпта, состояния и живости ответа до запуска. Здесь видно не только JSON, но и качество диалогового цикла.</p></div>
         <div class="cols">
           <div class="panel">
             <h3>Тестовый диалог</h3>
@@ -1756,8 +1756,8 @@ def _dashboard_html() -> str:
             <div class="template-list" id="test-case-buttons">
               <button type="button" class="template-chip" data-test-case="start">Первое сообщение</button>
               <button type="button" class="template-chip" data-test-case="advice">Полезный разбор</button>
-              <button type="button" class="template-chip" data-test-case="short">Короткий hook</button>
-              <button type="button" class="template-chip" data-test-case="sensitive">Sensitive edge</button>
+              <button type="button" class="template-chip" data-test-case="short">Короткий ответ</button>
+              <button type="button" class="template-chip" data-test-case="sensitive">Сложный край</button>
             </div>
             <label>Сообщение<textarea id="test_user_message"></textarea></label>
             <label>История (`user:` / `assistant:`)<textarea id="test_history"></textarea></label>
@@ -1765,13 +1765,13 @@ def _dashboard_html() -> str:
             <div class="actions">
               <button class="primary" id="test-prompt">Промпт</button>
               <button id="test-state-btn">Состояние</button>
-              <button id="test-live-reply">Live reply</button>
-              <button id="test-reengagement">Re-engagement</button>
+              <button id="test-live-reply">Живой ответ</button>
+              <button id="test-reengagement">Инициатива</button>
             </div>
           </div>
           <div class="panel">
-            <h3>Quality notes</h3>
-            <div id="test-quality">Запусти live reply, чтобы увидеть оценку ответа.</div>
+            <h3>Оценка качества</h3>
+            <div id="test-quality">Запусти живой ответ, чтобы увидеть оценку.</div>
             <h3 style="margin-top:16px">Результат</h3>
             <pre id="test-result">Здесь появится результат.</pre>
           </div>
@@ -1803,15 +1803,15 @@ def _dashboard_html() -> str:
     const state={settings:null,overview:null,health:null,logs:null,users:null,currentUser:null,currentConversation:null,currentMemoryId:null,selectedUserIds:new Set(),lastBroadcastPreview:null,lastBroadcastResult:null,lastTestResult:null,activeView:'overview',lastSyncedAt:null};
     const VIEW_META={
       overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
-      setup:{kicker:'Launch readiness',title:'Setup и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
+      setup:{kicker:'Готовность к запуску',title:'Настройка и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
       runtime:{kicker:'Настройки рантайма',title:'ИИ и интерфейс',subtitle:'Живые runtime-параметры модели, лимитов, инициативы и редактора шаблонов без похода в JSON вручную.'},
       safety:{kicker:'Guardrails',title:'Безопасность и ограничения',subtitle:'Guardrails, кризисные настройки и стоп-линии, которые реально формируют поведение бота на проде.'},
       prompts:{kicker:'Prompt control plane',title:'Промпты и шаблоны',subtitle:'Редактирование базовых инструкций, fallback-слоёв и prompt-контура без расползания по legacy-конфигам.'},
       modes:{kicker:'Mode engine',title:'Режимы и голос',subtitle:'Каталог режимов, model overrides и UX-параметры, которые определяют, как бот звучит для пользователя.'},
-      payments:{kicker:'Revenue surface',title:'Plans и оплата',subtitle:'Тарифы, провайдеры и монетизация в одной витрине без ощущения недоделанной панели.'},
-      testing:{kicker:'Conversation Lab',title:'Тесты качества диалога',subtitle:'Проверка промпта, state и reply прямо из админки, чтобы поведение можно было валидировать до выката.'},
+      payments:{kicker:'Монетизация',title:'Тарифы и оплата',subtitle:'Тарифы, провайдеры и монетизация в одной витрине без ощущения недоделанной панели.'},
+      testing:{kicker:'Лаборатория диалога',title:'Тесты качества диалога',subtitle:'Проверка промпта, состояния и ответа прямо из админки, чтобы поведение можно было валидировать до выката.'},
       logs:{kicker:'Runtime trace',title:'Логи и сигналы',subtitle:'Последние записи сервиса, быстрый экспорт и просмотр проблем без отдельного захода на сервер.'},
     };
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -1847,29 +1847,29 @@ def _dashboard_html() -> str:
       const modeItems=Object.values(catalog||{}),paidModes=modeItems.filter(item=>item&&item.is_premium),packages=enabledPackages(payment);
       const hasProvider=String(payment.provider_token||'').trim()||payment.mode==='virtual';
       const items=[
-        {key:'identity',label:'Bot identity',ok:String(ui.welcome_user_text||'').trim()&&String(ui.write_button_text||'').trim(),detail:'Welcome, main buttons and first prompt are configured.',action:'runtime'},
-        {key:'onboarding',label:'Onboarding prompts',ok:(ui.onboarding_prompt_buttons||[]).filter(Boolean).length>0,detail:'Sample prompts help a cold user start without guessing.',action:'runtime',warn:true},
-        {key:'modes',label:'Free and paid modes',ok:modeItems.length>=2&&paidModes.length>=1,detail:`Modes: ${modeItems.length}, paid: ${paidModes.length}.`,action:'modes'},
-        {key:'plans',label:'Plans and paywall',ok:packages.length>0&&String(payment.buy_cta_text||'').trim(),detail:`Enabled packages: ${packages.length}. Default: ${payment.default_package_key||'—'}.`,action:'payments'},
-        {key:'payment',label:'Payment mode',ok:!!hasProvider,detail:`Mode: ${payment.mode||'telegram'}${payment.mode==='virtual'?' (test checkout)':''}.`,action:'payments',warn:payment.mode==='virtual'},
-        {key:'limits',label:'Usage limits',ok:!!(limits.free_daily_messages_enabled||limits.premium_daily_messages_enabled||limits.mode_preview_enabled),detail:'Limits keep AI cost and paid access predictable.',action:'safety',warn:true},
-        {key:'lab',label:'Conversation Lab',ok:true,detail:'Run launch prompts before sending traffic.',action:'testing'},
-        {key:'system',label:'System health',ok:!!(health.db?.ok&&(health.redis?.ok||health.redis?.mode==='fallback')),detail:`DB: ${health.db?.ok?'ok':'check'}, Redis: ${health.redis?.ok?'ok':(health.redis?.mode||'check')}.`,action:'logs'},
+        {key:'identity',label:'Образ бота',ok:String(ui.welcome_user_text||'').trim()&&String(ui.write_button_text||'').trim(),detail:'Приветствие, главные кнопки и первый сценарий настроены.',action:'runtime'},
+        {key:'onboarding',label:'Подсказки онбординга',ok:(ui.onboarding_prompt_buttons||[]).filter(Boolean).length>0,detail:'Примеры запросов помогают холодному пользователю начать без догадок.',action:'runtime',warn:true},
+        {key:'modes',label:'Бесплатные и платные режимы',ok:modeItems.length>=2&&paidModes.length>=1,detail:`Режимов: ${modeItems.length}, платных: ${paidModes.length}.`,action:'modes'},
+        {key:'plans',label:'Тарифы и paywall',ok:packages.length>0&&String(payment.buy_cta_text||'').trim(),detail:`Включено пакетов: ${packages.length}. По умолчанию: ${payment.default_package_key||'—'}.`,action:'payments'},
+        {key:'payment',label:'Режим оплаты',ok:!!hasProvider,detail:`Режим: ${payment.mode||'telegram'}${payment.mode==='virtual'?' (тестовая оплата)':''}.`,action:'payments',warn:payment.mode==='virtual'},
+        {key:'limits',label:'Лимиты использования',ok:!!(limits.free_daily_messages_enabled||limits.premium_daily_messages_enabled||limits.mode_preview_enabled),detail:'Лимиты удерживают стоимость AI и платный доступ предсказуемыми.',action:'safety',warn:true},
+        {key:'lab',label:'Лаборатория диалога',ok:true,detail:'Прогоните стартовые запросы перед трафиком.',action:'testing'},
+        {key:'system',label:'Состояние системы',ok:!!(health.db?.ok&&(health.redis?.ok||health.redis?.mode==='fallback')),detail:`БД: ${health.db?.ok?'норма':'проверить'}, Redis: ${health.redis?.ok?'норма':(health.redis?.mode||'проверить')}.`,action:'logs'},
       ];
       return items.map(item=>({...item,status:item.ok?(item.warn?'warn':'ok'):'bad'}));
     }
-    function renderReadiness(items){return `<div class="readiness-list">${(items||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${esc(item.status)}"></span><div><strong>${esc(item.label)}</strong><div class="muted">${esc(item.detail)}</div></div><button data-open-view="${esc(item.action)}">${item.status==='bad'?'Fix':'Open'}</button></div>`).join('')}</div>`}
+    function renderReadiness(items){return `<div class="readiness-list">${(items||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${esc(item.status)}"></span><div><strong>${esc(item.label)}</strong><div class="muted">${esc(item.detail)}</div></div><button data-open-view="${esc(item.action)}">${item.status==='bad'?'Исправить':'Открыть'}</button></div>`).join('')}</div>`}
     function renderLaunchReadiness(){
       const items=launchReadinessItems(),bad=items.filter(item=>item.status==='bad').length,warn=items.filter(item=>item.status==='warn').length,ok=items.filter(item=>item.status==='ok').length;
-      const summary=metricCards([['Ready',String(ok),`${bad} blockers • ${warn} warnings`],['Plans',String(enabledPackages(state.settings?.runtime?.payment||{}).length),'Enabled paid packages'],['Modes',String(Object.keys(state.settings?.mode_catalog||{}).length),'Configured bot modes']]);
+      const summary=metricCards([['Готово',String(ok),`${bad} блокеров • ${warn} предупреждений`],['Тарифы',String(enabledPackages(state.settings?.runtime?.payment||{}).length),'Включённые платные пакеты'],['Режимы',String(Object.keys(state.settings?.mode_catalog||{}).length),'Настроенные режимы бота']]);
       return `<div class="stack">${summary}${renderReadiness(items)}</div>`;
     }
     function renderSetup(){
       if(!state.settings)return;
       const runtime=state.settings.runtime||{},ui=runtime.ui||{},payment=runtime.payment||{},catalog=state.settings.mode_catalog||{},paidModes=Object.values(catalog).filter(item=>item&&item.is_premium);
       $('#setup-readiness').innerHTML=renderLaunchReadiness();
-      $('#setup-identity').innerHTML=`<div class="stack">${metricCards([['Menu',`${esc(ui.write_button_text||'—')} / ${esc(ui.modes_button_text||'—')}`,esc(ui.premium_button_text||'paid CTA missing')],['Modes',String(Object.keys(catalog).length),`Paid modes: ${paidModes.length}`],['Payment',esc(payment.mode||'telegram'),`Default package: ${payment.default_package_key||'—'}`]])}${kvList([['Welcome text',escText(String(ui.welcome_user_text||'').slice(0,280)||'—')],['Follow-up',escText(String(ui.welcome_followup_text||'').slice(0,220)||'—')],['Avatar path',esc(ui.start_avatar_path||'—')],['Paywall CTA',esc(payment.buy_cta_text||'—')]])}</div>`;
-      $('#setup-saas-summary').innerHTML=kvList([['Product',esc('Control center for launching and monetizing a Telegram AI companion')],['Operator promise',esc('Configure identity, modes, plans, quality tests, users, broadcasts and health from one dashboard.')],['Next build focus',esc('Setup readiness -> Conversation Lab -> Plans/revenue clarity -> deploy smoke test')]]);
+      $('#setup-identity').innerHTML=`<div class="stack">${metricCards([['Меню',`${esc(ui.write_button_text||'—')} / ${esc(ui.modes_button_text||'—')}`,esc(ui.premium_button_text||'нет CTA тарифа')],['Режимы',String(Object.keys(catalog).length),`Платных режимов: ${paidModes.length}`],['Оплата',esc(payment.mode||'telegram'),`Пакет по умолчанию: ${payment.default_package_key||'—'}`]])}${kvList([['Приветствие',escText(String(ui.welcome_user_text||'').slice(0,280)||'—')],['Следующее сообщение',escText(String(ui.welcome_followup_text||'').slice(0,220)||'—')],['Путь к аватару',esc(ui.start_avatar_path||'—')],['CTA paywall',esc(payment.buy_cta_text||'—')]])}</div>`;
+      $('#setup-saas-summary').innerHTML=kvList([['Продукт',esc('Пульт для запуска и монетизации Telegram AI-компаньона')],['Обещание оператору',esc('Настроить образ, режимы, тарифы, тесты качества, пользователей, рассылки и состояние системы из одной панели.')],['Следующий фокус',esc('Готовность запуска -> лаборатория диалога -> ясность тарифов -> smoke-тест деплоя')]]);
     }
     function fileTable(files){const rows=Object.entries(files||{}).map(([name,info])=>({name,path:info?.path||'',exists:info?.exists?'Да':'Нет',size:info?.exists?`${num(info?.size_bytes)} B`:'-'}));return table(['name','path','exists','size'],rows)}
     function prettyStateLabel(key){return ({active_mode:'Активный режим',interaction_count:'Число взаимодействий',conversation_phase:'Фаза диалога',emotional_tone:'Эмоциональный тон',premium_features_used:'Использований премиума',enabled:'Инициатива бота',updated_at:'Обновлено',timezone:'Часовой пояс',goals:'Цели',interests:'Интересы',personality_traits:'Черты',identity_facts:'Имена и связи',current_focus:'Что сейчас особенно живо',recent_topics:'Недавние темы',open_loops:'Незавершённые темы',support_profile:'Профиль поддержки',support_stats:'Статистика поддержки',episodic_summary:'Сводка эпизода',episodic_summary_meta:'Мета сводки',recent_arc:'Недавняя дуга',emotional_direction:'Эмоциональное направление',response_hint:'Подсказка для ответа',response_preferences:'Предпочтения по ответу',shared_threads:'Нити прошлых разговоров',callback_candidates:'Что можно мягко вспомнить позже',recent_thread:'Последняя живая нить'})[key]||key.replaceAll('_',' ')}
@@ -2010,9 +2010,9 @@ def _dashboard_html() -> str:
     function collectInitiativeFamilies(){return ['soft_presence','callback_thread','mood_ping','playful_hook'].filter(name=>$(`#initiative_family_${name}`)?.checked)}
     function applyDialoguePreset(name){
       const presets={
-        balanced:{sentences:2,chars:240,followUp:true,topicQuestions:true,risky:true,charged:true},
+        balanced:{sentences:2,chars:240,followUp:false,topicQuestions:true,risky:true,charged:true},
         live:{sentences:3,chars:280,followUp:true,topicQuestions:true,risky:false,charged:false},
-        compact:{sentences:2,chars:190,followUp:true,topicQuestions:false,risky:true,charged:true}
+        compact:{sentences:2,chars:190,followUp:false,topicQuestions:false,risky:true,charged:true}
       };
       const preset=presets[name]||presets.balanced;
       setValue('#dialogue_hook_max_sentences',preset.sentences);
@@ -2024,8 +2024,8 @@ def _dashboard_html() -> str:
     }
     function applyInitiativePreset(name){
       const presets={
-        warm:{maxChars:240,maxCompletionTokens:120,allowQuestion:true,preferCallback:true,families:['soft_presence','callback_thread','mood_ping']},
-        balanced:{maxChars:220,maxCompletionTokens:110,allowQuestion:true,preferCallback:true,families:['soft_presence','callback_thread','mood_ping','playful_hook']},
+        warm:{maxChars:240,maxCompletionTokens:120,allowQuestion:false,preferCallback:false,families:['soft_presence','mood_ping']},
+        balanced:{maxChars:220,maxCompletionTokens:110,allowQuestion:false,preferCallback:false,families:['soft_presence','mood_ping','playful_hook']},
         tight:{maxChars:170,maxCompletionTokens:90,allowQuestion:false,preferCallback:false,families:['soft_presence','mood_ping']}
       };
       const preset=presets[name]||presets.balanced;
@@ -2078,12 +2078,12 @@ def _dashboard_html() -> str:
       setValue('#initiative_timezone',e.timezone||'');
       setValue('#initiative_style_max_chars',style.max_chars??220);
       setValue('#initiative_style_max_completion_tokens',style.max_completion_tokens??120);
-      setChecked('#initiative_style_allow_question',style.allow_question!==false);
-      setChecked('#initiative_style_prefer_callback_thread',style.prefer_callback_thread!==false);
+      setChecked('#initiative_style_allow_question',style.allow_question===true);
+      setChecked('#initiative_style_prefer_callback_thread',style.prefer_callback_thread===true);
       ['soft_presence','callback_thread','mood_ping','playful_hook'].forEach(key=>setChecked(`#initiative_family_${key}`,(style.enabled_families||[]).includes(key)));
       setValue('#dialogue_hook_max_sentences',dialogue.hook_max_sentences??2);
       setValue('#dialogue_hook_max_chars',dialogue.hook_max_chars??260);
-      setChecked('#dialogue_hook_require_follow_up_question',dialogue.hook_require_follow_up_question!==false);
+      setChecked('#dialogue_hook_require_follow_up_question',dialogue.hook_require_follow_up_question===true);
       setChecked('#dialogue_hook_topic_questions_enabled',dialogue.hook_topic_questions_enabled!==false);
       setChecked('#dialogue_risky_scene_compact_redirect',dialogue.risky_scene_compact_redirect!==false);
       setChecked('#dialogue_charged_probe_compact_redirect',dialogue.charged_probe_compact_redirect!==false);
@@ -2279,10 +2279,10 @@ def _dashboard_html() -> str:
     function applyTestCase(name){const item=TEST_CASES[name]||TEST_CASES.start;setValue('#test_active_mode',item.mode);setValue('#test_access_level','analysis');setValue('#test_user_message',item.message);setValue('#test_history',item.history);setValue('#test_state',item.state)}
     function qualityRows(result){
       const response=String(result?.response||''),audit=result?.response_audit||{},prompt=String(result?.prompt||''),notes=[];
-      if(!response&&!prompt)notes.push(['No output','bad','Нет ответа или промпта для оценки.']);
-      if(response){notes.push(['Length',response.length>900?'warn':'ok',`${response.length} chars, ${audit.sentence_count??'—'} sentences`]);notes.push(['Questions',Number(audit.question_count||0)>1?'warn':'ok',`${audit.question_count??0} question marks`]);notes.push(['Generic smell',/(зависит от контекста|важно обсудить|маленькими шагами|что цепляет)/i.test(response)?'warn':'ok','Checks repeated generic phrasing.']);notes.push(['Concrete answer',/(сначала|лучше|стоит|не стоит|план|шаг|границ|решение|ответ)/i.test(response)?'ok':'warn','Looks for a concrete next beat.']);}
-      if(prompt)notes.push(['Prompt built','ok',`${prompt.length} chars system prompt`]);
-      if(result?.grounding_kind)notes.push(['Grounding', 'warn', `Triggered: ${result.grounding_kind}`]);
+      if(!response&&!prompt)notes.push(['Нет результата','bad','Нет ответа или промпта для оценки.']);
+      if(response){notes.push(['Длина',response.length>900?'warn':'ok',`${response.length} знаков, предложений: ${audit.sentence_count??'—'}`]);notes.push(['Вопросы',Number(audit.question_count||0)>1?'warn':'ok',`Знаков вопроса: ${audit.question_count??0}`]);notes.push(['Шаблонность',/(зависит от контекста|важно обсудить|маленькими шагами|что цепляет)/i.test(response)?'warn':'ok','Проверка повторяющихся общих формулировок.']);notes.push(['Конкретика',/(сначала|лучше|стоит|не стоит|план|шаг|границ|решение|ответ)/i.test(response)?'ok':'warn','Есть ли следующий понятный ход.']);}
+      if(prompt)notes.push(['Промпт собран','ok',`${prompt.length} знаков системного промпта`]);
+      if(result?.grounding_kind)notes.push(['Заземление', 'warn', `Сработало: ${result.grounding_kind}`]);
       return notes;
     }
     function renderTestQuality(){
@@ -2350,10 +2350,10 @@ def _dashboard_html() -> str:
     on('#test-live-reply','click',()=>{$('#test-result').textContent='Жду ответ модели...';runTest('/api/test/reply').then(()=>notice('Проверка ответа завершена.')).catch(e=>notice(e.message,'error'))});
     window.addEventListener('error',e=>{console.error('Admin dashboard error',e.error||e.message);notice(`Ошибка интерфейса: ${e.message||'см. консоль браузера'}`,'error')});
     window.addEventListener('unhandledrejection',e=>{console.error('Admin dashboard rejection',e.reason);notice(`Ошибка загрузки: ${e.reason?.message||e.reason||'неизвестно'}`,'error')});
-    on('#test-reengagement','click',()=>{$('#test-result').textContent='Жду re-engagement preview...';runTest('/api/test/reengagement').then(()=>notice('Re-engagement preview готов.')).catch(e=>notice(e.message,'error'))});
-    on('#preset_dialogue_balanced','click',()=>{applyDialoguePreset('balanced');notice('Conversation lab: Balanced.')});
-    on('#preset_dialogue_live','click',()=>{applyDialoguePreset('live');notice('Conversation lab: Live.')});
-    on('#preset_dialogue_compact','click',()=>{applyDialoguePreset('compact');notice('Conversation lab: Compact.')});
+    on('#test-reengagement','click',()=>{$('#test-result').textContent='Жду предпросмотр инициативы...';runTest('/api/test/reengagement').then(()=>notice('Предпросмотр инициативы готов.')).catch(e=>notice(e.message,'error'))});
+    on('#preset_dialogue_balanced','click',()=>{applyDialoguePreset('balanced');notice('Лаборатория диалога: баланс.')});
+    on('#preset_dialogue_live','click',()=>{applyDialoguePreset('live');notice('Лаборатория диалога: живее.')});
+    on('#preset_dialogue_compact','click',()=>{applyDialoguePreset('compact');notice('Лаборатория диалога: коротко.')});
     onAll('[data-initiative-preset]','click',event=>{applyInitiativePreset(event.currentTarget.dataset.initiativePreset||'balanced');notice('Стиль первой инициативы обновлён.')});
     renderMessageTemplates();
     renderBroadcastResult(null);

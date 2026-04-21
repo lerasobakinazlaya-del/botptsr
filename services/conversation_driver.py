@@ -31,7 +31,7 @@ QUESTION_BANK: tuple[dict[str, Any], ...] = (
         "id": "q01",
         "intent": "desire",
         "stages": ("start",),
-        "text": "Что тебя сюда тянет сильнее — результат или сам путь к нему?",
+        "text": "Что здесь важнее — результат или сам путь к нему?",
     },
     {
         "id": "q02",
@@ -55,7 +55,7 @@ QUESTION_BANK: tuple[dict[str, Any], ...] = (
         "id": "q05",
         "intent": "emotion",
         "stages": ("warmup",),
-        "text": "Тебя сильнее задевает сам факт, тон или то, что это меняет всю картину?",
+        "text": "Что сильнее задевает — сам факт, тон или то, что это меняет всю картину?",
     },
     {
         "id": "q06",
@@ -115,7 +115,7 @@ QUESTION_BANK: tuple[dict[str, Any], ...] = (
         "id": "q15",
         "intent": "curiosity",
         "stages": ("trust", "deep"),
-        "text": "Тебя здесь больше держит вопрос «почему так» или «что это меняет лично для меня»?",
+        "text": "Здесь больше вопрос «почему так» или «что это меняет лично для меня»?",
     },
     {
         "id": "q16",
@@ -312,7 +312,7 @@ BASE_REFLECTIONS = {
     "emotion": "Здесь уже звучит чувство, а не просто оценка ситуации.",
     "fantasy": "Тебя держит не только сама идея, но и то, что она обещает внутри.",
     "resistance": "Ты здесь скорее притормаживаешь, чем действительно отпускаешь тему.",
-    "curiosity": "Тебя цепляет не только факт, а слой под ним.",
+    "curiosity": "Тут важен не только факт, а слой под ним.",
     "short_reply": "Ты оставил это коротко, но не пусто.",
     "explicit_request": "Тебе нужен не общий разговор, а точное попадание в задачу.",
     "confusion": "Здесь у тебя пока не сходится какая-то ключевая часть.",
@@ -359,6 +359,8 @@ def detect_intent(message: str) -> str:
 
 def build_followup(intent: str, state: dict) -> str:
     reflection = build_reflection(intent, state)
+    if _question_limit_reached(state):
+        return reflection
     question = select_followup_question(intent, resolve_driver_stage(state), state)
     return f"{reflection} {question}".strip()
 
@@ -442,13 +444,18 @@ def apply_driver_guardrails(
     if not normalized:
         return fallback
 
-    if "?" not in normalized:
+    question_limit_reached = _question_limit_reached(snapshot)
+    if "?" not in normalized and not question_limit_reached:
         question = str(followup_question or _extract_question(fallback)).strip()
         normalized = _append_sentence(normalized, question)
 
     normalized = _trim_sentences(normalized, max_sentences=3)
     normalized = _normalize_with_breaks(normalized)
-    if not normalized.endswith("?") and not any(marker in normalized.lower() for marker in OPEN_LOOP_MARKERS):
+    if (
+        not question_limit_reached
+        and not normalized.endswith("?")
+        and not any(marker in normalized.lower() for marker in OPEN_LOOP_MARKERS)
+    ):
         question = str(followup_question or _extract_question(fallback)).strip()
         normalized = _append_sentence(normalized, question)
         normalized = _trim_sentences(normalized, max_sentences=3)
@@ -510,6 +517,11 @@ def _candidate_index(state: dict | None, candidates: list[dict[str, Any]]) -> in
     interaction_count = int(snapshot.get("interaction_count", 0) or 0)
     interest = int(float(snapshot.get("interest", 0.0) or 0.0) * 100)
     return (interaction_count + interest) % len(candidates)
+
+
+def _question_limit_reached(state: dict | None) -> bool:
+    snapshot = state or {}
+    return int(snapshot.get("driver_question_streak", 0) or 0) >= 2
 
 
 def _normalize_intent(intent: str) -> str:

@@ -105,9 +105,17 @@ class ConversationDriverTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "Тебя сильнее задевает сам факт, тон или то, что это меняет всю картину?",
+            "Что сильнее задевает — сам факт, тон или то, что это меняет всю картину?",
             followup,
         )
+
+    def test_question_streak_limit_turns_driver_into_substance(self):
+        followup = build_followup(
+            "curiosity",
+            {"conversation_phase": "warmup", "interaction_count": 5, "driver_question_streak": 2},
+        )
+
+        self.assertNotIn("?", followup)
 
     def test_example_confusion_clarification_flow(self):
         followup = build_followup(

@@ -68,7 +68,7 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertIn("Do not open with a flat rejection", prompt)
         self.assertIn("redirect toward a safer adjacent version", prompt)
         self.assertIn("Default to 2-4 sentences", prompt)
-        self.assertIn("Prefer ending with one sharp follow-up question", prompt)
+        self.assertIn("Prefer a concrete safer next beat over a follow-up question", prompt)
 
     def test_continuation_after_clean_adjacent_offer_continues_not_rejection(self):
         prompt = self.engine.build_system_prompt(
@@ -88,13 +88,13 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertIn("already offered a cleaner adjacent version", prompt)
         self.assertIn("Continue with that adjacent version immediately", prompt)
 
-    def test_guard_response_adds_dialogue_pull_for_charged_prompt(self):
+    def test_guard_response_avoids_dialogue_pull_for_sensitive_prompt(self):
         result = self.engine.guard_response(
             "Думаю, там слишком легко теряется ясность.",
             user_message="Хим секс оргия что ты думаешь",
         )
 
-        self.assertTrue(result.endswith("?"))
+        self.assertFalse(result.endswith("?"))
 
 
     def test_charged_probe_prefers_dialogue_over_logistics(self):
@@ -131,7 +131,30 @@ class ConversationEngineV2Tests(unittest.TestCase):
         )
 
         self.assertLessEqual(len(result), 330)
-        self.assertTrue(result.endswith("?"))
+        self.assertFalse(result.endswith("?"))
+
+    def test_subscription_block_separates_free_and_premium_depth(self):
+        free_prompt = self.engine.build_system_prompt(
+            state={"active_mode": "base", "emotional_tone": "neutral", "interaction_count": 1},
+            access_level="analysis",
+            active_mode="base",
+            user_message="Что думаешь?",
+            subscription_plan="free",
+            history=[],
+        )
+        premium_prompt = self.engine.build_system_prompt(
+            state={"active_mode": "base", "emotional_tone": "neutral", "interaction_count": 1},
+            access_level="analysis",
+            active_mode="base",
+            user_message="Что думаешь?",
+            subscription_plan="premium",
+            history=[],
+        )
+
+        self.assertIn("User is free", free_prompt)
+        self.assertIn("value gap", free_prompt)
+        self.assertIn("User is premium", premium_prompt)
+        self.assertIn("Do not upsell premium", premium_prompt)
 
     def test_comfort_mode_contract_discourages_default_questions(self):
         prompt = self.engine.build_system_prompt(
@@ -175,6 +198,32 @@ class ConversationEngineV2Tests(unittest.TestCase):
 
         self.assertNotIn("?", result)
         self.assertIn("реальность намерения", result)
+
+    def test_short_answer_to_recent_question_does_not_get_next_question(self):
+        result = self.engine.guard_response(
+            "Понял, тогда следующий шаг — не снова выбирать мотив, а разложить, что именно меняется в решении.",
+            user_message="Сдвиг",
+            active_mode="base",
+            history=[
+                {"role": "assistant", "content": "Тебя тут сильнее цепляет новизна, ревность или сдвиг?"},
+            ],
+        )
+
+        self.assertNotIn("?", result)
+        self.assertIn("следующий шаг", result)
+
+    def test_sensitive_intimacy_response_strips_generic_tail(self):
+        result = self.engine.guard_response(
+            "Сначала стоит договориться о границах. И дальше это может зайти глубже, чем кажется сейчас. А тебя в этом что цепляет сильнее всего?",
+            user_message="Расскажи про границы",
+            active_mode="base",
+            history=[],
+        )
+
+        self.assertNotIn("?", result)
+        self.assertNotIn("что цепляет", result)
+        self.assertNotIn("зайти глубже", result)
+        self.assertIn("границах", result)
 
 
 if __name__ == "__main__":

@@ -68,10 +68,11 @@ class EmotionalHooksTests(unittest.TestCase):
             "Я бы не спешил с этим, но тут все решает один тихий нюанс.",
         )
 
-    def test_ensure_open_loop_adds_open_ending(self):
+    def test_ensure_open_loop_does_not_add_generic_continue_tail(self):
         result = ensure_open_loop("Я бы не спешил с этим.")
 
-        self.assertIn("Если хочешь, продолжим.", result)
+        self.assertNotIn("Если хочешь, продолжим.", result)
+        self.assertEqual(result, "Я бы не спешил с этим.")
         self.assertTrue(result.endswith("."))
 
 

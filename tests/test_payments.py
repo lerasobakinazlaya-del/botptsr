@@ -469,6 +469,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result)
         self.assertEqual(message.answers[0]["text"], "Не удалось создать счет")
+        keyboard = message.answers[0]["reply_markup"]
+        self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, CALLBACK_OPEN_PREMIUM_MENU)
 
     async def test_send_premium_offer_opens_virtual_checkout_when_virtual_mode_enabled(self):
         message = FakeMessage()

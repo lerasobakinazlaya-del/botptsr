@@ -155,8 +155,8 @@ class FakeSettingsService:
                 "dialogue": {
                     "hook_max_sentences": 2,
                     "hook_max_chars": 260,
-                    "hook_require_follow_up_question": True,
-                    "hook_topic_questions_enabled": True,
+                    "hook_require_follow_up_question": False,
+                    "hook_topic_questions_enabled": False,
                     "risky_scene_compact_redirect": True,
                     "charged_probe_compact_redirect": True,
                 },
@@ -203,8 +203,8 @@ class FakeSettingsService:
                         "mood_ping",
                         "playful_hook",
                     ],
-                    "prefer_callback_thread": True,
-                    "allow_question": True,
+                    "prefer_callback_thread": False,
+                    "allow_question": False,
                     "max_chars": 220,
                     "max_completion_tokens": 120,
                 },
@@ -382,11 +382,53 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
 
         system_prompt = client.calls[0]["messages"][0]["content"]
         self.assertIn("Conversation driver override:", system_prompt)
+        self.assertIn("Use this as a steering hint", system_prompt)
         self.assertIn("detected intent: desire", system_prompt)
         self.assertIn("selected question id: q01", system_prompt)
+        self.assertIn("possible follow-up question", system_prompt)
         self.assertIn("Max 3 sentences.", system_prompt)
         self.assertEqual(result.new_state["last_detected_intent"], "desire")
         self.assertEqual(result.new_state["last_driver_question_id"], "q01")
+        self.assertEqual(result.new_state["driver_question_streak"], 1)
+
+    async def test_free_plan_first_messages_get_soft_premium_nudge_contract(self):
+        client = FakeClient("Коротко: да. В Premium я бы разобрал это глубже и без обрыва на полуслове.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            result = await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Ок",
+                state={
+                    "active_mode": "base",
+                    "emotional_tone": "neutral",
+                    "interaction_count": 1,
+                    "relationship_state": {},
+                },
+                subscription_plan="free",
+            )
+        finally:
+            await service.close()
+
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("User is free", system_prompt)
+        self.assertIn("Early conversation: make the value gap visible", system_prompt)
+        self.assertIn("natural continuation of this exact conversation", system_prompt)
+        self.assertIn("premium", result.response.lower())
+        self.assertNotIn("buy premium", result.response.lower())
+        self.assertNotIn("upgrade now", result.response.lower())
+        self.assertLessEqual(result.response.count("?"), 1)
     async def test_generate_response_flattens_list_style_when_driver_is_active(self):
         service = AIService(
             client=FakeClient(

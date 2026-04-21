@@ -33,6 +33,9 @@ def get_onboarding_keyboard(ui_settings: dict) -> ReplyKeyboardMarkup | None:
         return None
 
     rows = [[KeyboardButton(text=prompt)] for prompt in prompts[:4]]
+    premium_text = str(ui_settings.get("premium_button_text") or "").strip()
+    if premium_text and premium_text not in prompts[:4]:
+        rows.append([KeyboardButton(text=premium_text)])
     return ReplyKeyboardMarkup(
         keyboard=rows,
         resize_keyboard=True,

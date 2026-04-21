@@ -88,6 +88,30 @@ class PromptBuilderModeTests(unittest.TestCase):
         self.assertEqual(dominant_profile["temperature"], 0.52)
         self.assertEqual(dominant_profile["max_completion_tokens"], 220)
 
+    def test_plan_overrides_add_premium_behavior_to_profile(self):
+        ai_settings = self.settings.get_runtime_settings()["ai"]
+
+        free_profile = resolve_ai_profile(ai_settings, "base", "free")
+        premium_profile = resolve_ai_profile(ai_settings, "base", "premium")
+
+        self.assertEqual(free_profile["model"], "gpt-4o-mini")
+        self.assertIn("Free:", free_profile["prompt_suffix"])
+        self.assertEqual(premium_profile["model"], "gpt-5.4")
+        self.assertGreater(premium_profile["max_completion_tokens"], free_profile["max_completion_tokens"])
+        self.assertIn("Premium:", premium_profile["prompt_suffix"])
+
+    def test_prompt_builder_passes_subscription_plan(self):
+        prompt = self.prompt_builder.build_system_prompt(
+            state=self.base_state | {"active_mode": "base", "interaction_count": 1},
+            access_level="analysis",
+            active_mode="base",
+            user_message="Ок",
+            subscription_plan="premium",
+        )
+
+        self.assertIn("User is premium", prompt)
+        self.assertIn("Do not upsell premium", prompt)
+
     def test_memory_context_is_sanitized_and_marked_untrusted(self):
         prompt = self.prompt_builder.build_system_prompt(
             state=self.base_state | {"active_mode": "base"},

@@ -289,6 +289,7 @@ class AIService:
             resolve_ai_profile(ai_settings, active_mode, subscription_plan),
             user_message=user_message,
             active_mode=active_mode,
+            subscription_plan=subscription_plan,
         )
         ai_profile = self._apply_cost_control_profile(
             ai_profile,
@@ -339,6 +340,7 @@ class AIService:
             active_mode=active_mode,
             memory_context=memory_context,
             user_message=user_message,
+            subscription_plan=subscription_plan,
             base_instruction=self._compose_reply_instruction(
                 base_instruction=ai_profile["prompt_suffix"],
                 user_message=user_message,
@@ -420,6 +422,10 @@ class AIService:
         if driver_context is not None:
             new_state["last_detected_intent"] = str(driver_context["intent"])
             new_state["last_driver_question_id"] = str(driver_context["question_id"])
+            if "?" in response_text:
+                new_state["driver_question_streak"] = int(new_state.get("driver_question_streak", 0) or 0) + 1
+            else:
+                new_state["driver_question_streak"] = 0
 
         new_state = self.human_memory_service.apply_assistant_message(
             new_state,
@@ -530,7 +536,7 @@ class AIService:
             user_message="Сформулируй одно живое сообщение первой инициативы.",
             active_mode=active_mode,
             history=history,
-            force_dialogue_pull=bool(reengagement_style.get("allow_question", True)),
+            force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),
         )
         response_text, hook_used = self._apply_emotional_hook(
             response_text,
@@ -952,18 +958,17 @@ class AIService:
             return ""
         return (
             "Conversation driver override:\n"
-            "- This override has priority for this turn when it conflicts with generic no-question defaults.\n"
+            "- Use this as a steering hint, not as a forced interview script.\n"
             f"- detected intent: {driver_context['intent']}\n"
             f"- engagement stage: {driver_context['stage']}\n"
             f"- selected question id: {driver_context['question_id']}\n"
             f"- reflection: {driver_context['reflection']}\n"
-            f"- exact follow-up question: {driver_context['question']}\n"
-            "- Shape the reply as: reflect the user's intent, then land on the exact follow-up question above.\n"
-            "- Split the question between 2-3 motives.\n"
+            f"- possible follow-up question: {driver_context['question']}\n"
+            "- Answer or continue the user's current message first; add the follow-up only if it genuinely improves this turn.\n"
+            "- Do not ask a follow-up if the user just answered the previous one or recent assistant turns were already question-heavy.\n"
             "- Max 3 sentences.\n"
             "- Do not use bullet lists or numbered lists unless the user explicitly asked for a list.\n"
-            "- End with the selected question or a compatible open loop.\n"
-            "- Do not fully close the topic; keep the dialogue moving."
+            "- Keep the dialogue moving through substance, not through repeated questions."
         )
 
     def _apply_conversation_driver_guardrails(
@@ -1140,10 +1145,13 @@ class AIService:
         *,
         user_message: str,
         active_mode: str,
+        subscription_plan: str = "free",
     ) -> dict[str, Any]:
         normalized = self._normalize(user_message)
         fast_lane = self._get_fast_lane_settings()
         if not bool(fast_lane.get("enabled", True)):
+            return ai_profile
+        if str(subscription_plan or "free").strip().lower() in {"premium", "pro", "paid"}:
             return ai_profile
         if not self._should_use_fast_lane(normalized, active_mode=active_mode):
             return ai_profile

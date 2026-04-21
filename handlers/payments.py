@@ -236,6 +236,16 @@ def _build_premium_menu_keyboard(payment_service, payment_settings: dict, *, tri
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def _build_invoice_recovery_keyboard(payment_settings: dict) -> InlineKeyboardMarkup:
+    back_text = str(payment_settings.get("premium_menu_back_button_text") or "← К режимам").strip() or "← К режимам"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Попробовать другой тариф", callback_data=CALLBACK_OPEN_PREMIUM_MENU)],
+            [InlineKeyboardButton(text=back_text, callback_data=CALLBACK_PREMIUM_BACK_TO_MODES)],
+        ]
+    )
+
+
 def _build_virtual_payment_keyboard(payment_settings: dict, package: dict) -> InlineKeyboardMarkup:
     price_label = format_package_price_label(package, payment_settings)
     access_days = int(package.get("access_duration_days", 30))
@@ -509,7 +519,10 @@ async def send_premium_offer(
 
     sent = await payment_service.send_premium_invoice(message, package["key"])
     if not sent:
-        await message.answer(payment_settings["invoice_error_message"])
+        await message.answer(
+            payment_settings["invoice_error_message"],
+            reply_markup=_build_invoice_recovery_keyboard(payment_settings),
+        )
         return False
 
     await payment_service.track_invoice_opened(

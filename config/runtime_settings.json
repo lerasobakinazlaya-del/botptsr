@@ -32,19 +32,22 @@
         "model": "gpt-4o-mini",
         "max_completion_tokens": 180,
         "memory_max_tokens": 700,
-        "history_message_limit": 12
+        "history_message_limit": 12,
+        "prompt_suffix": "Free: дай полезный короткий ответ и мягко покажи, какой следующий слой раскроет Premium."
       },
       "pro": {
         "model": "gpt-4o-mini",
         "max_completion_tokens": 320,
         "memory_max_tokens": 1200,
-        "history_message_limit": 18
+        "history_message_limit": 18,
+        "prompt_suffix": "Pro: отвечай плотнее, держи больше контекста и доводи мысль до следующего шага."
       },
       "premium": {
         "model": "gpt-5.4",
         "max_completion_tokens": 520,
         "memory_max_tokens": 1800,
-        "history_message_limit": 24
+        "history_message_limit": 24,
+        "prompt_suffix": "Premium: давай заметно более глубокий, связный и персональный ответ без рекламного тона."
       }
     },
     "mode_overrides": {

@@ -397,6 +397,79 @@ def _strip_question_sentences(text: str) -> str:
     return " ".join(kept).strip()
 
 
+def _looks_like_sensitive_intimacy_text(text: str) -> bool:
+    normalized = " ".join(str(text or "").lower().split())
+    if not normalized:
+        return False
+    markers = (
+        "секс",
+        "группов",
+        "орг",
+        "тройнич",
+        "мжмж",
+        "мжм",
+        "жмж",
+        "ммж",
+        "втроем",
+        "втроём",
+        "вчетвером",
+        "лизать",
+        "трах",
+        "киск",
+        "двойное проник",
+        "проникнов",
+        "границ",
+        "стоп",
+        "соглас",
+        "защит",
+        "презерв",
+        "меф",
+        "наркот",
+        "веществ",
+        "хим",
+    )
+    return any(marker in normalized for marker in markers)
+
+
+def _strip_low_value_intimacy_tail(text: str) -> str:
+    normalized = " ".join(str(text or "").split()).strip()
+    if not normalized:
+        return normalized
+    low_value_markers = (
+        "что цепляет",
+        "а тебя в этом",
+        "тебя здесь сильнее",
+        "дальше это может",
+        "дальше можно аккуратно",
+        "важный узел",
+        "другой вес",
+        "точка, где все начинает",
+        "точка, где всё начинает",
+        "набирает силу",
+        "если хочешь, продолжим",
+    )
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
+    kept: list[str] = []
+    for sentence in sentences:
+        lower_sentence = sentence.lower()
+        marker_positions = [
+            lower_sentence.find(marker)
+            for marker in low_value_markers
+            if marker in lower_sentence
+        ]
+        if not marker_positions:
+            kept.append(sentence)
+            continue
+        first_marker = min(position for position in marker_positions if position >= 0)
+        prefix = sentence[:first_marker].rstrip(" ,;:-")
+        if prefix and "?" not in prefix and len(prefix.split()) >= 3:
+            kept.append(prefix)
+    if not kept:
+        return _strip_question_sentences(normalized)
+    cleaned = " ".join(kept).strip()
+    return cleaned if cleaned.endswith((".", "!", "?")) else f"{cleaned}."
+
+
 def _tighten_comfort_response(text: str) -> str:
     normalized = " ".join(str(text or "").split()).strip()
     if not normalized:
@@ -550,6 +623,8 @@ def _build_dialogue_pull_question(user_message: str) -> str:
         if any(marker in request for marker in ("ничего", "не радует", "пусто")):
             return "Это больше похоже на усталость, тревогу или чувство пустоты?"
         return "Что сейчас давит сильнее — горе, тревога за близких или усталость от решений?"
+    if _looks_like_sensitive_intimacy_text(request):
+        return ""
     if "хим" in request:
         return "Тебя здесь сильнее тянет к изменённому состоянию или к ощущению, что рамка исчезает?"
     if any(marker in request for marker in ("орг", "втроем", "вчетвером", "секс", "жмж", "мжм", "ммж", "мжмж", "тройнич", "группов")):
@@ -575,16 +650,16 @@ def _build_dialogue_pull_question(user_message: str) -> str:
     if topic == "energy":
         return "У тебя тут не хватает удара, контраста или просто живого желания продолжать?"
     if topic == "approach":
-        return "Тебя в этом заходе цепляет сам угол, подача или обещание результата?"
+        return "Что здесь главное: угол, подача или обещание результата?"
     if topic == "go_no_go":
         return "Тебя сюда тянет по делу или больше пугает мысль упустить момент?"
     if topic == "comparison":
         return "Что тебе самому тут ближе из этих двух вариантов?"
     if topic == "taste":
-        return "Тебя тут больше цепляет форма, энергия или сам заход?"
+        return "Что здесь сильнее работает: форма, энергия или сам заход?"
     if "что ты думаешь" in request or "что думаешь" in request:
-        return "А тебя в этом что цепляет сильнее всего?"
-    return "А тебя в этом что цепляет сильнее всего?"
+        return ""
+    return ""
 
 
 def apply_human_style_guardrails(
@@ -680,6 +755,9 @@ def apply_human_style_guardrails(
 
     if active_mode == "comfort":
         guarded = _tighten_comfort_response(guarded)
+
+    if _looks_like_sensitive_intimacy_text(user_message) or _looks_like_sensitive_intimacy_text(guarded):
+        guarded = _strip_low_value_intimacy_tail(guarded)
 
     return guarded.strip()
 

@@ -87,7 +87,7 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn('id="overview-launch-readiness"', source)
         self.assertIn("function launchReadinessItems()", source)
         self.assertIn("function renderSetup()", source)
-        self.assertIn("Conversation Lab", source)
+        self.assertIn("Лаборатория диалога", source)
         self.assertIn('id="test-quality"', source)
         self.assertIn("function renderTestQuality()", source)
         self.assertIn("data-test-case", source)
@@ -95,9 +95,20 @@ class AdminDashboardTemplateTests(unittest.TestCase):
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 
-        self.assertIn("Plans и оплата", source)
-        self.assertIn("Пакеты Plans", source)
+        self.assertIn("Тарифы и оплата", source)
+        self.assertIn("Пакеты тарифов", source)
         self.assertIn("Тарифы конечного пользователя", source)
+
+    def test_saas_dashboard_additions_are_localized(self):
+        source = self._admin_source()
+
+        self.assertNotIn(">Setup<", source)
+        self.assertNotIn("Launch readiness", source)
+        self.assertNotIn("Bot identity", source)
+        self.assertNotIn("Quality notes", source)
+        self.assertNotIn("Revenue surface", source)
+        self.assertNotIn("Plans и оплата", source)
+        self.assertNotIn("Пакеты Plans", source)
 
     def test_static_id_selectors_used_by_js_exist_in_markup(self):
         source = self._admin_source()

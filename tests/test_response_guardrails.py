@@ -137,9 +137,9 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertIn("Так ты это только собьёшь", result)
         self.assertIn("Если хочешь, я", result)
         self.assertNotIn("Важно заранее", result)
-        self.assertIn("?", result)
+        self.assertNotIn("А тебя", result)
 
-    def test_human_style_guardrails_adds_dialogue_pull_question(self):
+    def test_human_style_guardrails_avoids_dialogue_pull_for_sensitive_prompt(self):
         result = apply_human_style_guardrails(
             "Думаю, там слишком легко теряется ясность.",
             answer_first=True,
@@ -148,8 +148,8 @@ class ResponseGuardrailsTests(unittest.TestCase):
             user_message="Хим секс оргия что ты думаешь",
         )
 
-        self.assertTrue(result.endswith("?"))
-        self.assertIn("изменённому состоянию", result)
+        self.assertFalse(result.endswith("?"))
+        self.assertNotIn("изменённому состоянию", result)
 
     def test_human_style_guardrails_support_context_avoids_product_tone(self):
         result = apply_human_style_guardrails(
@@ -178,8 +178,8 @@ class ResponseGuardrailsTests(unittest.TestCase):
         )
 
         self.assertIn("Ок, желание понятно", result)
-        self.assertIn("фантазия, разговор с партнёрами или уже реальный план", result)
-        self.assertIn("?", result)
+        self.assertNotIn("фантазия, разговор с партнёрами или уже реальный план", result)
+        self.assertNotIn("?", result)
         self.assertNotIn("только трезво", result.lower())
 
     def test_human_style_guardrails_compress_to_dialogue_turn(self):
@@ -208,6 +208,21 @@ class ResponseGuardrailsTests(unittest.TestCase):
         )
 
         self.assertFalse(result.endswith("?"))
+
+    def test_sensitive_intimacy_tail_does_not_repeat_generic_question(self):
+        result = apply_human_style_guardrails(
+            "Сначала договоритесь о границах и стоп-сигнале, и дальше это может зайти глубже, чем кажется сейчас. "
+            "А тебя в этом что цепляет сильнее всего?",
+            answer_first=True,
+            allow_follow_up_question=True,
+            prefer_follow_up_question=True,
+            user_message="Попробовать новое, расскажи про границы",
+        )
+
+        self.assertNotIn("что цепляет", result)
+        self.assertNotIn("зайти глубже", result)
+        self.assertNotIn("?", result)
+        self.assertIn("границах", result)
 
     def test_comfort_guardrails_strip_abstract_fog_and_question_on_cooldown(self):
         result = apply_human_style_guardrails(

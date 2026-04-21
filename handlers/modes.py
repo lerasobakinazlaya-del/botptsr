@@ -19,7 +19,18 @@ CALLBACK_MODE_PREFIX = "mode:"
 def build_modes_menu_text(user: dict, runtime_settings: dict, mode_catalog: dict) -> str:
     ui_settings = runtime_settings.get("ui", {})
     title = str(ui_settings.get("modes_title") or "Выбери режим общения:").strip()
-    return title or "Выбери режим общения:"
+    text = title or "Выбери режим общения:"
+    if not bool((user or {}).get("is_premium")):
+        premium_modes = [
+            str(mode.get("name") or key)
+            for key, mode in (mode_catalog or {}).items()
+            if bool(mode.get("is_premium"))
+        ]
+        premium_button = str(ui_settings.get("premium_button_text") or "Полный доступ").strip()
+        if premium_modes:
+            preview = ", ".join(premium_modes[:2])
+            text = f"{text}\n\n{premium_button}: откроет режимы {preview} и более глубокие ответы без короткого обрыва."
+    return text
 
 
 async def show_modes_menu(message: Message, user_service, admin_settings_service):

@@ -129,6 +129,12 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(message.answers[0]["text"], "Привет, это тестовое приветствие.")
         self.assertEqual(message.answers[1]["text"], "Быстрый старт:\n• Напиши первую задачу")
         self.assertIsNotNone(message.answers[1]["reply_markup"])
+        onboarding_buttons = [
+            button.text
+            for row in message.answers[1]["reply_markup"].keyboard
+            for button in row
+        ]
+        self.assertIn("✨ Полный доступ", onboarding_buttons)
         self.assertEqual(len(message.photos), 0)
 
     async def test_start_handler_tracks_onboarding_state_and_acquisition(self):

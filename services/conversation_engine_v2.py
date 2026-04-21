@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 from typing import Any
@@ -14,8 +14,8 @@ class ConversationEngineV2:
     DEFAULT_DIALOGUE_SETTINGS = {
         "hook_max_sentences": 2,
         "hook_max_chars": 260,
-        "hook_require_follow_up_question": True,
-        "hook_topic_questions_enabled": True,
+        "hook_require_follow_up_question": False,
+        "hook_topic_questions_enabled": False,
         "risky_scene_compact_redirect": True,
         "charged_probe_compact_redirect": True,
     }
@@ -148,6 +148,7 @@ class ConversationEngineV2:
         user_message: str = "",
         base_instruction: str = "",
         history: list[Any] | None = None,
+        subscription_plan: str = "free",
         is_reengagement: bool = False,
         is_proactive: bool = False,
         access_profile: dict[str, Any] | None = None,
@@ -168,6 +169,10 @@ class ConversationEngineV2:
             character_core,
             self._build_mode_block(active_mode=active_mode, mode_pack=mode_pack),
             self._build_access_block(access_level=access_level, access_profile=access_profile),
+            self._build_subscription_block(
+                subscription_plan=subscription_plan,
+                interaction_count=int((state or {}).get("interaction_count", 0) or 0),
+            ),
             (
                 "System boundaries:\n"
                 "- Keep consent explicit and readable.\n"
@@ -277,12 +282,17 @@ class ConversationEngineV2:
         dialogue_settings = self._resolve_dialogue_settings(
             runtime_settings.get("ai", {}).get("dialogue")
         )
-        question_cooldown = self._recent_assistant_questions(history or [])
+        question_cooldown = self._recent_assistant_questions(history or []) or self._user_is_answering_recent_question(
+            normalized_message,
+            history or [],
+        )
+        sensitive_intimacy_context = self._looks_like_sensitive_intimacy_context(normalized_message)
         user_invited_questions = self._user_explicitly_invites_questions(normalized_message)
         allow_question = (
-            user_invited_questions
+            (user_invited_questions and not sensitive_intimacy_context)
             or (
                 not question_cooldown
+                and not sensitive_intimacy_context
                 and active_mode != "comfort"
                 and (
                     self._looks_like_hook_turn(normalized_message)
@@ -290,7 +300,7 @@ class ConversationEngineV2:
                 )
             )
         )
-        return apply_human_style_guardrails(
+        guarded = apply_human_style_guardrails(
             text,
             active_mode=active_mode,
             answer_first=self._looks_like_answer_first_request(normalized_message),
@@ -316,8 +326,9 @@ class ConversationEngineV2:
             compress_to_dialogue_turn=self._looks_like_hook_turn(normalized_message),
             prefer_follow_up_question=(
                 not question_cooldown
+                and not sensitive_intimacy_context
                 and active_mode != "comfort"
-                and bool(dialogue_settings.get("hook_require_follow_up_question", True))
+                and bool(dialogue_settings.get("hook_require_follow_up_question", False))
                 and (force_dialogue_pull or self._should_pull_dialogue(normalized_message))
             ),
             user_message=user_message,
@@ -325,6 +336,7 @@ class ConversationEngineV2:
             hook_max_chars=int(dialogue_settings.get("hook_max_chars", 260)),
             topic_questions_enabled=bool(dialogue_settings.get("hook_topic_questions_enabled", True)),
         )
+        return self._strip_repeated_dialogue_tail(guarded, history or [])
 
     def _build_mode_block(self, *, active_mode: str, mode_pack: dict[str, Any]) -> str:
         lines = [
@@ -582,12 +594,30 @@ class ConversationEngineV2:
                 ]
             )
 
+        if self._looks_like_sensitive_intimacy_context(normalized_message):
+            lines.extend(
+                [
+                    "- Do not repeat motive-menu questions like novelty/revenge/boundary-shift.",
+                    "- Do not append generic open loops about going deeper, hidden weight, or what hooks the user.",
+                    "- Give one direct human reply to the current message; if advice was requested, continue with practical framing instead of interviewing.",
+                ]
+            )
+
         if recent_question_loop:
             lines.extend(
                 [
                     "- Recent assistant turns were already question-heavy.",
                     "- Do not repeat the same motive menu or ask another generic follow-up.",
                     "- Continue the thread by giving substance, a concrete next beat, or a useful framing instead.",
+                ]
+            )
+
+        if self._user_is_answering_recent_question(normalized_message, history or []):
+            lines.extend(
+                [
+                    "- The user is answering your previous question.",
+                    "- Do not ask another question in this turn.",
+                    "- Use their answer to move the conversation forward with substance.",
                 ]
             )
 
@@ -599,7 +629,7 @@ class ConversationEngineV2:
                     "- Keep the redirect compact, confident, and non-judgmental. No scolding, no moral lecture, no moderator tone.",
                     "- If a boundary is necessary, express it in one clean sentence near the end instead of making it the whole reply.",
                     "- Default to 2-4 sentences unless the user explicitly asks for a detailed plan.",
-                    "- Prefer ending with one sharp follow-up question that opens the next turn instead of a generic wrap-up.",
+                    "- Prefer a concrete safer next beat over a follow-up question.",
                 ]
             )
 
@@ -646,6 +676,61 @@ class ConversationEngineV2:
 
         return "\n".join(lines)
 
+    def _build_subscription_block(self, *, subscription_plan: str, interaction_count: int) -> str:
+        plan = str(subscription_plan or "free").strip().lower() or "free"
+        if plan in {"premium", "pro", "paid"}:
+            return (
+                "Subscription behavior:\n"
+                "- User is premium: give the richer version, with more context, sharper personalization, and a clearer next move.\n"
+                "- Do not upsell premium to a premium user.\n"
+                "- Premium depth means useful specificity, not longer fluff or more questions."
+            )
+
+        lines = [
+            "Subscription behavior:",
+            "- User is free: still answer usefully and humanly; never make the free reply feel like a dead end.",
+            "- Keep the free reply slightly more compact than premium, then leave one concrete reason premium would continue better.",
+            "- The premium nudge must feel like a natural continuation of this exact conversation, not an ad banner.",
+            "- Do not use generic phrases like 'buy premium' or 'upgrade now'. Use a soft line about what the deeper version would add.",
+        ]
+        if interaction_count <= 3:
+            lines.append(
+                "- Early conversation: make the value gap visible by giving a good first answer plus a tempting next layer premium can unlock."
+            )
+        return "\n".join(lines)
+
+    def _strip_repeated_dialogue_tail(self, text: str, history: list[Any]) -> str:
+        normalized = " ".join(str(text or "").split()).strip()
+        if not normalized or "?" not in normalized:
+            return normalized
+        if not self._recent_assistant_questions(history):
+            return normalized
+
+        parts = [part.strip() for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
+        if len(parts) <= 1 or not parts[-1].endswith("?"):
+            return normalized
+
+        last_question = parts[-1].lower()
+        repeated_markers = (
+            "что цепляет",
+            "сильнее",
+            "новизна",
+            "ревность",
+            "сдвиг",
+            "границ",
+            "фантазия",
+            "реальный план",
+            "тормозит",
+            "проседает",
+            "форма",
+            "энергия",
+            "сам заход",
+        )
+        if any(marker in last_question for marker in repeated_markers):
+            stripped = " ".join(parts[:-1]).strip()
+            return stripped if stripped.endswith((".", "!", "?")) else f"{stripped}."
+        return normalized
+
     def _recent_assistant_questions(self, history: list[Any]) -> bool:
         assistant_turns: list[str] = []
         for item in reversed(history or []):
@@ -658,6 +743,46 @@ class ConversationEngineV2:
             if len(assistant_turns) >= 2:
                 break
         return len(assistant_turns) >= 2 and all("?" in turn for turn in assistant_turns[:2])
+
+    def _user_is_answering_recent_question(self, text: str, history: list[Any]) -> bool:
+        if not text:
+            return False
+        words = text.split()
+        if len(words) > 10:
+            return False
+
+        last_assistant_message = ""
+        for item in reversed(history or []):
+            role = str(self._history_item_field(item, "role") or "")
+            if role != "assistant":
+                continue
+            last_assistant_message = str(self._history_item_field(item, "content") or "")
+            break
+
+        if "?" not in last_assistant_message:
+            return False
+
+        answer_markers = (
+            "да",
+            "нет",
+            "не знаю",
+            "новизна",
+            "ревность",
+            "сдвиг",
+            "границ",
+            "зрелище",
+            "страх",
+            "усталость",
+            "тревога",
+            "злость",
+            "работа",
+            "отношения",
+            "деньги",
+            "хочу",
+            "может",
+            "скорее",
+        )
+        return len(words) <= 4 or any(marker in text for marker in answer_markers)
 
     def _resolve_mode_pack(self, payload: Any, active_mode: str) -> dict[str, Any]:
         pack = dict(self.DEFAULT_MODE_PACKS.get(active_mode, self.DEFAULT_MODE_PACKS["base"]))
@@ -909,6 +1034,35 @@ class ConversationEngineV2:
         )
         sexual_hints = ("секс", "группов", "оргия", "тройнич")
         return any(hint in text for hint in drug_hints) and any(hint in text for hint in sexual_hints)
+
+    def _looks_like_sensitive_intimacy_context(self, text: str) -> bool:
+        hints = (
+            "секс",
+            "группов",
+            "оргия",
+            "тройнич",
+            "мжмж",
+            "мжм",
+            "жмж",
+            "ммж",
+            "втроем",
+            "втроём",
+            "вчетвером",
+            "лизать",
+            "трах",
+            "киск",
+            "двойное проник",
+            "проникнов",
+            "границ",
+            "стоп",
+            "соглас",
+            "защит",
+            "меф",
+            "наркот",
+            "веществ",
+            "хим",
+        )
+        return any(hint in text for hint in hints)
 
     def _next_list_number(self, history: list[Any]) -> int | None:
         last_assistant_message = ""

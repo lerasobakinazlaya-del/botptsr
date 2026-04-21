@@ -93,11 +93,34 @@ class AdminSettingsService:
             "log_full_prompt": False,
             "debug_prompt_user_id": None,
             "response_language": "ru",
+            "plan_overrides": {
+                "free": {
+                    "model": "gpt-4o-mini",
+                    "max_completion_tokens": 180,
+                    "memory_max_tokens": 700,
+                    "history_message_limit": 12,
+                    "prompt_suffix": "Free: дай полезный короткий ответ и мягко покажи, какой следующий слой раскроет Premium.",
+                },
+                "pro": {
+                    "model": "gpt-4o-mini",
+                    "max_completion_tokens": 320,
+                    "memory_max_tokens": 1200,
+                    "history_message_limit": 18,
+                    "prompt_suffix": "Pro: отвечай плотнее, держи больше контекста и доводи мысль до следующего шага.",
+                },
+                "premium": {
+                    "model": "gpt-5.4",
+                    "max_completion_tokens": 520,
+                    "memory_max_tokens": 1800,
+                    "history_message_limit": 24,
+                    "prompt_suffix": "Premium: давай заметно более глубокий, связный и персональный ответ без рекламного тона.",
+                },
+            },
             "dialogue": {
                 "hook_max_sentences": 2,
                 "hook_max_chars": 260,
-                "hook_require_follow_up_question": True,
-                "hook_topic_questions_enabled": True,
+                "hook_require_follow_up_question": False,
+                "hook_topic_questions_enabled": False,
                 "risky_scene_compact_redirect": True,
                 "charged_probe_compact_redirect": True,
             },
@@ -391,8 +414,8 @@ class AdminSettingsService:
                     "mood_ping",
                     "playful_hook",
                 ],
-                "prefer_callback_thread": True,
-                "allow_question": True,
+                "prefer_callback_thread": False,
+                "allow_question": False,
                 "max_chars": 220,
                 "max_completion_tokens": 120,
             },
@@ -1303,10 +1326,10 @@ class AdminSettingsService:
         merged["hook_max_sentences"] = max(1, min(4, int(merged.get("hook_max_sentences", 2))))
         merged["hook_max_chars"] = max(120, min(500, int(merged.get("hook_max_chars", 260))))
         merged["hook_require_follow_up_question"] = bool(
-            merged.get("hook_require_follow_up_question", True)
+            merged.get("hook_require_follow_up_question", False)
         )
         merged["hook_topic_questions_enabled"] = bool(
-            merged.get("hook_topic_questions_enabled", True)
+            merged.get("hook_topic_questions_enabled", False)
         )
         merged["risky_scene_compact_redirect"] = bool(
             merged.get("risky_scene_compact_redirect", True)
@@ -1369,8 +1392,8 @@ class AdminSettingsService:
         merged["enabled_families"] = families or list(
             self.DEFAULT_RUNTIME_SETTINGS["engagement"]["reengagement_style"]["enabled_families"]
         )
-        merged["prefer_callback_thread"] = bool(merged.get("prefer_callback_thread", True))
-        merged["allow_question"] = bool(merged.get("allow_question", True))
+        merged["prefer_callback_thread"] = bool(merged.get("prefer_callback_thread", False))
+        merged["allow_question"] = bool(merged.get("allow_question", False))
         merged["max_chars"] = max(120, min(500, int(merged.get("max_chars", 220))))
         merged["max_completion_tokens"] = max(
             64,

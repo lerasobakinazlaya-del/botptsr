@@ -74,7 +74,7 @@ class ConversationProductEvalTests(unittest.TestCase):
                 self.assertIn("one sharp question", prompt)
                 self.assertIn("not a request for an essay", prompt)
 
-    def test_product_hook_dataset_guard_response_stays_short_and_pulling(self):
+    def test_product_hook_dataset_guard_response_stays_short_and_substantive(self):
         for user_message in PRODUCT_HOOK_CASES:
             with self.subTest(user_message=user_message):
                 result = self.engine.guard_response(
@@ -85,7 +85,6 @@ class ConversationProductEvalTests(unittest.TestCase):
 
                 self.assertLessEqual(len(result), 320)
                 self.assertLessEqual(result.count("?"), 1)
-                self.assertTrue(result.endswith("?"))
                 self.assertLessEqual(len([part for part in result.replace("!", ".").replace("?", ".").split(".") if part.strip()]), 3)
                 for fragment in BANNED_FRAGMENTS:
                     self.assertNotIn(fragment, lowered)
@@ -99,14 +98,8 @@ class ConversationProductEvalTests(unittest.TestCase):
             for user_message in PRODUCT_HOOK_CASES
         ]
         unique_outputs = set(outputs)
-        unique_questions = {
-            output.split("?")[0].split(".")[-1].strip() + "?"
-            for output in outputs
-            if "?" in output
-        }
 
         self.assertGreaterEqual(len(unique_outputs), 11)
-        self.assertGreaterEqual(len(unique_questions), 10)
 
     def test_example_product_decision_flow_stays_dialogue_driven(self):
         followup = build_followup(
