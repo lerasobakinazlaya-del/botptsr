@@ -297,6 +297,10 @@ class AIService:
             user_message=user_message,
             subscription_plan=subscription_plan,
         )
+        history_for_context = self._limit_history_messages(
+            history,
+            ai_profile["history_message_limit"],
+        )
         access_level = self.access_engine.update_access_level(new_state)
         access_decision = self.access_engine.evaluate_access(
             state=new_state,
@@ -307,14 +311,15 @@ class AIService:
         access_level = str(access_decision["level"])
         if bool(access_decision.get("clamped")):
             self._intimacy_clamp_count += 1
-        memory_messages = await self.memory_engine.build_context(
-            history,
+        memory_messages = await self._build_memory_messages(
+            history_for_context,
             max_tokens=ai_profile["memory_max_tokens"],
+            max_messages=ai_profile["history_message_limit"],
         )
         memory_context = await self._build_memory_context(
             new_state,
             user_id=user_id,
-            history=history,
+            history=history_for_context,
         )
         grounding_kind = self.keyword_memory_service.detect_grounding_need(user_message)
         driver_context = self._resolve_conversation_driver_context(
@@ -344,10 +349,10 @@ class AIService:
             base_instruction=self._compose_reply_instruction(
                 base_instruction=ai_profile["prompt_suffix"],
                 user_message=user_message,
-                history=history,
+                history=history_for_context,
                 driver_context=driver_context,
             ),
-            history=history,
+            history=history_for_context,
             access_profile=access_decision.get("budget"),
         )
 
@@ -402,7 +407,8 @@ class AIService:
             response_text,
             user_message=user_message,
             active_mode=active_mode,
-            history=history,
+            history=history_for_context,
+            crisis_signal=crisis_signal,
         )
         if driver_context is not None:
             response_text = self._apply_conversation_driver_guardrails(
@@ -419,6 +425,13 @@ class AIService:
         )
         if hook_used:
             new_state["last_hook"] = hook_used
+        response_text = self.conversation_engine.guard_response(
+            response_text,
+            user_message=user_message,
+            active_mode=active_mode,
+            history=history_for_context,
+            crisis_signal=crisis_signal,
+        )
         if driver_context is not None:
             new_state["last_detected_intent"] = str(driver_context["intent"])
             new_state["last_driver_question_id"] = str(driver_context["question_id"])
@@ -455,6 +468,10 @@ class AIService:
             resolve_ai_profile(ai_settings, active_mode),
             reengagement_style=reengagement_style,
         )
+        history_for_context = self._limit_history_messages(
+            history,
+            ai_profile["history_message_limit"],
+        )
         access_level = self.access_engine.update_access_level(state)
         access_decision = self.access_engine.evaluate_access(
             state=state,
@@ -466,14 +483,15 @@ class AIService:
         access_level = str(access_decision["level"])
         if bool(access_decision.get("clamped")):
             self._reengagement_clamped_count += 1
-        memory_messages = await self.memory_engine.build_context(
-            history,
+        memory_messages = await self._build_memory_messages(
+            history_for_context,
             max_tokens=ai_profile["memory_max_tokens"],
+            max_messages=ai_profile["history_message_limit"],
         )
         memory_context = await self._build_memory_context(
             state,
             user_id=user_id,
-            history=history,
+            history=history_for_context,
         )
         relationship = (state or {}).get("relationship_state", {})
         last_user_message_at = relationship.get("last_user_message_at")
@@ -496,7 +514,7 @@ class AIService:
                 active_mode=active_mode,
                 style_settings=reengagement_style,
             ),
-            history=history,
+            history=history_for_context,
             is_reengagement=True,
             access_profile=access_decision.get("budget"),
         )
@@ -535,7 +553,7 @@ class AIService:
             response_text,
             user_message="Сформулируй одно живое сообщение первой инициативы.",
             active_mode=active_mode,
-            history=history,
+            history=history_for_context,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),
         )
         response_text, hook_used = self._apply_emotional_hook(
@@ -543,6 +561,13 @@ class AIService:
             state=state,
             user_message="",
             source="reengagement",
+        )
+        response_text = self.conversation_engine.guard_response(
+            response_text,
+            user_message="РЎС„РѕСЂРјСѓР»РёСЂСѓР№ РѕРґРЅРѕ Р¶РёРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РїРµСЂРІРѕР№ РёРЅРёС†РёР°С‚РёРІС‹.",
+            active_mode=active_mode,
+            history=history_for_context,
+            force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),
         )
 
         new_state = self.human_memory_service.apply_assistant_message(
@@ -1341,6 +1366,36 @@ class AIService:
         if not recent:
             return False
         return sum(message.count("?") for message in recent) >= 2
+
+    def _limit_history_messages(self, history: List[Dict[str, str]], limit: int | None) -> List[Dict[str, str]]:
+        try:
+            normalized_limit = int(limit or 0)
+        except (TypeError, ValueError):
+            normalized_limit = 0
+        if normalized_limit <= 0:
+            return list(history or [])
+        return list(history or [])[-normalized_limit:]
+
+    async def _build_memory_messages(
+        self,
+        history: List[Dict[str, str]],
+        *,
+        max_tokens: int | None,
+        max_messages: int | None,
+    ) -> List[Dict[str, str]]:
+        try:
+            return await self.memory_engine.build_context(
+                history,
+                max_tokens=max_tokens,
+                max_messages=max_messages,
+            )
+        except TypeError as exc:
+            if "max_messages" not in str(exc):
+                raise
+            return await self.memory_engine.build_context(
+                history,
+                max_tokens=max_tokens,
+            )
 
     @staticmethod
     def _history_item_field(item: Any, field: str) -> Any:

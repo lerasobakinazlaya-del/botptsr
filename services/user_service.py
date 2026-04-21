@@ -460,12 +460,19 @@ class UserService:
             SET subscription_plan = ?,
                 is_premium = ?,
                 premium_expires_at = CASE
+                    WHEN ? = 1 AND premium_expires_at IS NOT NULL AND premium_expires_at <= CURRENT_TIMESTAMP THEN NULL
                     WHEN ? = 1 THEN premium_expires_at
                     ELSE NULL
                 END
             WHERE id = ?
             """,
-            ("premium" if value else "free", 1 if value else 0, 1 if value else 0, user_id),
+            (
+                "premium" if value else "free",
+                1 if value else 0,
+                1 if value else 0,
+                1 if value else 0,
+                user_id,
+            ),
         )
         await self.db.connection.commit()
         return cursor.rowcount > 0

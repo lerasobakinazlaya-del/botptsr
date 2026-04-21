@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -361,10 +361,10 @@ class PaymentService:
         amount_minor_units = int(package.get("price_minor_units", 0))
         amount = self._to_major_units(amount_minor_units, payment["currency"])
         plan_key = str(package.get("plan_key") or "premium").strip().lower() or "premium"
-        premium_expires_at = await self.user_service.grant_subscription_days(
-            user_id,
-            plan_key,
-            int(package.get("access_duration_days", 30)),
+        premium_expires_at = await self._calculate_premium_expires_at(
+            user_id=user_id,
+            payment=SimpleNamespace(subscription_expiration_date=None),
+            package=package,
         )
         payment_info = await self.payment_repository.save_payment(
             user_id=user_id,
@@ -389,6 +389,12 @@ class PaymentService:
                 "package_price_minor_units": amount_minor_units,
                 "virtual_payment": True,
             },
+        )
+
+        await self.user_service.grant_subscription_days(
+            user_id,
+            plan_key,
+            int(package.get("access_duration_days", 30)),
         )
 
         referral_result = await self.referral_service.process_successful_payment(
@@ -473,7 +479,11 @@ class PaymentService:
             raise ValueError("Unknown premium package")
 
         amount = self._to_major_units(payment.total_amount, payment.currency)
-        premium_expires_at = await self._apply_premium_access(user_id, payment, package)
+        premium_expires_at = await self._calculate_premium_expires_at(
+            user_id=user_id,
+            payment=payment,
+            package=package,
+        )
         payment_info = await self.payment_repository.save_payment(
             user_id=user_id,
             provider="telegram",
@@ -498,6 +508,19 @@ class PaymentService:
             },
         )
 
+        if payment_info.get("already_processed"):
+            return {
+                "payment": payment_info,
+                "referral": None,
+                "premium_expires_at": premium_expires_at,
+                "is_recurring": bool(payment.is_recurring),
+                "is_first_recurring": bool(payment.is_first_recurring),
+                "package_key": package["key"],
+                "package_title": package["title"],
+                "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
+            }
+
+        await self._apply_premium_access(user_id, payment, package)
         referral_result = await self.referral_service.process_successful_payment(
             referred_user_id=user_id,
             amount_minor_units=payment.total_amount,
@@ -556,6 +579,29 @@ class PaymentService:
 
         access_duration_days = int(package.get("access_duration_days", 30))
         return await self.user_service.grant_subscription_days(user_id, plan_key, access_duration_days)
+
+    async def _calculate_premium_expires_at(self, *, user_id: int, payment, package: dict) -> str | None:
+        subscription_expiration_date = getattr(payment, "subscription_expiration_date", None)
+        if subscription_expiration_date:
+            expires_at = datetime.fromtimestamp(subscription_expiration_date, tz=timezone.utc)
+            return expires_at.strftime("%Y-%m-%d %H:%M:%S")
+
+        access_duration_days = int(package.get("access_duration_days", 30))
+        current_user = await self.user_service.get_user(user_id)
+        current_expiry = None
+        if current_user is not None:
+            current_expiry = current_user.get("premium_expires_at")
+
+        parsed_current_expiry = None
+        if current_expiry:
+            try:
+                parsed_current_expiry = datetime.strptime(str(current_expiry), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            except ValueError:
+                parsed_current_expiry = None
+
+        start_at = parsed_current_expiry if parsed_current_expiry and parsed_current_expiry > datetime.now(timezone.utc) else datetime.now(timezone.utc)
+        new_expiry = start_at + timedelta(days=access_duration_days)
+        return new_expiry.strftime("%Y-%m-%d %H:%M:%S")
 
     def format_expiry_text(self, value: str | None) -> str:
         if not value:

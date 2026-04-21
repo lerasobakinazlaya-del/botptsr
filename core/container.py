@@ -1,5 +1,6 @@
 import logging
 import socket
+import time
 from urllib.parse import urlparse
 
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -163,15 +164,30 @@ class Container:
             LOGGER.warning("Redis host is missing, using in-memory fallback")
             return None
 
-        try:
-            with socket.create_connection((host, port), timeout=1.0):
-                LOGGER.info("Redis is reachable at %s:%s", host, port)
-                return Redis.from_url(self.settings.redis_url)
-        except OSError as exc:
-            LOGGER.warning(
-                "Redis is unavailable at %s:%s, using in-memory fallback: %s",
-                host,
-                port,
-                exc,
-            )
-            return None
+        last_exc: OSError | None = None
+        delays = (0.25, 0.5, 1.0, 2.0, 4.0)
+        for attempt, delay in enumerate(delays, start=1):
+            try:
+                with socket.create_connection((host, port), timeout=1.0):
+                    LOGGER.info("Redis is reachable at %s:%s after %s attempt(s)", host, port, attempt)
+                    return Redis.from_url(self.settings.redis_url)
+            except OSError as exc:
+                last_exc = exc
+                LOGGER.warning(
+                    "Redis connection attempt %s/%s failed at %s:%s: %s",
+                    attempt,
+                    len(delays),
+                    host,
+                    port,
+                    exc,
+                )
+                if attempt < len(delays):
+                    time.sleep(delay)
+
+        LOGGER.warning(
+            "Redis is unavailable at %s:%s after retries, using in-memory fallback: %s",
+            host,
+            port,
+            last_exc,
+        )
+        return None

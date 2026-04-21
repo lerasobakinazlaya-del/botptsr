@@ -24,6 +24,12 @@ def is_owner(user_id: int, settings) -> bool:
     return user_id == settings.owner_id
 
 
+def has_strong_admin_permission(user_id: int, settings) -> bool:
+    if is_owner(user_id, settings):
+        return True
+    return user_id in set(getattr(settings, "admin_id", []) or [])
+
+
 def _mask_connection_target(url: str) -> str:
     parsed = urlparse(url)
     host = parsed.hostname or "unknown"
@@ -279,7 +285,10 @@ async def admin_back(callback: CallbackQuery, settings):
 
 
 @router.callback_query(F.data == "premium_give")
-async def premium_give_prompt(callback: CallbackQuery, state: FSMContext):
+async def premium_give_prompt(callback: CallbackQuery, state: FSMContext, settings):
+    if not has_strong_admin_permission(callback.from_user.id, settings):
+        await callback.answer("Доступно только владельцу или подтвержденному администратору.", show_alert=True)
+        return
     await state.set_state(PremiumStates.waiting_for_give_user_id)
     await callback.message.answer("➕ Введи `user_id`, чтобы выдать Premium:")
     await callback.answer()
@@ -287,6 +296,11 @@ async def premium_give_prompt(callback: CallbackQuery, state: FSMContext):
 
 @router.message(PremiumStates.waiting_for_give_user_id)
 async def premium_give_handler(message: Message, state: FSMContext, user_service, settings):
+    if not has_strong_admin_permission(message.from_user.id, settings):
+        await state.clear()
+        await message.answer("Доступно только владельцу или подтвержденному администратору.")
+        return
+
     if not message.text or not message.text.isdigit():
         await message.answer("Введи корректный числовой `user_id`.")
         return
@@ -309,7 +323,10 @@ async def premium_give_handler(message: Message, state: FSMContext, user_service
 
 
 @router.callback_query(F.data == "premium_remove")
-async def premium_remove_prompt(callback: CallbackQuery, state: FSMContext):
+async def premium_remove_prompt(callback: CallbackQuery, state: FSMContext, settings):
+    if not has_strong_admin_permission(callback.from_user.id, settings):
+        await callback.answer("Доступно только владельцу или подтвержденному администратору.", show_alert=True)
+        return
     await state.set_state(PremiumStates.waiting_for_remove_user_id)
     await callback.message.answer("➖ Введи `user_id`, чтобы снять Premium:")
     await callback.answer()
@@ -317,6 +334,11 @@ async def premium_remove_prompt(callback: CallbackQuery, state: FSMContext):
 
 @router.message(PremiumStates.waiting_for_remove_user_id)
 async def premium_remove_handler(message: Message, state: FSMContext, user_service, settings):
+    if not has_strong_admin_permission(message.from_user.id, settings):
+        await state.clear()
+        await message.answer("Доступно только владельцу или подтвержденному администратору.")
+        return
+
     if not message.text or not message.text.isdigit():
         await message.answer("Введи корректный числовой `user_id`.")
         return

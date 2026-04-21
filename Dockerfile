@@ -5,9 +5,15 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+RUN addgroup --system app \
+    && adduser --system --ingroup app --home /app --shell /usr/sbin/nologin app
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN mkdir -p /app/logs && chown -R app:app /app
+
+USER app
 
 CMD ["python", "main.py"]

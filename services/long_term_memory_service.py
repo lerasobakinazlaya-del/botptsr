@@ -309,7 +309,9 @@ class LongTermMemoryService:
             if memory.get("pinned"):
                 continue
             category = str(memory.get("category") or "")
-            freshness_days = self._days_since(memory.get("updated_at")) or self._days_since(memory.get("created_at"))
+            freshness_days = self._days_since(memory.get("updated_at"))
+            if freshness_days is None:
+                freshness_days = self._days_since(memory.get("created_at"))
             if (
                 freshness_days >= float(self.CATEGORY_PRUNE_AFTER_DAYS.get(category, 45))
                 and float(memory.get("score", 0.0)) <= float(self.CATEGORY_PRUNE_MIN_SCORE.get(category, 0.5))
@@ -329,8 +331,8 @@ class LongTermMemoryService:
                 unpinned_remaining,
                 key=lambda item: (
                     float(item.get("score", 0.0)),
-                    self._days_since(item.get("updated_at")),
-                    self._days_since(item.get("last_used_at")),
+                    self._coalesce_days_since(item.get("updated_at"), item.get("created_at")),
+                    self._coalesce_days_since(item.get("last_used_at"), None),
                     int(item.get("times_seen", 0)),
                 ),
                 reverse=False,
@@ -397,8 +399,14 @@ class LongTermMemoryService:
         decay_per_day = float(self.CATEGORY_DECAY_PER_DAY.get(category, 0.05))
         base_weight = float(memory.get("weight", 0.0))
         repetition_bonus = min(2.0, float(memory.get("times_seen", 0)) * 0.2)
-        freshness_days = self._days_since(memory.get("updated_at")) or self._days_since(memory.get("created_at"))
+        freshness_days = self._days_since(memory.get("updated_at"))
+        if freshness_days is None:
+            freshness_days = self._days_since(memory.get("created_at"))
+        if freshness_days is None:
+            freshness_days = 365.0
         used_days = self._days_since(memory.get("last_used_at"))
+        if used_days is None:
+            used_days = 365.0
         inactivity_penalty = max(0.0, freshness_days * decay_per_day)
         used_penalty = max(0.0, used_days * decay_per_day * 0.35)
         return max(0.0, base_weight + repetition_bonus - inactivity_penalty - used_penalty)
@@ -414,11 +422,21 @@ class LongTermMemoryService:
             return float(self.CATEGORY_WEIGHTS[category])
         return max(0.1, min(25.0, float(weight)))
 
-    def _days_since(self, raw_value: Any) -> float:
+    def _days_since(self, raw_value: Any) -> float | None:
         parsed = self._parse_timestamp(raw_value)
         if parsed is None:
-            return 365.0
+            return None
         return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds() / 86400.0)
+
+    def _coalesce_days_since(self, primary_value: Any, fallback_value: Any) -> float:
+        primary_days = self._days_since(primary_value)
+        if primary_days is not None:
+            return primary_days
+
+        fallback_days = self._days_since(fallback_value)
+        if fallback_days is not None:
+            return fallback_days
+        return 365.0
 
     def _parse_timestamp(self, raw_value: Any) -> datetime | None:
         text = str(raw_value or "").strip()

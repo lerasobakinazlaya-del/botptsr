@@ -17,6 +17,24 @@ class PaymentRepository:
         paid_at: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        existing_payment = None
+        cursor = await self.db.connection.execute(
+            """
+            SELECT status, is_first_payment, paid_at
+            FROM payments
+            WHERE provider = ? AND external_payment_id = ?
+            LIMIT 1
+            """,
+            (provider, external_payment_id),
+        )
+        existing_payment = await cursor.fetchone()
+        if existing_payment and str(existing_payment[0]) == "paid":
+            return {
+                "is_first_payment": bool(existing_payment[1]),
+                "paid_at": existing_payment[2],
+                "already_processed": True,
+            }
+
         is_first_payment = 0
         effective_paid_at = paid_at
         if status == "paid":

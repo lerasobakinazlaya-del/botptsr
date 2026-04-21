@@ -7,6 +7,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+DEFAULT_ADMIN_DASHBOARD_PASSWORDS = {
+    "",
+    "change-me",
+    "change-this-strong-password",
+}
+
 
 def parse_admin_ids(raw: str) -> List[int]:
     return [int(x.strip()) for x in raw.split(",") if x.strip()]
@@ -67,7 +73,14 @@ def get_settings() -> Settings:
     if not admin_id:
         raise ValueError("ADMIN_ID not set in .env")
 
-    admin_dashboard_password = os.getenv("ADMIN_DASHBOARD_PASSWORD", "change-me")
+    admin_dashboard_password = os.getenv("ADMIN_DASHBOARD_PASSWORD")
+    if admin_dashboard_password is None:
+        raise ValueError("ADMIN_DASHBOARD_PASSWORD not set in .env")
+
+    admin_dashboard_password = admin_dashboard_password.strip()
+    if admin_dashboard_password in DEFAULT_ADMIN_DASHBOARD_PASSWORDS:
+        raise ValueError("ADMIN_DASHBOARD_PASSWORD must be set to a non-default strong value")
+
     debug = parse_bool(os.getenv("DEBUG"), default=False)
 
     return Settings(

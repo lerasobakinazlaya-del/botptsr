@@ -156,15 +156,15 @@ def _build_confirm_virtual_payment_callback_data(package_key: str) -> str:
     return f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:{safe_package_key}"
 
 
-def _parse_confirm_virtual_payment_callback_data(data: str | None, payment_service) -> str:
+def _parse_confirm_virtual_payment_callback_data(data: str | None, payment_service) -> str | None:
     raw = str(data or "").strip()
     prefix = f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:"
     if not raw.startswith(prefix):
-        return payment_service.get_default_package_key()
+        return None
 
-    package_key = str(raw[len(prefix):]).strip().lower() or payment_service.get_default_package_key()
-    if payment_service.get_package(package_key) is None:
-        return payment_service.get_default_package_key()
+    package_key = str(raw[len(prefix):]).strip().lower()
+    if not package_key or payment_service.get_package(package_key) is None:
+        return None
     return package_key
 
 
@@ -587,6 +587,15 @@ async def confirm_virtual_payment_callback(callback: CallbackQuery, payment_serv
     await callback.answer()
 
     package_key = _parse_confirm_virtual_payment_callback_data(callback.data, payment_service)
+    if package_key is None:
+        payment_settings = payment_service.get_payment_settings()
+        if callback.message is not None and hasattr(callback.message, "answer"):
+            await callback.message.answer(
+                "Не удалось подтвердить тестовую оплату. Выбери тариф заново.",
+                reply_markup=_build_invoice_recovery_keyboard(payment_settings),
+            )
+        return
+
     try:
         result = await payment_service.process_virtual_payment(
             user_id=callback.from_user.id,
@@ -594,6 +603,12 @@ async def confirm_virtual_payment_callback(callback: CallbackQuery, payment_serv
         )
     except ValueError:
         logger.warning("Rejected virtual payment with invalid package for user %s", callback.from_user.id)
+        payment_settings = payment_service.get_payment_settings()
+        if callback.message is not None and hasattr(callback.message, "answer"):
+            await callback.message.answer(
+                "Не удалось подтвердить тестовую оплату. Выбери тариф заново.",
+                reply_markup=_build_invoice_recovery_keyboard(payment_settings),
+            )
         return
 
     if callback.message is not None and hasattr(callback.message, "edit_text"):

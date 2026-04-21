@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 
 from services.keyword_memory_service import KeywordMemoryService
 from services.long_term_memory_service import LongTermMemoryService
@@ -70,7 +71,7 @@ class _FakeSettingsService:
 
 
 class LongTermMemoryServiceNameTests(unittest.IsolatedAsyncioTestCase):
-    async def test_capture_and_prompt_context_include_identity_facts(self):
+    async def test_build_prompt_context_includes_identity_facts(self):
         repository = _FakeRepository()
         service = LongTermMemoryService(
             repository=repository,
@@ -78,13 +79,71 @@ class LongTermMemoryServiceNameTests(unittest.IsolatedAsyncioTestCase):
             settings_service=_FakeSettingsService(),
         )
 
-        await service.capture_from_message(42, "Меня зовут Лена, а мою жену зовут Оля.")
+        repository.memories.extend(
+            [
+                {
+                    "id": 1,
+                    "user_id": 42,
+                    "category": "identity_facts",
+                    "value": "user is Lena",
+                    "weight": 3.2,
+                    "source_kind": "manual",
+                    "pinned": False,
+                    "times_seen": 1,
+                    "created_at": "2026-04-11T00:00:00+00:00",
+                    "updated_at": "2026-04-11T00:00:00+00:00",
+                    "last_used_at": None,
+                },
+                {
+                    "id": 2,
+                    "user_id": 42,
+                    "category": "identity_facts",
+                    "value": "user's wife is Olya",
+                    "weight": 3.2,
+                    "source_kind": "manual",
+                    "pinned": False,
+                    "times_seen": 1,
+                    "created_at": "2026-04-11T00:00:00+00:00",
+                    "updated_at": "2026-04-11T00:00:00+00:00",
+                    "last_used_at": None,
+                },
+            ]
+        )
+
         context = await service.build_prompt_context(42)
 
-        self.assertTrue(any(memory["category"] == "identity_facts" for memory in repository.memories))
         self.assertIn("Важные имена и связи", context)
-        self.assertIn("пользователя зовут Лена", context)
-        self.assertIn("жену пользователя зовут Оля", context)
+        self.assertIn("user is Lena", context)
+        self.assertIn("user's wife is Olya", context)
+
+    async def test_auto_prune_uses_updated_at_when_it_is_current(self):
+        repository = _FakeRepository()
+        service = LongTermMemoryService(
+            repository=repository,
+            keyword_memory_service=KeywordMemoryService(),
+            settings_service=_FakeSettingsService(),
+        )
+
+        repository.memories.append(
+            {
+                "id": 1,
+                "user_id": 42,
+                "category": "current_focus",
+                "value": "recent focus",
+                "weight": 1.6,
+                "source_kind": "manual",
+                "pinned": False,
+                "times_seen": 1,
+                "created_at": "2026-03-01T00:00:00+00:00",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "last_used_at": None,
+            }
+        )
+
+        result = await service.auto_prune(42)
+
+        self.assertEqual(result["deleted_count"], 0)
+        self.assertEqual(len(repository.memories), 1)
 
 
 if __name__ == "__main__":

@@ -1006,6 +1006,7 @@ def _dashboard_html() -> str:
       <div class="toolbar top-toolbar">
         <button class="primary" id="refresh-all">Обновить все</button>
         <button id="export-json">Экспорт JSON</button>
+        <label class="checkbox" style="margin:0"><input id="export-raw-json" type="checkbox">Raw export</label>
         <button id="invalidate-cache">Сбросить кеш</button>
       </div>
       <section class="hero panel">
@@ -1788,6 +1789,7 @@ def _dashboard_html() -> str:
           <div class="toolbar">
             <button class="primary" id="reload-logs">Обновить логи</button>
             <select id="log-lines"><option value="100">100</option><option value="200" selected>200</option><option value="500">500</option></select>
+            <label class="checkbox" style="margin:0"><input id="log-redact-sensitive" type="checkbox" checked>Redact logs</label>
           </div>
           <pre id="logs-output">Загрузка логов...</pre>
         </div>
@@ -1824,6 +1826,19 @@ def _dashboard_html() -> str:
     const onAll=(selector,event,handler)=>{$$(selector).forEach(el=>el.addEventListener(event,handler))};
     async function api(path,options={}){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`Ошибка запроса: ${path}`);return d}
     function notice(text,kind='ok'){const n=$('#notice');n.textContent=text;n.className='notice '+kind}
+    function redactSensitiveString(value){return String(value??'').replace(/[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}/g,'[redacted-email]').replace(/\\b(?:\\+?\\d[\\d\\s().-]{7,}\\d)\\b/g,'[redacted-phone]')}
+    function redactSensitiveObject(value){
+      if(Array.isArray(value))return value.map(redactSensitiveObject);
+      if(!value||typeof value!=='object')return typeof value==='string'?redactSensitiveString(value):value;
+      const out={};
+      for(const [key,item] of Object.entries(value)){
+        const lower=String(key).toLowerCase();
+        if(['provider_token','api_key','secret','password','token','access_token','refresh_token','debug_prompt_user_id'].includes(lower)){out[key]='[redacted]';continue}
+        out[key]=redactSensitiveObject(item);
+      }
+      return out
+    }
+    function redactLogLine(line){return redactSensitiveString(String(line||'')).replace(/\\b(user_id|chat_id|message_id|phone|email)=([^\\s,;]+)/gi,'$1=[redacted]').replace(/\\b\\d{6,}\\b/g,'[redacted-id]')}
     function currentMessageTemplates(){const templates=state.settings?.runtime?.ui?.message_templates;return Array.isArray(templates)&&templates.length?templates:DEFAULT_MESSAGE_TEMPLATES}
     function parseTemplateEditorText(text){return String(text||'').split(/\\n\\s*\\n+/).map(item=>item.trim()).filter(Boolean)}
     function formatTemplateEditorText(items){return (items||[]).map(item=>String(item||'').trim()).filter(Boolean).join('\\n\\n')}
@@ -2194,7 +2209,7 @@ def _dashboard_html() -> str:
       setValue('#referral_referrer_reward_message',ref.referrer_reward_message)
       $('#recent-referrals').textContent=JSON.stringify((state.overview&&state.overview.recent&&state.overview.recent.referrals)||[],null,2)
     }
-    function renderLogs(){if(state.logs)$('#logs-output').textContent=(state.logs.lines||[]).join('\\n')||'Лог пуст.'}
+    function renderLogs(){if(!state.logs)return;const redact=$('#log-redact-sensitive')?.checked!==false;const lines=(state.logs.lines||[]).map(line=>redact?redactLogLine(line):String(line||''));$('#logs-output').textContent=lines.join('\\n')||'Лог пуст.'}
     function runtimePayload(){
       const modeOverrides={};
       document.querySelectorAll('[data-ai-override]').forEach(i=>{
@@ -2338,8 +2353,9 @@ def _dashboard_html() -> str:
     on('#conversation-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#conversation_outbound_text',Number(button.dataset.templateIndex))});
     on('#test-case-buttons','click',event=>{const button=event.target.closest('[data-test-case]');if(!button)return;applyTestCase(button.dataset.testCase);notice('Тестовый кейс подставлен.')});
     on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines')?.value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
+    on('#log-redact-sensitive','change',()=>renderLogs());
     on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
-    on('#export-json','click',()=>api('/api/export').then(d=>{const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='bot-admin-export.json';a.click();URL.revokeObjectURL(url);notice('Экспорт подготовлен.')}).catch(e=>notice(e.message,'error')));
+    on('#export-json','click',async()=>{try{const rawExport=$('#export-raw-json')?.checked===true;if(rawExport&&!window.confirm('Raw export will include sensitive settings values and identifiers. Continue?')){notice('Экспорт отменен.','error');return}const data=await api('/api/export');const payload=rawExport?data:redactSensitiveObject(data);const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=rawExport?'bot-admin-export-raw.json':'bot-admin-export-redacted.json';a.click();URL.revokeObjectURL(url);notice(rawExport?'Raw export prepared.':'Экспорт подготовлен с редактированием чувствительных данных.')}catch(e){notice(e.message,'error')}});
     on('#save-runtime','click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки ИИ и интерфейса сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-safety','click',()=>save('/api/settings/runtime',safetyPayload(),'Настройки безопасности сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-prompts','click',()=>save('/api/settings/prompts',promptsPayload(),'Промпты сохранены.').catch(e=>notice(e.message,'error')));

@@ -8,6 +8,25 @@ BOT_SERVICE="${BOT_SERVICE:-bot.service}"
 ADMIN_SERVICE="${ADMIN_SERVICE:-admin-dashboard.service}"
 REDIS_SERVICE="${REDIS_SERVICE:-redis-server.service}"
 SKIP_GIT="${SKIP_GIT:-0}"
+SERVICE_USER="${SERVICE_USER:-bot}"
+SERVICE_GROUP="${SERVICE_GROUP:-bot}"
+
+ensure_service_user() {
+  echo "==> Ensuring service user ${SERVICE_USER} exists"
+
+  if ! getent group "${SERVICE_GROUP}" >/dev/null 2>&1; then
+    sudo groupadd --system "${SERVICE_GROUP}"
+  fi
+
+  if ! id -u "${SERVICE_USER}" >/dev/null 2>&1; then
+    sudo useradd \
+      --system \
+      --gid "${SERVICE_GROUP}" \
+      --home-dir "${APP_DIR}" \
+      --shell /usr/sbin/nologin \
+      "${SERVICE_USER}"
+  fi
+}
 
 ensure_redis() {
   echo "==> Ensuring Redis is installed and running"
@@ -57,6 +76,8 @@ fi
 
 ensure_redis
 
+ensure_service_user
+
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
 
@@ -100,6 +121,11 @@ cat > config/release.json <<EOF
   "deployed_at": "${DEPLOYED_AT}"
 }
 EOF
+
+echo "==> Setting runtime ownership"
+mkdir -p logs
+touch bot.db
+sudo chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${APP_DIR}"
 
 echo "==> Updating systemd unit files"
 sudo cp deploy/systemd/bot.service /etc/systemd/system/bot.service

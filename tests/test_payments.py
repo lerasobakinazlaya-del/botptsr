@@ -264,12 +264,25 @@ class FakeAdminSettingsServiceForOffer:
 
 
 class FakePaymentRepository:
-    def __init__(self):
+    def __init__(self, timeline=None):
         self.saved = None
+        self.calls = []
+        self.timeline = timeline if timeline is not None else []
         self.is_first_payment = True
+        self._records = {}
 
     async def save_payment(self, **kwargs):
+        self.calls.append(kwargs)
+        self.timeline.append("save_payment")
         self.saved = kwargs
+        key = (kwargs["provider"], kwargs["external_payment_id"])
+        existing = self._records.get(key)
+        if existing and existing.get("status") == "paid":
+            return {
+                "is_first_payment": existing["is_first_payment"],
+                "paid_at": existing["paid_at"],
+                "already_processed": True,
+            }
         return {
             "is_first_payment": self.is_first_payment,
             "paid_at": "2026-03-29 12:00:00",
@@ -277,30 +290,43 @@ class FakePaymentRepository:
 
 
 class FakeUserService:
-    def __init__(self):
+    def __init__(self, timeline=None):
         self.grants = []
         self.subscription_grants = []
         self.set_until_calls = []
         self.plan_set_until_calls = []
+        self.timeline = timeline if timeline is not None else []
 
     async def grant_premium_days(self, user_id: int, days: int) -> str:
         self.grants.append((user_id, days))
+        self.timeline.append("grant_premium_days")
         return "2026-04-28 12:00:00"
 
     async def grant_subscription_days(self, user_id: int, plan_key: str, days: int) -> str:
         self.subscription_grants.append((user_id, plan_key, days))
         self.grants.append((user_id, days))
+        self.timeline.append("grant_subscription_days")
         return "2026-04-28 12:00:00"
 
     async def set_premium_until(self, user_id: int, expires_at) -> bool:
         self.set_until_calls.append((user_id, expires_at.strftime("%Y-%m-%d %H:%M:%S")))
+        self.timeline.append("set_premium_until")
         return True
 
     async def set_subscription_plan_until(self, user_id: int, plan_key: str, expires_at) -> bool:
         formatted = expires_at.strftime("%Y-%m-%d %H:%M:%S")
         self.plan_set_until_calls.append((user_id, plan_key, formatted))
         self.set_until_calls.append((user_id, formatted))
+        self.timeline.append("set_subscription_plan_until")
         return True
+
+    async def get_user(self, user_id: int):
+        return {
+            "id": user_id,
+            "is_premium": False,
+            "subscription_plan": "free",
+            "premium_expires_at": None,
+        }
 
 
 class FakeSettingsService:
@@ -536,7 +562,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payment_repository.saved["metadata"]["package_key"], "pro_month")
         self.assertEqual(payment_repository.saved["metadata"]["package_title"], "Pro на 30 дней")
         self.assertEqual(payment_repository.saved["metadata"]["plan_key"], "pro")
-        self.assertEqual(payment_repository.saved["metadata"]["premium_expires_at"], "2026-04-28 12:00:00")
+        self.assertTrue(payment_repository.saved["metadata"]["premium_expires_at"])
         self.assertEqual(
             referral_service.calls,
             [
@@ -548,7 +574,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
                 }
             ],
         )
-        self.assertEqual(result["premium_expires_at"], "2026-04-28 12:00:00")
+        self.assertEqual(result["premium_expires_at"], payment_repository.saved["metadata"]["premium_expires_at"])
         self.assertEqual(result["package_key"], "pro_month")
         self.assertEqual(result["plan_key"], "pro")
         self.assertEqual(monetization_repository.events[-1]["event_name"], "paid")

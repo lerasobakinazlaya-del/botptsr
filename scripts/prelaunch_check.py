@@ -35,7 +35,14 @@ REQUIRED_ENV_KEYS = [
     "OPENAI_API_KEY",
     "OWNER_ID",
     "ADMIN_ID",
+    "ADMIN_DASHBOARD_PASSWORD",
 ]
+
+DEFAULT_ADMIN_DASHBOARD_PASSWORDS = {
+    "",
+    "change-me",
+    "change-this-strong-password",
+}
 
 
 @dataclass
@@ -112,6 +119,29 @@ def _check_settings_env(strict_env: bool) -> CheckResult:
     status = "failed" if strict_env else "skipped"
     detail = "Missing required env keys: " + ", ".join(missing)
     return CheckResult(name="settings-env", status=status, detail=detail)
+
+
+def _check_admin_dashboard_password(strict_env: bool) -> CheckResult:
+    password = str(os.getenv("ADMIN_DASHBOARD_PASSWORD") or "").strip()
+    if not password and not strict_env:
+        return CheckResult(
+            name="admin-dashboard-password",
+            status="skipped",
+            detail="Skipped because ADMIN_DASHBOARD_PASSWORD is not set",
+        )
+
+    if password in DEFAULT_ADMIN_DASHBOARD_PASSWORDS:
+        return CheckResult(
+            name="admin-dashboard-password",
+            status="failed" if strict_env or password else "skipped",
+            detail="ADMIN_DASHBOARD_PASSWORD must be set to a non-default strong value",
+        )
+
+    return CheckResult(
+        name="admin-dashboard-password",
+        status="passed",
+        detail="ADMIN_DASHBOARD_PASSWORD is configured",
+    )
 
 
 def _check_admin_smoke(strict_env: bool) -> CheckResult:
@@ -195,6 +225,7 @@ def main() -> int:
 
     results = [
         _check_settings_env(strict_env=args.strict_env),
+        _check_admin_dashboard_password(strict_env=args.strict_env),
         _check_config_json(),
         _run_command("compileall", compile_command),
         _run_command("pytest", pytest_command),

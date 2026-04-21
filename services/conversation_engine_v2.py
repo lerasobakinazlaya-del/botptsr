@@ -8,6 +8,19 @@ from services.prompt_safety import sanitize_untrusted_context
 
 HEAVY_TONES = {"overwhelmed", "anxious", "guarded"}
 PTSD_CONDITIONAL_MODES = {"comfort"}
+ANSWER_FIRST_PHRASES = (
+    "как лучше",
+    "как сказать",
+    "как сделать",
+    "как быть",
+    "как мне",
+    "как тебе",
+    "как это",
+    "как дальше",
+    "как продолжить",
+    "как поступить",
+    "как понять",
+)
 
 
 class ConversationEngineV2:
@@ -274,6 +287,7 @@ class ConversationEngineV2:
         active_mode: str = "base",
         history: list[Any] | None = None,
         force_dialogue_pull: bool = False,
+        crisis_signal: str | None = None,
     ) -> str:
         from services.response_guardrails import apply_human_style_guardrails
 
@@ -282,6 +296,7 @@ class ConversationEngineV2:
         dialogue_settings = self._resolve_dialogue_settings(
             runtime_settings.get("ai", {}).get("dialogue")
         )
+        crisis_context = bool(crisis_signal)
         question_cooldown = self._recent_assistant_questions(history or []) or self._user_is_answering_recent_question(
             normalized_message,
             history or [],
@@ -294,6 +309,7 @@ class ConversationEngineV2:
                 not question_cooldown
                 and not sensitive_intimacy_context
                 and active_mode != "comfort"
+                and not crisis_context
                 and (
                     self._looks_like_hook_turn(normalized_message)
                     or self._looks_like_charged_probe(normalized_message)
@@ -305,7 +321,7 @@ class ConversationEngineV2:
             active_mode=active_mode,
             answer_first=self._looks_like_answer_first_request(normalized_message),
             allow_follow_up_question=allow_question,
-            suppress_follow_up_question=question_cooldown,
+            suppress_follow_up_question=question_cooldown or crisis_context,
             strip_meta_framing=(
                 self._looks_like_answer_first_request(normalized_message)
                 or self._looks_like_plan_request(normalized_message)
@@ -328,6 +344,7 @@ class ConversationEngineV2:
                 not question_cooldown
                 and not sensitive_intimacy_context
                 and active_mode != "comfort"
+                and not crisis_context
                 and bool(dialogue_settings.get("hook_require_follow_up_question", False))
                 and (force_dialogue_pull or self._should_pull_dialogue(normalized_message))
             ),
@@ -870,8 +887,9 @@ class ConversationEngineV2:
         return any(hint in text for hint in hints)
 
     def _looks_like_answer_first_request(self, text: str) -> bool:
-        hints = (
-            "как",
+        if not text:
+            return False
+        phrase_hints = (
             "что делать",
             "что лучше",
             "что думаешь",
@@ -888,9 +906,13 @@ class ConversationEngineV2:
             "инструкция",
             "дословно",
             "что сказать",
-            "как сказать",
         )
-        return any(hint in text for hint in hints)
+        if any(hint in text for hint in phrase_hints):
+            return True
+        return any(
+            re.search(rf"(?<!\\w){re.escape(phrase)}(?!\\w)", text)
+            for phrase in ANSWER_FIRST_PHRASES
+        )
 
     def _looks_like_scene_request(self, text: str) -> bool:
         # "Живой сценарий" in Russian often means "ready-to-say wording",

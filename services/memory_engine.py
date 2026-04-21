@@ -87,10 +87,15 @@ class MemoryEngine:
         history: list[ChatMessage],
         *,
         max_tokens: int | None = None,
+        max_messages: int | None = None,
     ) -> list[dict[str, str]]:
         if not history:
             return []
 
+        limited_history = history
+        if max_messages is not None:
+            limited_history = history[-max(1, int(max_messages)) :]
+
         limiter = MemoryLimiter(max_tokens=max_tokens or self.default_max_tokens)
-        trimmed = limiter.trim(history)
+        trimmed = limiter.trim(limited_history)
         return self.formatter.to_openai_format(trimmed)

@@ -28,7 +28,6 @@ class MemoryRepository:
             )
             """
         )
-        await self._ensure_column("pinned", "INTEGER NOT NULL DEFAULT 0")
         await self.db.connection.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_user_memories_user_category_updated
@@ -42,16 +41,7 @@ class MemoryRepository:
             """
         )
         await self.db.connection.commit()
-
-    async def _ensure_column(self, name: str, definition: str) -> None:
-        cursor = await self.db.connection.execute("PRAGMA table_info(user_memories)")
-        columns = await cursor.fetchall()
-        if any(column[1] == name for column in columns):
-            return
-
-        await self.db.connection.execute(
-            f"ALTER TABLE user_memories ADD COLUMN {name} {definition}"
-        )
+        await self.db.run_migrations()
 
     async def upsert(
         self,
