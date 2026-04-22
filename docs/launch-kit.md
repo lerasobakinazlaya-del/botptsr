@@ -108,6 +108,7 @@ Short variants:
 Day 1:
 
 - run `python scripts/prelaunch_check.py --launch-mode`
+- run GitHub Actions workflow `Launch Readiness` against production
 - run GitHub `Diagnose Bot`
 - verify real payments or consciously keep traffic to free/test cohort
 - prepare 10 links with start parameters: `src_tg__cmp_ai_live_dialogue`

@@ -1,0 +1,51 @@
+name: Launch Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_dir:
+        description: "Server project directory"
+        required: false
+        default: "/opt/bot"
+
+jobs:
+  launch-readiness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start SSH agent
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "${DEPLOY_SSH_KEY}" | tr -d '\r' | ssh-add -
+          echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "${GITHUB_ENV}"
+          echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "${GITHUB_ENV}"
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run production launch gate
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          APP_DIR: ${{ github.event.inputs.app_dir }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- "${APP_DIR}" <<'REMOTE'
+          set -euo pipefail
+          APP_DIR="$1"
+          cd "${APP_DIR}"
+
+          echo "==> Running production launch gate"
+          ./venv/bin/python scripts/prelaunch_check.py \
+            --launch-mode \
+            --report-file logs/launch_readiness_report.json
+
+          echo
+          echo "==> Launch readiness report"
+          cat logs/launch_readiness_report.json
+          REMOTE
+
