@@ -40,12 +40,15 @@ jobs:
           cd "${APP_DIR}"
 
           echo "==> Running production launch gate"
+          set +e
           ./venv/bin/python scripts/prelaunch_check.py \
             --launch-mode \
             --report-file logs/launch_readiness_report.json
+          CHECK_EXIT=$?
+          set -e
 
           echo
           echo "==> Launch readiness report"
-          cat logs/launch_readiness_report.json
+          cat logs/launch_readiness_report.json || true
+          exit "${CHECK_EXIT}"
           REMOTE
-
