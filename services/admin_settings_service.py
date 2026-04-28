@@ -409,7 +409,7 @@ class AdminSettingsService:
         },
         "engagement": {
             "adaptive_mode_enabled": True,
-            "reengagement_enabled": True,
+            "reengagement_enabled": False,
             "reengagement_idle_hours": 12,
             "reengagement_min_hours_between": 24,
             "reengagement_recent_window_days": 30,

@@ -374,7 +374,7 @@
   },
   "engagement": {
     "adaptive_mode_enabled": true,
-    "reengagement_enabled": true,
+    "reengagement_enabled": false,
     "reengagement_idle_hours": 24,
     "reengagement_min_hours_between": 24,
     "reengagement_recent_window_days": 30,

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from services.telegram_formatting import (
     TelegramFormattingOptions,
@@ -131,6 +131,18 @@ class ReengagementService:
         if str(relationship.get("last_user_mood") or "").strip().lower() in self.BLOCKED_LAST_MOODS:
             logger.info("[REENGAGE] Skip user_id=%s reason=blocked_last_user_mood", user_id)
             return
+        if await self.proactive_repository.has_event_for_silence(
+            user_id=user_id,
+            source_last_user_message_at=last_user_message_at,
+        ):
+            logger.info("[REENGAGE] Skip user_id=%s reason=already_contacted_for_same_silence", user_id)
+            return
+        if await self.proactive_repository.has_recent_event(
+            user_id=user_id,
+            cooldown_hours=settings["reengagement_min_hours_between"],
+        ):
+            logger.info("[REENGAGE] Skip user_id=%s reason=recent_cooldown", user_id)
+            return
 
         callback_context = self.ai_service.human_memory_service.get_reengagement_context(state)
         callback_topic = callback_context.get("callback_hint") or callback_context.get("topic") or ""
@@ -175,6 +187,15 @@ class ReengagementService:
                     user_id,
                     escape_plain_text_for_telegram(result.response),
                 )
+        except TelegramForbiddenError:
+            logger.exception("Failed to send reengagement message to user %s", user_id)
+            await self._log_event(
+                user_id=user_id,
+                status="blocked",
+                source_last_user_message_at=last_user_message_at,
+                error_text="telegram_blocked",
+            )
+            return
         except Exception:
             logger.exception("Failed to send reengagement message to user %s", user_id)
             await self._log_event(

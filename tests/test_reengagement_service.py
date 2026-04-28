@@ -2,14 +2,22 @@ import unittest
 from datetime import datetime as real_datetime
 from types import SimpleNamespace
 
+from aiogram.exceptions import TelegramForbiddenError
+
 from services.reengagement_service import ReengagementService
 
 
 class FakeBot:
+    class _Method:
+        __api_method__ = "sendMessage"
+
     def __init__(self):
         self.messages = []
+        self.fail_forbidden = False
 
     async def send_message(self, user_id, text):
+        if self.fail_forbidden:
+            raise TelegramForbiddenError(method=self._Method(), message="Forbidden: bot was blocked by the user")
         self.messages.append((user_id, text))
 
 
@@ -113,8 +121,16 @@ class FakeDB:
 
 
 class FakeProactiveRepository:
-    def __init__(self):
+    def __init__(self, *, has_silence=False, has_recent=False):
         self.events = []
+        self.has_silence = has_silence
+        self.has_recent = has_recent
+
+    async def has_event_for_silence(self, **kwargs):
+        return self.has_silence
+
+    async def has_recent_event(self, **kwargs):
+        return self.has_recent
 
     async def log_event(self, **kwargs):
         self.events.append(kwargs)
@@ -129,7 +145,7 @@ class FixedDateTime:
 
 
 class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
-    def _build_service(self, *, preferences=None, result=None, quiet_hours_enabled=False):
+    def _build_service(self, *, preferences=None, result=None, quiet_hours_enabled=False, has_silence=False, has_recent=False):
         service = ReengagementService(
             ai_service=FakeAIService(result=result),
             message_repository=FakeMessageRepository(),
@@ -142,7 +158,10 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
                     "updated_at": None,
                 }
             ),
-            proactive_repository=FakeProactiveRepository(),
+            proactive_repository=FakeProactiveRepository(
+                has_silence=has_silence,
+                has_recent=has_recent,
+            ),
             user_service=FakeUserService(),
             settings_service=FakeSettingsService(quiet_hours_enabled=quiet_hours_enabled),
             db=FakeDB(),
@@ -239,6 +258,41 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(service.proactive_repository.events), 1)
         self.assertEqual(service.proactive_repository.events[0]["trigger_kind"], "reengagement")
         self.assertEqual(service.proactive_repository.events[0]["status"], "sent")
+
+    async def test_process_candidate_skips_when_same_silence_already_logged(self):
+        service = self._build_service(has_silence=True)
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls, [])
+        self.assertEqual(service._bot.messages, [])
+
+    async def test_process_candidate_skips_when_recent_cooldown_exists(self):
+        service = self._build_service(has_recent=True)
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls, [])
+        self.assertEqual(service._bot.messages, [])
+
+    async def test_process_candidate_logs_blocked_event_when_user_blocked_bot(self):
+        service = self._build_service()
+        service._bot.fail_forbidden = True
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(len(service.ai_service.calls), 1)
+        self.assertEqual(len(service.proactive_repository.events), 1)
+        self.assertEqual(service.proactive_repository.events[0]["status"], "blocked")
 
     async def test_process_candidate_skips_when_emotional_tone_is_heavy(self):
         service = self._build_service()
