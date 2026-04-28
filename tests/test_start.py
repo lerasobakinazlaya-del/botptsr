@@ -1,7 +1,11 @@
 import unittest
 from types import SimpleNamespace
 
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
+
 from handlers.start import start_handler
+from handlers.modes import CALLBACK_OPEN_MODES
+from handlers.payments import CALLBACK_OPEN_PREMIUM_MENU
 
 
 class FakeMessage:
@@ -125,13 +129,27 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             referral_service=FakeReferralService(),
         )
 
-        self.assertEqual(len(message.answers), 2)
+        self.assertEqual(len(message.answers), 3)
         self.assertEqual(message.answers[0]["text"], "Привет, это тестовое приветствие.")
         self.assertEqual(message.answers[1]["text"], "Быстрый старт:\n• Напиши первую задачу")
-        self.assertIsNotNone(message.answers[1]["reply_markup"])
+        self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
+        inline_buttons = [
+            button
+            for row in message.answers[1]["reply_markup"].inline_keyboard
+            for button in row
+        ]
+        self.assertEqual(
+            [button.callback_data for button in inline_buttons],
+            [CALLBACK_OPEN_MODES, CALLBACK_OPEN_PREMIUM_MENU],
+        )
+        self.assertEqual(
+            message.answers[2]["text"],
+            "Можно ткнуть в одну из подсказок ниже или сразу написать своими словами.",
+        )
+        self.assertIsInstance(message.answers[2]["reply_markup"], ReplyKeyboardMarkup)
         onboarding_buttons = [
             button.text
-            for row in message.answers[1]["reply_markup"].keyboard
+            for row in message.answers[2]["reply_markup"].keyboard
             for button in row
         ]
         self.assertIn("✨ Полный доступ", onboarding_buttons)
@@ -162,6 +180,31 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [event["event_name"] for event in monetization_repository.events],
             ["onboarding_started", "acquisition_attributed"],
+        )
+
+    async def test_start_handler_keeps_inline_cta_for_returning_user(self):
+        message = FakeMessage()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(is_new_user=False),
+            admin_settings_service=FakeAdminSettingsService(
+                avatar_path="assets/missing-avatar.png",
+                followup_text="Р‘С‹СЃС‚СЂС‹Р№ СЃС‚Р°СЂС‚",
+            ),
+            referral_service=FakeReferralService(),
+        )
+
+        self.assertEqual(len(message.answers), 2)
+        self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
+        inline_buttons = [
+            button
+            for row in message.answers[1]["reply_markup"].inline_keyboard
+            for button in row
+        ]
+        self.assertEqual(
+            [button.callback_data for button in inline_buttons],
+            [CALLBACK_OPEN_MODES, CALLBACK_OPEN_PREMIUM_MENU],
         )
 
 

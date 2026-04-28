@@ -110,6 +110,21 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertNotIn("Plans и оплата", source)
         self.assertNotIn("Пакеты Plans", source)
 
+    def test_dashboard_script_avoids_modern_js_operators_that_broke_embedded_browser(self):
+        source = self._admin_source()
+
+        self.assertNotIn("?.", source)
+        self.assertNotIn("??", source)
+        self.assertNotIn("||=", source)
+        self.assertNotIn("join('\\n')", source)
+
+    def test_dashboard_initial_state_has_safe_empty_shapes(self):
+        source = self._admin_source()
+
+        self.assertIn("settings:{runtime:{ui:{message_templates:[]},payment:{},limits:{}},mode_catalog:{},modes:{}}", source)
+        self.assertIn("users:{items:[],matched_count:0", source)
+        self.assertIn("currentConversation:{user:{},messages:[],long_term_memories:[],state:{},profile:{}}", source)
+
     def test_static_id_selectors_used_by_js_exist_in_markup(self):
         source = self._admin_source()
         html_ids = set(re.findall(r'id="([A-Za-z0-9_-]+)"', source))

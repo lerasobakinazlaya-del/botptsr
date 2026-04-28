@@ -564,7 +564,7 @@ class AIService:
         )
         response_text = self.conversation_engine.guard_response(
             response_text,
-            user_message="РЎС„РѕСЂРјСѓР»РёСЂСѓР№ РѕРґРЅРѕ Р¶РёРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РїРµСЂРІРѕР№ РёРЅРёС†РёР°С‚РёРІС‹.",
+            user_message="Сформулируй одно живое сообщение первой инициативы.",
             active_mode=active_mode,
             history=history_for_context,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),

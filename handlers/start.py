@@ -4,7 +4,17 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from datetime import datetime, timezone
 
-from aiogram.types import FSInputFile, KeyboardButton, Message, ReplyKeyboardMarkup
+from aiogram.types import (
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+)
+
+from handlers.modes import CALLBACK_OPEN_MODES
+from handlers.payments import CALLBACK_OPEN_PREMIUM_MENU
 
 
 router = Router()
@@ -41,6 +51,23 @@ def get_onboarding_keyboard(ui_settings: dict) -> ReplyKeyboardMarkup | None:
         resize_keyboard=True,
         one_time_keyboard=True,
         input_field_placeholder=str(ui_settings.get("onboarding_input_placeholder") or ui_settings["input_placeholder"]).strip(),
+    )
+
+
+def get_start_cta_keyboard(ui_settings: dict) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=str(ui_settings.get("modes_button_text") or "Режимы").strip(),
+                    callback_data=CALLBACK_OPEN_MODES,
+                ),
+                InlineKeyboardButton(
+                    text=str(ui_settings.get("premium_button_text") or "Premium").strip(),
+                    callback_data=CALLBACK_OPEN_PREMIUM_MENU,
+                ),
+            ]
+        ]
     )
 
 
@@ -112,6 +139,7 @@ async def start_handler(
     referral_settings = runtime["referral"]
     keyboard = get_main_keyboard(ui_settings)
     onboarding_keyboard = get_onboarding_keyboard(ui_settings)
+    start_cta_keyboard = get_start_cta_keyboard(ui_settings)
     avatar_path = str(ui_settings.get("start_avatar_path") or "").strip()
     avatar_file = PROJECT_ROOT / avatar_path if avatar_path else None
     start_context = _parse_start_context(
@@ -131,11 +159,14 @@ async def start_handler(
 
     async def send_user_welcome() -> None:
         await send_welcome(ui_settings["welcome_user_text"])
-        if not is_new_user:
-            return
         followup_text = _build_welcome_followup_text(ui_settings)
         if followup_text:
-            await message.answer(followup_text, reply_markup=onboarding_keyboard)
+            await message.answer(followup_text, reply_markup=start_cta_keyboard)
+            if is_new_user and onboarding_keyboard is not None:
+                await message.answer(
+                    "Можно ткнуть в одну из подсказок ниже или сразу написать своими словами.",
+                    reply_markup=onboarding_keyboard,
+                )
 
     if is_new_user and state_repository is not None:
         state = await state_repository.get(message.from_user.id)
