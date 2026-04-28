@@ -92,6 +92,14 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("function renderTestQuality()", source)
         self.assertIn("data-test-case", source)
 
+    def test_dashboard_exposes_openai_usage_overview_blocks(self):
+        source = self._admin_source()
+
+        self.assertIn('id="recent-openai-usage"', source)
+        self.assertIn("content.openai_usage||{}", source)
+        self.assertIn("recent.openai_usage||[]", source)
+        self.assertIn("OpenAI 1д", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 

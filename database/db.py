@@ -87,6 +87,27 @@ class Database:
         )
         await self.connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS openai_usage_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NULL,
+                source TEXT NOT NULL,
+                model TEXT NOT NULL,
+                prompt_tokens INTEGER NULL,
+                completion_tokens INTEGER NULL,
+                total_tokens INTEGER NULL,
+                reasoning_tokens INTEGER NULL,
+                cached_tokens INTEGER NULL,
+                estimated_cost_usd REAL NULL,
+                latency_ms REAL NULL,
+                finish_reason TEXT NULL,
+                request_user TEXT NULL,
+                metadata_json TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        await self.connection.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_messages_user_id_id
             ON messages (user_id, id DESC)
             """
@@ -131,6 +152,24 @@ class Database:
             """
             CREATE INDEX IF NOT EXISTS idx_monetization_events_user_created
             ON monetization_events (user_id, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_openai_usage_source_created
+            ON openai_usage_events (source, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_openai_usage_user_created
+            ON openai_usage_events (user_id, created_at DESC)
+            """
+        )
+        await self.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_openai_usage_model_created
+            ON openai_usage_events (model, created_at DESC)
             """
         )
         await self.connection.commit()

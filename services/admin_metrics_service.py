@@ -21,6 +21,7 @@ class AdminMetricsService:
         chat_session_service,
         proactive_repository,
         user_preference_repository,
+        openai_usage_repository,
         redis=None,
         cache_ttl: int = 15,
     ):
@@ -34,6 +35,7 @@ class AdminMetricsService:
         self.chat_session_service = chat_session_service
         self.proactive_repository = proactive_repository
         self.user_preference_repository = user_preference_repository
+        self.openai_usage_repository = openai_usage_repository
         self.redis = redis
         self.cache_ttl = cache_ttl
 
@@ -134,6 +136,7 @@ class AdminMetricsService:
         proactive_overview = await self.proactive_repository.get_overview()
         preference_stats = await self.user_preference_repository.get_stats()
         subscription_segments = await self.user_service.get_subscription_segments_overview()
+        openai_usage = await self.openai_usage_repository.get_overview()
 
         return {
             "users": {
@@ -168,6 +171,7 @@ class AdminMetricsService:
             },
             "content": {
                 "messages_total": total_messages,
+                "openai_usage": openai_usage,
             },
             "support": support_stats,
             "proactive": proactive_overview,
@@ -176,6 +180,7 @@ class AdminMetricsService:
             "series": {
                 "users": await self.user_service.get_daily_registrations(days=14),
                 "payments": await self.payment_repository.get_daily_payments(days=14),
+                "openai_usage": openai_usage["daily_14d"],
             },
             "recent": {
                 "users": await self.user_service.get_recent_users(limit=20),
@@ -183,5 +188,6 @@ class AdminMetricsService:
                 "monetization": await self.monetization_repository.get_recent_events(limit=20),
                 "referrals": referral_overview["recent"],
                 "proactive": proactive_overview["recent"],
+                "openai_usage": openai_usage["recent"],
             },
         }

@@ -295,6 +295,10 @@ class ProactiveMessageService:
             reasoning_effort=str(settings.get("reasoning_effort") or "").strip() or None,
             verbosity=str(self._get_ai_settings().get("verbosity") or "").strip() or None,
             user=f"{user_id}:proactive",
+            usage_context={
+                "source": "proactive",
+                "user_id": user_id,
+            },
         )
         return self._clean_generated_text(text)
 

@@ -388,6 +388,7 @@ class AIService:
             ai_settings=ai_settings,
             ai_profile=ai_profile,
             user_id=user_id,
+            usage_source="chat",
         )
         if not response_text.strip():
             logger.warning("[AI] Empty response from model, using fallback")
@@ -536,6 +537,7 @@ class AIService:
             ai_settings=ai_settings,
             ai_profile=ai_profile,
             user_id=user_id,
+            usage_source="reengagement",
         )
         if not response_text.strip():
             response_text = self.EMPTY_RESPONSE_FALLBACK
@@ -622,6 +624,7 @@ class AIService:
         ai_settings: dict[str, Any],
         ai_profile: dict[str, Any],
         user_id: int,
+        usage_source: str,
     ) -> tuple[str, int | None]:
         last_exception = None
         max_retries = int(ai_profile.get("max_retries", self.max_retries))
@@ -659,6 +662,10 @@ class AIService:
                         reasoning_effort=reasoning_effort,
                         verbosity=verbosity,
                         user=str(user_id),
+                        usage_context={
+                            "source": usage_source,
+                            "user_id": user_id,
+                        },
                     ),
                     timeout=timeout_seconds,
                 )
@@ -705,6 +712,7 @@ class AIService:
         reasoning_effort: str | None,
         verbosity: str | None,
         user: str,
+        usage_context: dict[str, Any] | None = None,
     ) -> tuple[str, int | None, str | None]:
         payload = {
             "messages": messages,
@@ -717,6 +725,7 @@ class AIService:
             "reasoning_effort": reasoning_effort,
             "verbosity": verbosity,
             "user": user,
+            "usage_context": usage_context,
         }
         if hasattr(self.client, "generate_with_meta"):
             return await self.client.generate_with_meta(**payload)

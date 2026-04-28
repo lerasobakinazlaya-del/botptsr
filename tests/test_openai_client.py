@@ -19,14 +19,24 @@ class FakeChoice:
 
 
 class FakeUsage:
-    def __init__(self, total_tokens):
+    def __init__(self, total_tokens, prompt_tokens=30, completion_tokens=12):
         self.total_tokens = total_tokens
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
 
 
 class FakeResponse:
-    def __init__(self, content, total_tokens=42, finish_reason="stop"):
+    def __init__(self, content, total_tokens=42, finish_reason="stop", prompt_tokens=30, completion_tokens=12):
         self.choices = [FakeChoice(content, finish_reason=finish_reason)]
-        self.usage = FakeUsage(total_tokens)
+        self.usage = FakeUsage(total_tokens, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens)
+
+
+class FakeUsageRepository:
+    def __init__(self):
+        self.events = []
+
+    async def log_event(self, **payload):
+        self.events.append(dict(payload))
 
 
 class FakeCompletions:
@@ -218,3 +228,27 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tokens, 42)
         self.assertEqual(fake_client.chat.completions.payloads[1]["frequency_penalty"], 0.0)
         self.assertEqual(fake_client.chat.completions.payloads[2]["presence_penalty"], 0.0)
+
+    async def test_generate_records_usage_event_with_source_and_cost_estimate(self):
+        usage_repository = FakeUsageRepository()
+        client = OpenAIClient(api_key="test-key", usage_repository=usage_repository)
+        client.client = FakeAsyncOpenAI([FakeResponse("ok", total_tokens=42, prompt_tokens=30, completion_tokens=12)])
+
+        text, tokens = await client.generate(
+            messages=[{"role": "user", "content": "hi"}],
+            user="123:chat",
+            usage_context={"source": "chat", "user_id": 123, "entrypoint": "telegram"},
+        )
+
+        self.assertEqual(text, "ok")
+        self.assertEqual(tokens, 42)
+        self.assertEqual(len(usage_repository.events), 1)
+        event = usage_repository.events[0]
+        self.assertEqual(event["source"], "chat")
+        self.assertEqual(event["user_id"], 123)
+        self.assertEqual(event["prompt_tokens"], 30)
+        self.assertEqual(event["completion_tokens"], 12)
+        self.assertEqual(event["total_tokens"], 42)
+        self.assertEqual(event["request_user"], "123:chat")
+        self.assertEqual(event["metadata"]["entrypoint"], "telegram")
+        self.assertGreater(event["estimated_cost_usd"], 0.0)

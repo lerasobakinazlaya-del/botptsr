@@ -10,12 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAIClient:
+    MODEL_PRICING_USD_PER_1M_TOKENS = {
+        "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+        "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
+        "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
+        "gpt-5-mini": {"input": 0.25, "output": 2.00},
+    }
+
     def __init__(
         self,
         api_key: str,
         model: str = "gpt-4o-mini",
         temperature: float = 0.9,
         max_parallel_requests: int | None = None,
+        usage_repository=None,
     ):
         if not api_key:
             raise ValueError("OpenAI API key is required")
@@ -24,6 +32,7 @@ class OpenAIClient:
         self.model = model
         self.temperature = temperature
         self.max_parallel_requests = max_parallel_requests or 0
+        self.usage_repository = usage_repository
         self._semaphore = (
             asyncio.Semaphore(self.max_parallel_requests)
             if self.max_parallel_requests > 0
@@ -50,6 +59,7 @@ class OpenAIClient:
         reasoning_effort: str | None = None,
         verbosity: str | None = None,
         user: str | None = None,
+        usage_context: dict[str, Any] | None = None,
     ) -> Tuple[str, int | None]:
         payload = self._build_payload(
             messages=messages,
@@ -64,10 +74,18 @@ class OpenAIClient:
             user=user,
         )
 
-        response = await self._run_with_limits(payload)
+        response, latency_ms = await self._run_with_limits(payload)
 
         text = response.choices[0].message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else None
+        await self._record_usage_event(
+            response=response,
+            latency_ms=latency_ms,
+            finish_reason=getattr(response.choices[0], "finish_reason", None),
+            model_name=str(payload.get("model") or self.model),
+            request_user=user,
+            usage_context=usage_context,
+        )
 
         return text.strip(), tokens_used
 
@@ -83,6 +101,7 @@ class OpenAIClient:
         reasoning_effort: str | None = None,
         verbosity: str | None = None,
         user: str | None = None,
+        usage_context: dict[str, Any] | None = None,
     ) -> Tuple[str, int | None, str | None]:
         payload = self._build_payload(
             messages=messages,
@@ -97,12 +116,20 @@ class OpenAIClient:
             user=user,
         )
 
-        response = await self._run_with_limits(payload)
+        response, latency_ms = await self._run_with_limits(payload)
 
         choice = response.choices[0]
         text = choice.message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else None
         finish_reason = getattr(choice, "finish_reason", None)
+        await self._record_usage_event(
+            response=response,
+            latency_ms=latency_ms,
+            finish_reason=finish_reason,
+            model_name=str(payload.get("model") or self.model),
+            request_user=user,
+            usage_context=usage_context,
+        )
 
         return text.strip(), tokens_used, finish_reason
 
@@ -175,7 +202,9 @@ class OpenAIClient:
         self._total_requests += 1
 
         try:
-            return await self._create_completion_with_fallback(payload)
+            response = await self._create_completion_with_fallback(payload)
+            latency_ms = round((time.perf_counter() - started) * 1000, 1)
+            return response, latency_ms
         except Exception:
             self._failed_requests += 1
             raise
@@ -186,6 +215,86 @@ class OpenAIClient:
             self._in_flight_requests = max(0, self._in_flight_requests - 1)
             if acquired and self._semaphore is not None:
                 self._semaphore.release()
+
+    async def _record_usage_event(
+        self,
+        *,
+        response,
+        latency_ms: float,
+        finish_reason: str | None,
+        model_name: str,
+        request_user: str | None,
+        usage_context: dict[str, Any] | None,
+    ) -> None:
+        if self.usage_repository is None:
+            return
+
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+
+        metadata = dict(usage_context or {})
+        user_id = metadata.pop("user_id", None)
+        source = str(metadata.pop("source", "")).strip() or "unknown"
+        if request_user:
+            metadata["request_user"] = request_user
+
+        try:
+            await self.usage_repository.log_event(
+                user_id=int(user_id) if user_id not in (None, "") else None,
+                source=source,
+                model=model_name,
+                prompt_tokens=self._usage_value(usage, "prompt_tokens"),
+                completion_tokens=self._usage_value(usage, "completion_tokens"),
+                total_tokens=self._usage_value(usage, "total_tokens"),
+                reasoning_tokens=self._nested_usage_value(usage, "completion_tokens_details", "reasoning_tokens"),
+                cached_tokens=self._nested_usage_value(usage, "prompt_tokens_details", "cached_tokens"),
+                estimated_cost_usd=self._estimate_cost_usd(
+                    model_name=model_name,
+                    prompt_tokens=self._usage_value(usage, "prompt_tokens"),
+                    completion_tokens=self._usage_value(usage, "completion_tokens"),
+                ),
+                latency_ms=latency_ms,
+                finish_reason=finish_reason,
+                request_user=request_user,
+                metadata=metadata,
+            )
+        except Exception as exc:
+            logger.warning("Failed to record OpenAI usage event: %s", exc)
+
+    @classmethod
+    def _estimate_cost_usd(
+        cls,
+        *,
+        model_name: str,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+    ) -> float | None:
+        pricing = cls.MODEL_PRICING_USD_PER_1M_TOKENS.get(str(model_name or "").strip().lower())
+        if pricing is None:
+            return None
+        return round(
+            ((max(0, int(prompt_tokens or 0)) / 1_000_000.0) * float(pricing["input"]))
+            + ((max(0, int(completion_tokens or 0)) / 1_000_000.0) * float(pricing["output"])),
+            6,
+        )
+
+    @staticmethod
+    def _usage_value(usage: Any, field: str) -> int | None:
+        value = getattr(usage, field, None)
+        if value in (None, ""):
+            return None
+        return int(value)
+
+    @staticmethod
+    def _nested_usage_value(usage: Any, field: str, nested_field: str) -> int | None:
+        payload = getattr(usage, field, None)
+        if payload is None:
+            return None
+        value = getattr(payload, nested_field, None)
+        if value in (None, ""):
+            return None
+        return int(value)
 
     async def _create_completion_with_fallback(self, payload: Dict[str, Any]):
         request_payload = dict(payload)

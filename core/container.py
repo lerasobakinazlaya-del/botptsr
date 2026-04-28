@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from database.db import Database
 from database.memory_repository import MemoryRepository
 from database.monetization_repository import MonetizationRepository
+from database.openai_usage_repository import OpenAIUsageRepository
 from database.payment_repository import PaymentRepository
 from database.proactive_repository import ProactiveRepository
 from database.repository import MessageRepository
@@ -55,6 +56,7 @@ class Container:
         self.message_repository = MessageRepository(self.db)
         self.memory_repository = MemoryRepository(self.db)
         self.monetization_repository = MonetizationRepository(self.db)
+        self.openai_usage_repository = OpenAIUsageRepository(self.db)
         self.payment_repository = PaymentRepository(self.db)
         self.proactive_repository = ProactiveRepository(self.db)
         self.user_preference_repository = UserPreferenceRepository(self.db)
@@ -86,6 +88,7 @@ class Container:
         self.openai_client = OpenAIClient(
             api_key=self.settings.openai_api_key,
             max_parallel_requests=self.settings.openai_max_parallel_requests,
+            usage_repository=self.openai_usage_repository,
         )
         self.ai_service = AIService(
             client=self.openai_client,

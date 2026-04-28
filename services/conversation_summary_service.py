@@ -154,6 +154,10 @@ class ConversationSummaryService:
             reasoning_effort=str(ai_settings.get("episodic_summary_reasoning_effort") or "").strip() or None,
             verbosity=str(ai_settings.get("verbosity") or "").strip() or None,
             user=f"{user_id}:summary",
+            usage_context={
+                "source": "summary",
+                "user_id": user_id,
+            },
         )
 
         parsed = self._parse_summary_json(text)

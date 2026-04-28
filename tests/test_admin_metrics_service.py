@@ -190,6 +190,33 @@ class FakeUserPreferenceRepository:
         return {"users_with_timezone": 9, "proactive_disabled_users": 2}
 
 
+class FakeOpenAIUsageRepository:
+    async def get_overview(self):
+        return {
+            "requests_total": 14,
+            "tokens_total": 4200,
+            "prompt_tokens_total": 3000,
+            "completion_tokens_total": 1200,
+            "estimated_cost_usd_total": 0.0021,
+            "avg_latency_ms": 812.4,
+            "max_latency_ms": 1402.0,
+            "requests_1d": 3,
+            "tokens_1d": 900,
+            "estimated_cost_usd_1d": 0.0005,
+            "requests_7d": 8,
+            "tokens_7d": 2500,
+            "estimated_cost_usd_7d": 0.0012,
+            "requests_30d": 14,
+            "tokens_30d": 4200,
+            "estimated_cost_usd_30d": 0.0021,
+            "by_source_7d": {"chat": {"requests": 5, "total_tokens": 1700, "estimated_cost_usd": 0.0009, "avg_latency_ms": 700.0}},
+            "by_source_30d": {"chat": {"requests": 9, "total_tokens": 2900, "estimated_cost_usd": 0.0015, "avg_latency_ms": 760.0}},
+            "by_model_30d": {"gpt-4o-mini": {"requests": 14, "total_tokens": 4200, "estimated_cost_usd": 0.0021}},
+            "daily_14d": [{"day": "2026-03-29", "requests": 4, "total_tokens": 1100, "estimated_cost_usd": 0.0006}],
+            "recent": [{"user_id": 1, "source": "chat", "model": "gpt-4o-mini", "total_tokens": 320, "latency_ms": 640.0, "created_at": "2026-03-29 10:00:00", "metadata": {}}],
+        }
+
+
 class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_build_cached_payload_includes_monetization_funnel(self):
         service = AdminMetricsService(
@@ -203,6 +230,7 @@ class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
             chat_session_service=SimpleNamespace(get_runtime_stats=lambda: {"active_sessions": 0}),
             proactive_repository=FakeProactiveRepository(),
             user_preference_repository=FakeUserPreferenceRepository(),
+            openai_usage_repository=FakeOpenAIUsageRepository(),
             redis=None,
             cache_ttl=0,
         )
@@ -217,3 +245,6 @@ class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["growth"]["acquisition_by_source_30d"]["segments"]["telegram"]["events"], 7)
         self.assertEqual(payload["users"]["subscription_segments"]["pro_active"], 8)
         self.assertEqual(payload["recent"]["monetization"][0]["event_name"], "offer_shown")
+        self.assertEqual(payload["content"]["openai_usage"]["tokens_7d"], 2500)
+        self.assertEqual(payload["recent"]["openai_usage"][0]["source"], "chat")
+        self.assertEqual(payload["series"]["openai_usage"][0]["requests"], 4)
