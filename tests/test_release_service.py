@@ -43,6 +43,38 @@ class ReleaseServiceTests(unittest.TestCase):
         self.assertIn("missing_release_metadata", codes)
         self.assertIn("ai_queue_pressure", codes)
 
+    def test_build_health_warnings_flags_openai_daily_spike_and_source_spike(self):
+        warnings = build_health_warnings(
+            admin_dashboard_password="strong-password",
+            redis_ok=True,
+            release_info={"available": True},
+            runtime_stats={},
+            openai_usage={
+                "tokens_1d": 18000,
+                "requests_1d": 45,
+                "by_source_1d": {
+                    "reengagement": {"total_tokens": 16000, "requests": 40},
+                    "chat": {"total_tokens": 2000, "requests": 5},
+                },
+            },
+            usage_alerts={
+                "enabled": True,
+                "daily_tokens_warn": 10000,
+                "daily_tokens_high": 25000,
+                "daily_requests_warn": 30,
+                "source_daily_tokens_warn": 8000,
+                "source_daily_requests_warn": 20,
+                "source_share_warn_pct": 60,
+                "excluded_sources": [],
+            },
+        )
+
+        codes = [item["code"] for item in warnings]
+
+        self.assertIn("openai_daily_tokens_warn", codes)
+        self.assertIn("openai_daily_requests_warn", codes)
+        self.assertIn("openai_source_spike", codes)
+
 
 if __name__ == "__main__":
     unittest.main()

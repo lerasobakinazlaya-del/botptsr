@@ -597,6 +597,16 @@
       "premium": 22
     },
     "long_user_message_chars": 900,
-    "long_message_completion_ratio": 0.72
+    "long_message_completion_ratio": 0.72,
+    "usage_alerts": {
+      "enabled": true,
+      "daily_tokens_warn": 50000,
+      "daily_tokens_high": 120000,
+      "daily_requests_warn": 120,
+      "source_daily_tokens_warn": 15000,
+      "source_daily_requests_warn": 30,
+      "source_share_warn_pct": 60,
+      "excluded_sources": []
+    }
   }
 }

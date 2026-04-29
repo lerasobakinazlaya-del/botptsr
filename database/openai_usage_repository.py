@@ -64,6 +64,7 @@ class OpenAIUsageRepository:
         totals = await self._fetch_scalar_overview()
         return {
             **totals,
+            "by_source_1d": await self.get_breakdown_by_source(days=1),
             "by_source_7d": await self.get_breakdown_by_source(days=7),
             "by_source_30d": await self.get_breakdown_by_source(days=30),
             "by_model_30d": await self.get_breakdown_by_model(days=30),

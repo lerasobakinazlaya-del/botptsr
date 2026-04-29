@@ -350,18 +350,23 @@ async def _build_health() -> dict[str, Any]:
 
     runtime_stats = container.ai_service.get_runtime_stats()
     chat_runtime = container.chat_session_service.get_runtime_stats()
+    openai_usage = await container.openai_usage_repository.get_overview()
+    runtime_settings = container.admin_settings_service.get_runtime_settings()
     release_info = load_release_info(container.admin_settings_service.config_dir)
     warnings = build_health_warnings(
         admin_dashboard_password=settings.admin_dashboard_password,
         redis_ok=bool(redis_status.get("ok")),
         release_info=release_info,
         runtime_stats=runtime_stats,
+        openai_usage=openai_usage,
+        usage_alerts=(runtime_settings.get("cost_control") or {}).get("usage_alerts"),
     )
 
     return {
         "db": db_status,
         "redis": redis_status,
         "ai_runtime": runtime_stats,
+        "openai_usage": openai_usage,
         "chat_runtime": chat_runtime,
         "config_files": config_files,
         "modes_count": len(container.admin_settings_service.get_mode_catalog()),
@@ -1879,7 +1884,7 @@ def _dashboard_html() -> str:
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
     function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
-    function healthSummary(ai){const queue=ai.queue_size||0,capacity=ai.queue_capacity||0,workers=ai.workers||0,busy=ai.busy_workers||0;return metricCards([['Очередь',`${queue}/${capacity}`,'Задачи ИИ в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['Режимов',String(state.health.modes_count||0),'Загружено в панели']])}
+    function healthSummary(ai){const queue=ai.queue_size||0,capacity=ai.queue_capacity||0,workers=ai.workers||0,busy=ai.busy_workers||0,usage=state.health.openai_usage||{};return metricCards([['Очередь',`${queue}/${capacity}`,'Задачи ИИ в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['OpenAI 1д',num(usage.tokens_1d||0),`Вызовов: ${num(usage.requests_1d||0)}`],['Режимов',String(state.health.modes_count||0),'Загружено в панели']])}
     function enabledPackages(payment){return Object.values(payment.packages||{}).filter(item=>item&&item.enabled)}
     function launchReadinessItems(){
       const runtime=state.settings.runtime||{},ui=runtime.ui||{},payment=runtime.payment||{},limits=runtime.limits||{},catalog=state.settings.mode_catalog||{},health=state.health||{};

@@ -533,6 +533,16 @@ class AdminSettingsService:
             },
             "long_user_message_chars": 900,
             "long_message_completion_ratio": 0.72,
+            "usage_alerts": {
+                "enabled": True,
+                "daily_tokens_warn": 50000,
+                "daily_tokens_high": 120000,
+                "daily_requests_warn": 120,
+                "source_daily_tokens_warn": 15000,
+                "source_daily_requests_warn": 30,
+                "source_share_warn_pct": 60,
+                "excluded_sources": [],
+            },
         },
     }
 
@@ -1090,6 +1100,9 @@ class AdminSettingsService:
         cost_control["long_user_message_chars"] = max(200, int(defaults.get("long_user_message_chars", 900)))
         ratio = float(defaults.get("long_message_completion_ratio", 0.72))
         cost_control["long_message_completion_ratio"] = max(0.1, min(1.0, ratio))
+        cost_control["usage_alerts"] = self._normalize_usage_alert_settings(
+            defaults.get("usage_alerts"),
+        )
 
         return current
 
@@ -1383,6 +1396,33 @@ class AdminSettingsService:
 
         merged["force_low_verbosity"] = bool(merged.get("force_low_verbosity", True))
         merged["force_low_reasoning"] = bool(merged.get("force_low_reasoning", True))
+        return merged
+
+    def _normalize_usage_alert_settings(self, payload: Any) -> dict[str, Any]:
+        merged = deepcopy(self.DEFAULT_RUNTIME_SETTINGS["cost_control"]["usage_alerts"])
+        if isinstance(payload, dict):
+            self._deep_merge(merged, payload)
+
+        merged["enabled"] = bool(merged.get("enabled", True))
+        merged["daily_tokens_warn"] = max(1000, int(merged.get("daily_tokens_warn", 50000) or 50000))
+        merged["daily_tokens_high"] = max(
+            merged["daily_tokens_warn"],
+            int(merged.get("daily_tokens_high", 120000) or 120000),
+        )
+        merged["daily_requests_warn"] = max(1, int(merged.get("daily_requests_warn", 120) or 120))
+        merged["source_daily_tokens_warn"] = max(
+            500,
+            int(merged.get("source_daily_tokens_warn", 15000) or 15000),
+        )
+        merged["source_daily_requests_warn"] = max(
+            1,
+            int(merged.get("source_daily_requests_warn", 30) or 30),
+        )
+        merged["source_share_warn_pct"] = max(
+            10,
+            min(100, int(merged.get("source_share_warn_pct", 60) or 60)),
+        )
+        merged["excluded_sources"] = self._normalize_string_list(merged.get("excluded_sources"))
         return merged
 
     def _normalize_reengagement_style(self, payload: Any) -> dict[str, Any]:
