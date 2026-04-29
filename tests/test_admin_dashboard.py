@@ -100,6 +100,14 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("recent.openai_usage||[]", source)
         self.assertIn("OpenAI 1д", source)
 
+    def test_dashboard_exposes_openai_alert_controls(self):
+        source = self._admin_source()
+
+        self.assertIn('id="usage_alerts_enabled"', source)
+        self.assertIn('id="runtime-openai-alert-status"', source)
+        self.assertIn("cost_control:{usage_alerts:{enabled:$('#usage_alerts_enabled').checked", source)
+        self.assertIn("renderOpenAIAlertStatus(healthUsage,usageAlerts)", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 
