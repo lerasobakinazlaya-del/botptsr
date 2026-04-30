@@ -307,6 +307,23 @@ LIST_REQUEST_MARKERS = (
     "list",
     "шаг",
 )
+FULL_REVEAL_MARKERS += (
+    "дай полный ответ",
+    "скажи прямо",
+    "без вопросов",
+    "не раскручивай",
+    "просто ответь",
+    "просто скажи всё",
+    "сразу по делу",
+    "без уточнений",
+)
+LIST_REQUEST_MARKERS += (
+    "спис",
+    "по пунктам",
+    "чеклист",
+    "шаг",
+)
+
 BASE_REFLECTIONS = {
     "desire": "Тут у тебя уже не просто интерес, а явное притяжение.",
     "emotion": "Здесь уже звучит чувство, а не просто оценка ситуации.",
@@ -436,6 +453,8 @@ def apply_driver_guardrails(
     if not normalized:
         return fallback
 
+    full_reveal_requested = wants_full_reveal(user_message)
+
     if not _user_explicitly_requested_list(user_message):
         normalized = _collapse_list_shape(normalized)
 
@@ -445,7 +464,7 @@ def apply_driver_guardrails(
         return fallback
 
     question_limit_reached = _question_limit_reached(snapshot)
-    if "?" not in normalized and not question_limit_reached:
+    if "?" not in normalized and not question_limit_reached and not full_reveal_requested:
         question = str(followup_question or _extract_question(fallback)).strip()
         normalized = _append_sentence(normalized, question)
 
@@ -453,6 +472,7 @@ def apply_driver_guardrails(
     normalized = _normalize_with_breaks(normalized)
     if (
         not question_limit_reached
+        and not full_reveal_requested
         and not normalized.endswith("?")
         and not any(marker in normalized.lower() for marker in OPEN_LOOP_MARKERS)
     ):

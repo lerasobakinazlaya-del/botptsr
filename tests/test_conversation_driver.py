@@ -83,6 +83,37 @@ class ConversationDriverTests(unittest.TestCase):
         self.assertNotIn("2.", result)
         self.assertTrue(result.endswith("?"))
 
+    def test_wants_full_reveal_detects_utf8_direct_answer_request(self):
+        self.assertTrue(wants_full_reveal("Скажи прямо, без вопросов и сразу по делу"))
+
+    def test_apply_driver_guardrails_respects_no_questions_request(self):
+        result = apply_driver_guardrails(
+            "Тут главный ход простой: сначала режем лишнее, потом выбираем один критерий решения.",
+            user_message="Скажи прямо, без вопросов и без уточнений",
+            state={"conversation_phase": "warmup"},
+            intent="explicit_request",
+            followup_question="Какой критерий для тебя важнее?",
+        )
+
+        self.assertNotIn("?", result)
+        self.assertEqual(
+            result,
+            "Тут главный ход простой: сначала режем лишнее, потом выбираем один критерий решения.",
+        )
+
+    def test_apply_driver_guardrails_keeps_requested_list_shape(self):
+        result = apply_driver_guardrails(
+            "1. Сначала выбрать один критерий.\n2. Потом убрать шум.\n3. В конце проверить решение на последствия.",
+            user_message="Дай по пунктам, без вопросов",
+            state={"conversation_phase": "warmup"},
+            intent="explicit_request",
+            followup_question="Что выберешь первым?",
+        )
+
+        self.assertIn("1.", result)
+        self.assertIn("2.", result)
+        self.assertNotIn("?", result)
+
     def test_resolve_driver_stage_prefers_existing_phase(self):
         self.assertEqual(resolve_driver_stage({"conversation_phase": "trust"}), "trust")
         self.assertEqual(resolve_driver_stage({"interaction_count": 21}), "deep")
