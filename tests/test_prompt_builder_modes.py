@@ -51,6 +51,22 @@ class PromptBuilderModeTests(unittest.TestCase):
             with self.subTest(mode=mode_name):
                 prompt = self._build_prompt(mode_name)
                 self.assertIn(expected, prompt)
+                self.assertIn("quality floor: each reply should contain at least one concrete move", prompt)
+                self.assertIn("Dialogue continuity:", prompt)
+                self.assertIn("Keep the thread alive", prompt)
+                self.assertIn("Do not interrogate", prompt)
+
+    def test_each_mode_has_distinct_dialogue_continuity_rule(self):
+        expectations = {
+            "base": "base continuation: keep it human",
+            "comfort": "comfort continuation: make the user feel met first",
+            "mentor": "mentor continuation: leave a crisp next move",
+            "dominant": "focus continuation: hold tempo",
+        }
+
+        for mode_name, expected in expectations.items():
+            with self.subTest(mode=mode_name):
+                self.assertIn(expected, self._build_prompt(mode_name))
 
     def test_mode_prompts_are_meaningfully_distinct_from_base(self):
         base_prompt = self._build_prompt("base")
@@ -111,6 +127,27 @@ class PromptBuilderModeTests(unittest.TestCase):
 
         self.assertIn("User is premium", prompt)
         self.assertIn("Do not upsell premium", prompt)
+
+    def test_subscription_block_distinguishes_pro_from_premium(self):
+        pro_prompt = self.prompt_builder.build_system_prompt(
+            state=self.base_state | {"active_mode": "base", "interaction_count": 1},
+            access_level="analysis",
+            active_mode="base",
+            user_message="Ок",
+            subscription_plan="pro",
+        )
+        premium_prompt = self.prompt_builder.build_system_prompt(
+            state=self.base_state | {"active_mode": "base", "interaction_count": 1},
+            access_level="analysis",
+            active_mode="base",
+            user_message="Ок",
+            subscription_plan="premium",
+        )
+
+        self.assertIn("User is pro", pro_prompt)
+        self.assertIn("Pro should feel useful and paid", pro_prompt)
+        self.assertIn("Premium visibly better than Pro", premium_prompt)
+        self.assertNotIn("User is pro", premium_prompt)
 
     def test_memory_context_is_sanitized_and_marked_untrusted(self):
         prompt = self.prompt_builder.build_system_prompt(

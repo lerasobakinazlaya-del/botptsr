@@ -19,7 +19,7 @@ cd "$APP_DIR"
 
 $PYTHON_BIN -m venv venv
 ./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r requirements.txt
+./venv/bin/pip install --no-cache-dir -r requirements-prod.txt
 
 sudo systemctl enable redis-server
 sudo systemctl restart redis-server

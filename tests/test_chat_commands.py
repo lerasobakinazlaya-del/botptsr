@@ -7,6 +7,8 @@ from handlers.chat import (
     _build_subscription_expiry_notice,
     _handle_proactive_command,
     _handle_timezone_command,
+    _should_trigger_emotional_paywall,
+    _should_trigger_useful_advice_paywall,
 )
 
 
@@ -216,3 +218,23 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsNone(repeated_notice)
         self.assertEqual(state, repeated_state)
+
+    def test_soft_paywall_suppressed_for_sensitive_emotional_context(self):
+        triggered = _should_trigger_emotional_paywall(
+            user={"subscription_plan": "free"},
+            state={"interaction_count": 8, "emotional_tone": "anxious"},
+            user_text="Мне паника и боль в груди",
+            response="x" * 180,
+        )
+
+        self.assertFalse(triggered)
+
+    def test_useful_paywall_suppressed_for_medical_context(self):
+        triggered = _should_trigger_useful_advice_paywall(
+            user={"subscription_plan": "free"},
+            active_mode="mentor",
+            user_text="Помоги, аритмия и что делать",
+            response="1. шаг\n2. план",
+        )
+
+        self.assertFalse(triggered)

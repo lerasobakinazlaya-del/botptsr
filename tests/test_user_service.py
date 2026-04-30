@@ -1,3 +1,4 @@
+import asyncio
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -68,9 +69,20 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["id"] for item in items], [2])
 
     async def test_search_users_filters_without_premium(self):
+        await self.user_service.upsert_user_access(5, subscription_plan="pro")
+
         items = await self.user_service.search_users(filter_by="without_premium", limit=10)
 
         self.assertEqual([item["id"] for item in items], [1, 4])
+
+    async def test_search_users_combines_query_with_without_premium_filter(self):
+        items = await self.user_service.search_users(
+            query="soon",
+            filter_by="without_premium",
+            limit=10,
+        )
+
+        self.assertEqual([], items)
 
     async def test_count_users_respects_filter(self):
         count = await self.user_service.count_users(filter_by="premium_active")
@@ -78,17 +90,35 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(count, 2)
 
     async def test_get_subscription_segments_overview(self):
+        await self.user_service.upsert_user_access(5, subscription_plan="pro")
+
         segments = await self.user_service.get_subscription_segments_overview()
 
         self.assertEqual(
             segments,
             {
-                "all": 4,
-                "paid_active": 2,
-                "pro_active": 1,
+                "all": 5,
+                "paid_active": 3,
+                "pro_active": 2,
                 "premium_active": 1,
                 "paid_expiring_3d": 1,
                 "paid_expired": 1,
                 "free": 2,
             },
         )
+
+    async def test_concurrent_subscription_grants_accumulate_days(self):
+        await self.user_service.upsert_user_access(6)
+        started_at = datetime.now(timezone.utc)
+
+        await asyncio.gather(
+            self.user_service.grant_subscription_days(6, "pro", 10),
+            self.user_service.grant_subscription_days(6, "pro", 20),
+        )
+
+        user = await self.user_service.get_user(6)
+        expires_at = datetime.strptime(
+            user["premium_expires_at"],
+            "%Y-%m-%d %H:%M:%S",
+        ).replace(tzinfo=timezone.utc)
+        self.assertGreaterEqual(expires_at, started_at + timedelta(days=29, hours=23))

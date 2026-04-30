@@ -43,6 +43,18 @@ class UserService:
         await self._ensure_column("is_admin", "INTEGER DEFAULT 0")
         await self.db.connection.execute(
             """
+            CREATE INDEX IF NOT EXISTS idx_users_created_at
+            ON users (created_at DESC, id DESC)
+            """
+        )
+        await self.db.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_subscription_expiry
+            ON users (subscription_plan, premium_expires_at)
+            """
+        )
+        await self.db.connection.execute(
+            """
             INSERT OR IGNORE INTO users (
                 id,
                 username,
@@ -317,12 +329,15 @@ class UserService:
         return row[0] if row else 0
 
     async def get_subscription_segments_overview(self) -> dict[str, int]:
+        paid_active_clause = (
+            "subscription_plan IN ('pro', 'premium') "
+            "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+        )
         queries = {
             "all": "SELECT COUNT(*) FROM users",
             "paid_active": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE subscription_plan IN ('pro', 'premium') "
-                "AND (premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP)"
+                f"WHERE {paid_active_clause}"
             ),
             "pro_active": (
                 "SELECT COUNT(*) FROM users "
@@ -349,8 +364,7 @@ class UserService:
             ),
             "free": (
                 "SELECT COUNT(*) FROM users "
-                "WHERE subscription_plan = 'free' OR premium_expires_at IS NULL "
-                "OR premium_expires_at <= CURRENT_TIMESTAMP"
+                f"WHERE NOT ({paid_active_clause})"
             ),
         }
         result: dict[str, int] = {}
@@ -416,8 +430,8 @@ class UserService:
                 "AND premium_expires_at <= CURRENT_TIMESTAMP"
             ),
             "without_premium": (
-                "subscription_plan = 'free' OR premium_expires_at IS NULL "
-                "OR premium_expires_at <= CURRENT_TIMESTAMP"
+                "NOT (subscription_plan IN ('pro', 'premium') AND "
+                "(premium_expires_at IS NULL OR premium_expires_at > CURRENT_TIMESTAMP))"
             ),
         }
         return clauses.get(normalized, clauses["all"])
@@ -507,14 +521,41 @@ class UserService:
     async def grant_subscription_days(self, user_id: int, plan_key: str, days: int) -> str | None:
         safe_days = max(1, int(days))
         normalized_plan = self._normalize_subscription_plan(plan_key, fallback="premium")
-        current_user = await self.get_user(user_id)
-        current_expiry = _parse_db_timestamp(
-            current_user.get("premium_expires_at") if current_user else None
-        )
-        start_at = current_expiry if current_expiry and current_expiry > datetime.now(timezone.utc) else datetime.now(timezone.utc)
-        new_expiry = start_at + timedelta(days=safe_days)
-        await self.set_subscription_plan_until(user_id, normalized_plan, new_expiry)
-        return _format_db_timestamp(new_expiry)
+        if normalized_plan == "free":
+            normalized_plan = "premium"
+
+        async with self.db.transaction():
+            cursor = await self.db.connection.execute(
+                """
+                UPDATE users
+                SET is_premium = 1,
+                    subscription_plan = ?,
+                    premium_expires_at = datetime(
+                        CASE
+                            WHEN premium_expires_at IS NOT NULL
+                             AND premium_expires_at > CURRENT_TIMESTAMP
+                            THEN premium_expires_at
+                            ELSE CURRENT_TIMESTAMP
+                        END,
+                        ?
+                    )
+                WHERE id = ?
+                """,
+                (
+                    normalized_plan,
+                    f"+{safe_days} days",
+                    user_id,
+                ),
+            )
+            if cursor.rowcount <= 0:
+                return None
+
+            cursor = await self.db.connection.execute(
+                "SELECT premium_expires_at FROM users WHERE id = ?",
+                (user_id,),
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else None
 
     async def is_premium(self, user_id: int) -> bool:
         user = await self.get_user(user_id)

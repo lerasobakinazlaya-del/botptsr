@@ -33,6 +33,29 @@ def build_modes_menu_text(user: dict, runtime_settings: dict, mode_catalog: dict
     return text
 
 
+def build_mode_saved_text(
+    *,
+    mode_name: str,
+    activation_phrase: str,
+    ui_settings: dict,
+    access_status: dict | None = None,
+) -> str:
+    text = ui_settings["mode_saved_template"].format(
+        mode_name=mode_name,
+        activation_phrase=activation_phrase,
+    )
+    if not bool((access_status or {}).get("is_preview")):
+        return text
+
+    remaining = int((access_status or {}).get("remaining") or 0)
+    daily_limit = int((access_status or {}).get("daily_limit") or remaining or 0)
+    return (
+        f"{text}\n\n"
+        f"Пробный доступ к режиму: осталось {remaining} из {daily_limit} сообщений на сегодня. "
+        "Если зайдет тон и глубина, Pro/Premium снимут это ограничение."
+    )
+
+
 async def show_modes_menu(message: Message, user_service, admin_settings_service):
     runtime_settings = admin_settings_service.get_runtime_settings()
     ui_settings = runtime_settings["ui"]
@@ -99,13 +122,14 @@ async def change_mode_handler(
         return
 
     state = await state_repository.get(callback.from_user.id)
-    can_select_mode = mode_access_service.can_select_mode(
+    access_status = mode_access_service.get_selection_status(
         user=user,
         mode_key=mode_key,
         state=state,
         runtime_settings=runtime_settings,
         mode_catalog=mode_catalog,
     )
+    can_select_mode = bool(access_status["allowed"])
 
     mode_meta = mode_catalog.get(mode_key, {})
     mode_name = str(mode_meta.get("name") or mode_key)
@@ -129,9 +153,11 @@ async def change_mode_handler(
     await user_service.set_mode(callback.from_user.id, mode_key)
     await state_repository.set_active_mode(callback.from_user.id, mode_key)
     user["active_mode"] = mode_key
-    text = ui_settings["mode_saved_template"].format(
+    text = build_mode_saved_text(
         mode_name=mode_name,
         activation_phrase=activation_phrase,
+        ui_settings=ui_settings,
+        access_status=access_status,
     )
 
     try:

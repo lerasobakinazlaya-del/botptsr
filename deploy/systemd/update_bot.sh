@@ -88,7 +88,7 @@ if [ -f bot.db ]; then
 fi
 
 ./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r requirements.txt
+./venv/bin/pip install --no-cache-dir -r requirements-prod.txt
 
 echo "==> Verifying Python files"
 ./venv/bin/python -m compileall -q main.py admin_dashboard.py core handlers services scripts tests

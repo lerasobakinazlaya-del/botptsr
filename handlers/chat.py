@@ -296,6 +296,35 @@ def _contains_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
     return any(keyword in lowered for keyword in keywords)
 
 
+def _is_sensitive_monetization_context(*, user_text: str, state: dict | None = None) -> bool:
+    text = str(user_text or "").lower()
+    emotional_tone = str((state or {}).get("emotional_tone") or "").strip().lower()
+    if emotional_tone in {"overwhelmed", "anxious", "guarded", "crisis"}:
+        return True
+
+    sensitive_keywords = (
+        "суицид",
+        "самоуб",
+        "самоповреж",
+        "умер",
+        "умерла",
+        "смерт",
+        "похорон",
+        "паник",
+        "птср",
+        "травм",
+        "врач",
+        "скорая",
+        "сердц",
+        "аритм",
+        "боль в груди",
+        "одыш",
+        "обмор",
+        "насили",
+    )
+    return any(keyword in text for keyword in sensitive_keywords)
+
+
 def _should_trigger_emotional_paywall(
     *,
     user: dict[str, object] | None,
@@ -304,6 +333,8 @@ def _should_trigger_emotional_paywall(
     response: str,
 ) -> bool:
     if _subscription_plan(user) != "free":
+        return False
+    if _is_sensitive_monetization_context(user_text=user_text, state=state):
         return False
     if len(str(response or "").strip()) < 140:
         return False
@@ -330,6 +361,8 @@ def _should_trigger_useful_advice_paywall(
     response: str,
 ) -> bool:
     if _subscription_plan(user) != "free":
+        return False
+    if _is_sensitive_monetization_context(user_text=user_text):
         return False
     request_keywords = (
         "помоги",

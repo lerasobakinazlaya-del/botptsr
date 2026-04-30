@@ -461,7 +461,7 @@ class AdminSettingsService:
         },
         "engagement": {
             "adaptive_mode_enabled": True,
-            "reengagement_enabled": False,
+            "reengagement_enabled": True,
             "reengagement_idle_hours": 12,
             "reengagement_min_hours_between": 24,
             "reengagement_recent_window_days": 30,
@@ -824,8 +824,7 @@ class AdminSettingsService:
         if cached is not None:
             return deepcopy(cached)
 
-        raw_lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-        tail = raw_lines[-lines:]
+        tail = self._read_log_tail(lines)
         payload = {
             "exists": True,
             "path": str(self.log_path),
@@ -835,6 +834,25 @@ class AdminSettingsService:
         }
         self._logs_cache = {cache_key: deepcopy(payload)}
         return payload
+
+    def _read_log_tail(self, lines: int) -> list[str]:
+        chunk_size = 8192
+        chunks: list[bytes] = []
+        newline_count = 0
+
+        with self.log_path.open("rb") as file:
+            file.seek(0, 2)
+            position = file.tell()
+            while position > 0 and newline_count <= lines:
+                read_size = min(chunk_size, position)
+                position -= read_size
+                file.seek(position)
+                chunk = file.read(read_size)
+                chunks.append(chunk)
+                newline_count += chunk.count(b"\n")
+
+        raw_tail = b"".join(reversed(chunks))
+        return raw_tail.decode("utf-8", errors="replace").splitlines()[-lines:]
 
     def export_all(self) -> dict[str, Any]:
         return {

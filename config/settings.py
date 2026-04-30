@@ -98,17 +98,17 @@ def get_settings() -> Settings:
             os.getenv("AI_DEBUG_PROMPT_USER_ID"),
             default=0,
         ) or None,
-        openai_max_parallel_requests=parse_int(
-            os.getenv("OPENAI_MAX_PARALLEL_REQUESTS"),
-            default=8,
+        openai_max_parallel_requests=max(
+            1,
+            parse_int(os.getenv("OPENAI_MAX_PARALLEL_REQUESTS"), default=8),
         ),
-        openai_queue_size=parse_int(
-            os.getenv("OPENAI_QUEUE_SIZE"),
-            default=500,
+        openai_queue_size=max(
+            1,
+            parse_int(os.getenv("OPENAI_QUEUE_SIZE"), default=500),
         ),
-        openai_queue_wait_timeout_seconds=parse_int(
-            os.getenv("OPENAI_QUEUE_WAIT_TIMEOUT_SECONDS"),
-            default=25,
+        openai_queue_wait_timeout_seconds=max(
+            1,
+            parse_int(os.getenv("OPENAI_QUEUE_WAIT_TIMEOUT_SECONDS"), default=25),
         ),
         admin_dashboard_host=os.getenv("ADMIN_DASHBOARD_HOST", "127.0.0.1"),
         admin_dashboard_port=parse_int(

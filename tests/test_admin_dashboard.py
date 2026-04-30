@@ -107,6 +107,7 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn('id="runtime-openai-alert-status"', source)
         self.assertIn("cost_control:{usage_alerts:{enabled:$('#usage_alerts_enabled').checked", source)
         self.assertIn("renderOpenAIAlertStatus(healthUsage,usageAlerts)", source)
+        self.assertIn("const sourceTokens=stats=>(stats&&stats.total_tokens)||((stats&&stats.tokens)||0);", source)
 
     def test_dashboard_exposes_openai_user_spend_blocks(self):
         source = self._admin_source()

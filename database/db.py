@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
@@ -8,6 +9,9 @@ class Database:
     def __init__(self, db_path: str = "bot.db"):
         self.db_path = db_path
         self.connection = None
+        self._transaction_lock = asyncio.Lock()
+        self._transaction_owner: asyncio.Task | None = None
+        self._transaction_depth = 0
         self._schema_migrations: list[tuple[str, Callable[[], Awaitable[bool]]]] = [
             ("001_add_user_memories_pinned", self._migration_add_user_memories_pinned),
         ]
@@ -262,9 +266,29 @@ class Database:
 
     @asynccontextmanager
     async def transaction(self):
-        try:
+        current_task = asyncio.current_task()
+        if self._transaction_owner is current_task:
+            self._transaction_depth += 1
+            try:
+                yield self.connection
+            finally:
+                self._transaction_depth = max(0, self._transaction_depth - 1)
+            return
+
+        if current_task is None:
             yield self.connection
-            await self.commit()
-        except Exception:
-            await self.rollback()
-            raise
+            return
+
+        async with self._transaction_lock:
+            self._transaction_owner = current_task
+            self._transaction_depth = 1
+            try:
+                await self.connection.execute("BEGIN IMMEDIATE")
+                yield self.connection
+                await self.commit()
+            except Exception:
+                await self.rollback()
+                raise
+            finally:
+                self._transaction_owner = None
+                self._transaction_depth = 0

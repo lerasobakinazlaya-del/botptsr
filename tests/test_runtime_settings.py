@@ -16,7 +16,8 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertIn("Premium", payment["buy_cta_text"])
         self.assertNotIn("????", ui["welcome_followup_text"])
         self.assertNotIn("????", payment["premium_benefits_text"])
-        self.assertFalse(engagement["reengagement_enabled"])
+        self.assertTrue(engagement["reengagement_enabled"])
+        self.assertEqual(12, engagement["reengagement_idle_hours"])
         self.assertTrue(runtime["cost_control"]["usage_alerts"]["enabled"])
         self.assertGreater(runtime["cost_control"]["usage_alerts"]["daily_tokens_warn"], 0)
         self.assertEqual("pro_month", payment["default_package_key"])
@@ -24,6 +25,9 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertIn("premium_month", payment["packages"])
         self.assertNotIn("day", payment["packages"])
         self.assertNotIn("week", payment["packages"])
+        self.assertNotIn("????", payment["offer_emotional_engagement_template"])
+        self.assertNotIn("????", payment["offer_useful_advice_template"])
+        self.assertIn("Premium", payment["premium_menu_description_template"])
 
 
 if __name__ == "__main__":

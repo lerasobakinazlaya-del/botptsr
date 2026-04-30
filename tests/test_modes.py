@@ -1,6 +1,6 @@
 import unittest
 
-from handlers.modes import build_modes_menu_text
+from handlers.modes import build_mode_saved_text, build_modes_menu_text
 
 
 class ModesMenuTests(unittest.TestCase):
@@ -26,6 +26,19 @@ class ModesMenuTests(unittest.TestCase):
         )
 
         self.assertNotIn("Полный доступ", text)
+
+
+    def test_preview_mode_saved_text_explains_remaining_trial(self):
+        text = build_mode_saved_text(
+            mode_name="Разбор",
+            activation_phrase="Собираем суть.",
+            ui_settings={"mode_saved_template": "Режим: {mode_name}\n\n{activation_phrase}"},
+            access_status={"is_preview": True, "remaining": 2, "daily_limit": 2},
+        )
+
+        self.assertIn("Пробный доступ", text)
+        self.assertIn("осталось 2 из 2", text)
+        self.assertIn("Pro/Premium", text)
 
 
 if __name__ == "__main__":

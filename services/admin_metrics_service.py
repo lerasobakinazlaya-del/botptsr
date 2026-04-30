@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any
@@ -38,12 +39,16 @@ class AdminMetricsService:
         self.openai_usage_repository = openai_usage_repository
         self.redis = redis
         self.cache_ttl = cache_ttl
+        self._cache_rebuild_lock = asyncio.Lock()
 
     async def get_overview(self) -> dict[str, Any]:
         cached_payload = await self._get_cached_payload()
         if cached_payload is None:
-            cached_payload = await self._build_cached_payload()
-            await self._store_cached_payload(cached_payload)
+            async with self._cache_rebuild_lock:
+                cached_payload = await self._get_cached_payload()
+                if cached_payload is None:
+                    cached_payload = await self._build_cached_payload()
+                    await self._store_cached_payload(cached_payload)
 
         return {
             **cached_payload,

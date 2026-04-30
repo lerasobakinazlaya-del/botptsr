@@ -931,7 +931,10 @@ async def api_test_reengagement(request: Request, _: str = Depends(require_auth)
     payload = await request.json()
     history = _parse_history(payload.get("history"))
     state = _parse_json_field(payload.get("state"), {})
-    user_id = int(payload.get("user_id") or 0)
+    try:
+        user_id = int(payload.get("user_id") or 0)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid user_id") from exc
 
     result = await container.ai_service.generate_reengagement(
         user_id=user_id,
@@ -1924,14 +1927,15 @@ def _dashboard_html() -> str:
     function healthSummary(ai){const queue=ai.queue_size||0,capacity=ai.queue_capacity||0,workers=ai.workers||0,busy=ai.busy_workers||0,usage=state.health.openai_usage||{};return metricCards([['Очередь',`${queue}/${capacity}`,'Задачи ИИ в очереди'],['Воркеры',String(workers),`Занято: ${busy}`],['OpenAI 1д',num(usage.tokens_1d||0),`Вызовов: ${num(usage.requests_1d||0)}`],['Режимов',String(state.health.modes_count||0),'Загружено в панели']])}
     function renderOpenAIAlertStatus(usage,alerts){
       const cfg=alerts||{},data=usage||{},bySource=data.by_source_1d||{};
-      const sourceRows=Object.entries(bySource).sort((a,b)=>(b[1].tokens||0)-(a[1].tokens||0)).slice(0,4);
+      const sourceTokens=stats=>(stats&&stats.total_tokens)||((stats&&stats.tokens)||0);
+      const sourceRows=Object.entries(bySource).sort((a,b)=>sourceTokens(b[1])-sourceTokens(a[1])).slice(0,4);
       const issues=[];
       if(cfg.enabled===false)issues.push('Алерты отключены.');
       if((data.tokens_1d||0)>=Number(cfg.daily_tokens_high||0)&&Number(cfg.daily_tokens_high||0)>0)issues.push(`Дневной токеновый порог HIGH уже пробит: ${num(data.tokens_1d||0)}.`);
       else if((data.tokens_1d||0)>=Number(cfg.daily_tokens_warn||0)&&Number(cfg.daily_tokens_warn||0)>0)issues.push(`Дневной токеновый порог WARN близко: ${num(data.tokens_1d||0)}.`);
       if((data.requests_1d||0)>=Number(cfg.daily_requests_warn||0)&&Number(cfg.daily_requests_warn||0)>0)issues.push(`По числу вызовов за 24ч уже ${num(data.requests_1d||0)}.`);
       sourceRows.forEach(([source,stats])=>{
-        const tokens=stats.tokens||0,requests=stats.requests||0,totalTokens=data.tokens_1d||0,share=totalTokens?Math.round((tokens/totalTokens)*100):0;
+        const tokens=sourceTokens(stats),requests=stats.requests||0,totalTokens=data.tokens_1d||0,share=totalTokens?Math.round((tokens/totalTokens)*100):0;
         const overTokens=Number(cfg.source_daily_tokens_warn||0)>0&&tokens>=Number(cfg.source_daily_tokens_warn||0);
         const overRequests=Number(cfg.source_daily_requests_warn||0)>0&&requests>=Number(cfg.source_daily_requests_warn||0);
         const overShare=Number(cfg.source_share_warn_pct||0)>0&&share>=Number(cfg.source_share_warn_pct||0);
@@ -1942,7 +1946,7 @@ def _dashboard_html() -> str:
         ['Вызовы 24ч',num(data.requests_1d||0),`warn ${num(cfg.daily_requests_warn||0)}`],
         ['Источники',String(Object.keys(bySource).length),`исключено: ${((cfg.excluded_sources||[]).length||0)}`],
       ]);
-      const topSources=sourceRows.length?`<div class="kv-list">${sourceRows.map(([source,stats])=>`<div class="kv-row"><div class="kv-key">${esc(source)}</div><div class="kv-value">${esc(`${num(stats.tokens||0)} токенов • ${num(stats.requests||0)} вызовов`)}</div></div>`).join('')}</div>`:'<div class="muted">Пока нет usage-данных по источникам.</div>';
+      const topSources=sourceRows.length?`<div class="kv-list">${sourceRows.map(([source,stats])=>`<div class="kv-row"><div class="kv-key">${esc(source)}</div><div class="kv-value">${esc(`${num(sourceTokens(stats))} токенов • ${num(stats.requests||0)} вызовов`)}</div></div>`).join('')}</div>`:'<div class="muted">Пока нет usage-данных по источникам.</div>';
       const issueBlock=issues.length?`<div class="stack">${issues.map(text=>`<div class="message-card"><div>${esc(text)}</div></div>`).join('')}</div>`:'<div class="muted">Сейчас всплесков не видно.</div>';
       return `<div class="stack">${summary}<div><div class="stat-label">Главные источники за 24 часа</div>${topSources}</div><div><div class="stat-label">Сигналы</div>${issueBlock}</div></div>`;
     }

@@ -28,6 +28,18 @@ class ProactiveRepository:
             ON proactive_messages (user_id, source_last_user_message_at)
             """
         )
+        await self.db.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_proactive_messages_status_created
+            ON proactive_messages (status, created_at DESC)
+            """
+        )
+        await self.db.connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_proactive_messages_trigger_created
+            ON proactive_messages (trigger_kind, created_at DESC)
+            """
+        )
         await self.db.connection.commit()
 
     async def has_event_for_silence(

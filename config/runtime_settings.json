@@ -33,21 +33,21 @@
         "max_completion_tokens": 180,
         "memory_max_tokens": 700,
         "history_message_limit": 12,
-        "prompt_suffix": "Free: дай полезный короткий ответ и мягко покажи, какой следующий слой раскроет Premium."
+        "prompt_suffix": "Free: дай полезный, конкретный ответ без воды. Не обрывай мысль, но оставь один естественный намек, какой следующий слой раскроет Pro или Premium."
       },
       "pro": {
         "model": "gpt-4o-mini",
         "max_completion_tokens": 320,
         "memory_max_tokens": 1200,
         "history_message_limit": 18,
-        "prompt_suffix": "Pro: отвечай плотнее, держи больше контекста и доводи мысль до следующего шага."
+        "prompt_suffix": "Pro: отвечай плотнее и практичнее, держи больше контекста, меньше общих слов, больше следующего действия."
       },
       "premium": {
         "model": "gpt-5.4",
         "max_completion_tokens": 520,
         "memory_max_tokens": 1800,
         "history_message_limit": 24,
-        "prompt_suffix": "Premium: давай заметно более глубокий, связный и персональный ответ без рекламного тона."
+        "prompt_suffix": "Premium: дай заметно более глубокий, связный и персональный ответ. Больше точности, памяти контекста и живого голоса, без рекламного тона."
       }
     },
     "dialogue": {
@@ -374,12 +374,12 @@
   },
   "engagement": {
     "adaptive_mode_enabled": true,
-    "reengagement_enabled": false,
-    "reengagement_idle_hours": 24,
+    "reengagement_enabled": true,
+    "reengagement_idle_hours": 12,
     "reengagement_min_hours_between": 24,
     "reengagement_recent_window_days": 30,
-    "reengagement_poll_seconds": 300,
-    "reengagement_batch_size": 5,
+    "reengagement_poll_seconds": 180,
+    "reengagement_batch_size": 8,
     "quiet_hours_enabled": true,
     "quiet_hours_start": 0,
     "quiet_hours_end": 8,
@@ -480,7 +480,7 @@
         "is_default": false
       }
     },
-    "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
+    "premium_menu_description_template": "Premium — это когда бот перестает быть разовым ответчиком и становится нормальным AI-партнером.\n\n• помнит контекст между сообщениями\n• сам мягко возвращается после паузы\n• открывает сильные режимы: {premium_modes_list}\n• дает до {premium_daily_limit} сообщений в день\n• отвечает глубже, точнее и с меньшим ощущением шаблона\n\nБазовый план: {price_label} за {access_days_label}.",
     "premium_menu_packages_title": "Выбери формат доступа:",
     "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
     "premium_menu_package_button_template": "{title} • {price_label}",
@@ -494,7 +494,7 @@
     "product_description": "Нить — AI-партнёр с памятью диалога для поддержки, разбора и фокуса.",
     "recurring_button_text": "Открыть оплату",
     "already_premium_message": "Premium уже активен. Можно продлить его заранее.",
-    "premium_benefits_text": "Premium даёт память контекста, инициативу от бота, все сильные режимы и повышенный лимит сообщений.",
+    "premium_benefits_text": "Premium дает память контекста, инициативу после паузы, сильные режимы и более точные ответы без ощущения одноразового чат-бота.",
     "buy_cta_text": "Открыть Premium",
     "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
     "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
@@ -505,8 +505,8 @@
       1
     ],
     "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не терять память диалога и все режимы.",
-    "offer_emotional_engagement_template": "???????, ????? ??? ?? ??????? ??????.\n\nPro ?????, ????? ? ?????? ????????, ?????? ??? ????? ? ??? ?????????? ??? ???????? ???????. Premium ? ???? ????? ???????? ??????, ? ?? ??????? ?????.",
-    "offer_useful_advice_template": "???? ?????? ?? ???????? ??? ?????, Pro ???????? ???? ????????? ? ??????? ??? ??????. Premium ???? ?????? ??????? ? ?????????."
+    "offer_emotional_engagement_template": "Похоже, тебе важен не сухой ответ, а контакт, который держит нить.\n\nPro даст больше сообщений и контекста. Premium добавит память диалога, инициативу после паузы и режимы, которые звучат заметно глубже.",
+    "offer_useful_advice_template": "Если хочешь не просто совет, а нормальный разбор с продолжением, Pro снимет короткий лимит. Premium даст больше глубины, памяти и точности в следующих ответах."
   },
   "ui": {
     "write_button_text": "💬 Начать диалог",
@@ -527,7 +527,7 @@
     "modes_premium_marker": "🔒",
     "user_not_found_text": "Пользователь не найден.",
     "unknown_mode_text": "Неизвестный режим.",
-    "mode_locked_text": "Этот режим входит в Premium: там память диалога, инициатива от бота и более глубокий формат работы. 🔒",
+    "mode_locked_text": "Этот режим в Premium: там бот помнит контекст, пишет после паузы и отвечает глубже, чем базовый режим. 🔒",
     "mode_saved_template": "Режим: {mode_name}\n\n{activation_phrase}\n\nМожешь написать одной фразой, с чем ты пришёл.",
     "mode_saved_toast": "Готово ✅",
     "message_templates": [

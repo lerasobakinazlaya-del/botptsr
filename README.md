@@ -192,6 +192,8 @@ cd /opt/bot && /opt/bot/venv/bin/python -m pytest -q tests/test_conversation_pro
 
 ## Быстрый старт
 
+Server operations и очистка места на сервере: `docs/server-ops.md`
+
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
