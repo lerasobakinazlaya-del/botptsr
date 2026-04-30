@@ -130,6 +130,7 @@ class ProactiveRepository:
             }
 
         recent = await self.get_recent_events(limit=20)
+        recent_failures = await self.get_recent_failures(limit=20)
         reply_stats = await self.get_reply_stats(hours=24)
         opt_out_stats = await self.get_opt_out_stats(days=7)
         return {
@@ -141,9 +142,12 @@ class ProactiveRepository:
             "failed_1d": int(row[5] or 0),
             "users_contacted_total": int(row[6] or 0),
             "users_contacted_7d": int(row[7] or 0),
+            "status_breakdown_total": await self.get_status_breakdown(days=None),
+            "status_breakdown_7d": await self.get_status_breakdown(days=7),
             **reply_stats,
             **opt_out_stats,
             "recent": recent,
+            "recent_failures": recent_failures,
         }
 
     async def get_recent_events(self, *, limit: int = 20) -> list[dict]:
@@ -169,6 +173,60 @@ class ProactiveRepository:
             }
             for row in rows
         ]
+
+    async def get_recent_failures(self, *, limit: int = 20) -> list[dict]:
+        safe_limit = max(1, min(limit, 100))
+        cursor = await self.db.connection.execute(
+            """
+            SELECT user_id, trigger_kind, status, source_last_user_message_at, created_at, error_text
+            FROM proactive_messages
+            WHERE status != 'sent'
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "user_id": int(row[0]),
+                "trigger_kind": row[1],
+                "status": row[2],
+                "source_last_user_message_at": row[3],
+                "created_at": row[4],
+                "error_text": row[5],
+            }
+            for row in rows
+        ]
+
+    async def get_status_breakdown(self, *, days: int | None) -> dict[str, int]:
+        if days is None:
+            cursor = await self.db.connection.execute(
+                """
+                SELECT status, COUNT(*)
+                FROM proactive_messages
+                WHERE status != 'sent'
+                GROUP BY status
+                ORDER BY COUNT(*) DESC, status ASC
+                """
+            )
+        else:
+            cursor = await self.db.connection.execute(
+                """
+                SELECT status, COUNT(*)
+                FROM proactive_messages
+                WHERE status != 'sent'
+                  AND created_at >= datetime('now', ?)
+                GROUP BY status
+                ORDER BY COUNT(*) DESC, status ASC
+                """,
+                (f"-{max(1, int(days))} days",),
+            )
+        rows = await cursor.fetchall()
+        return {
+            str(row[0] or "unknown"): int(row[1] or 0)
+            for row in rows
+        }
 
     async def get_reply_stats(self, *, hours: int = 24) -> dict:
         safe_hours = max(1, int(hours))

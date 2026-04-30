@@ -182,7 +182,21 @@ class FakeStateRepository:
 
 class FakeProactiveRepository:
     async def get_overview(self):
-        return {"sent_1d": 2, "sent_total": 7, "failed_total": 0, "reply_after_proactive_total": 3, "reply_after_proactive_rate": 42.86, "opt_out_after_proactive_total": 1, "opt_out_after_proactive_rate": 14.29, "users_contacted_7d": 4, "recent": [{"user_id": 1}]}
+        return {
+            "sent_1d": 2,
+            "sent_total": 7,
+            "failed_total": 3,
+            "failed_1d": 1,
+            "reply_after_proactive_total": 3,
+            "reply_after_proactive_rate": 42.86,
+            "opt_out_after_proactive_total": 1,
+            "opt_out_after_proactive_rate": 14.29,
+            "users_contacted_7d": 4,
+            "status_breakdown_total": {"failed": 1, "blocked": 1, "persist_failed": 1},
+            "status_breakdown_7d": {"failed": 1},
+            "recent_failures": [{"user_id": 1, "status": "failed", "trigger_kind": "inactivity_followup", "error_text": "telegram_forbidden", "created_at": "2026-03-29 10:00:00"}],
+            "recent": [{"user_id": 1}],
+        }
 
 
 class FakeUserPreferenceRepository:
@@ -197,23 +211,28 @@ class FakeOpenAIUsageRepository:
             "tokens_total": 4200,
             "prompt_tokens_total": 3000,
             "completion_tokens_total": 1200,
+            "users_total": 4,
             "estimated_cost_usd_total": 0.0021,
             "avg_latency_ms": 812.4,
             "max_latency_ms": 1402.0,
             "requests_1d": 3,
             "tokens_1d": 900,
+            "users_1d": 2,
             "estimated_cost_usd_1d": 0.0005,
             "requests_7d": 8,
             "tokens_7d": 2500,
+            "users_7d": 3,
             "estimated_cost_usd_7d": 0.0012,
             "requests_30d": 14,
             "tokens_30d": 4200,
+            "users_30d": 4,
             "estimated_cost_usd_30d": 0.0021,
             "by_source_7d": {"chat": {"requests": 5, "total_tokens": 1700, "estimated_cost_usd": 0.0009, "avg_latency_ms": 700.0}},
             "by_source_30d": {"chat": {"requests": 9, "total_tokens": 2900, "estimated_cost_usd": 0.0015, "avg_latency_ms": 760.0}},
             "by_model_30d": {"gpt-4o-mini": {"requests": 14, "total_tokens": 4200, "estimated_cost_usd": 0.0021}},
+            "top_users_30d": [{"user_id": 1, "username": "u", "first_name": "User", "requests": 4, "prompt_tokens": 900, "completion_tokens": 300, "total_tokens": 1200, "estimated_cost_usd": 0.0006, "last_seen_at": "2026-03-29 10:00:00"}],
             "daily_14d": [{"day": "2026-03-29", "requests": 4, "total_tokens": 1100, "estimated_cost_usd": 0.0006}],
-            "recent": [{"user_id": 1, "source": "chat", "model": "gpt-4o-mini", "total_tokens": 320, "latency_ms": 640.0, "created_at": "2026-03-29 10:00:00", "metadata": {}}],
+            "recent": [{"user_id": 1, "username": "u", "first_name": "User", "source": "chat", "model": "gpt-4o-mini", "total_tokens": 320, "latency_ms": 640.0, "created_at": "2026-03-29 10:00:00", "metadata": {}}],
         }
 
 
@@ -246,5 +265,9 @@ class AdminMetricsServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["users"]["subscription_segments"]["pro_active"], 8)
         self.assertEqual(payload["recent"]["monetization"][0]["event_name"], "offer_shown")
         self.assertEqual(payload["content"]["openai_usage"]["tokens_7d"], 2500)
+        self.assertEqual(payload["content"]["openai_usage"]["users_30d"], 4)
+        self.assertEqual(payload["content"]["openai_usage"]["top_users_30d"][0]["total_tokens"], 1200)
+        self.assertEqual(payload["proactive"]["status_breakdown_total"]["blocked"], 1)
+        self.assertEqual(payload["proactive"]["recent_failures"][0]["status"], "failed")
         self.assertEqual(payload["recent"]["openai_usage"][0]["source"], "chat")
         self.assertEqual(payload["series"]["openai_usage"][0]["requests"], 4)

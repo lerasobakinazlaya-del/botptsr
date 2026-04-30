@@ -68,3 +68,29 @@ class ProactiveRepositoryMetricsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(overview["reply_after_proactive_rate"], 50.0)
         self.assertEqual(overview["opt_out_after_proactive_total"], 1)
         self.assertEqual(overview["opt_out_after_proactive_rate"], 50.0)
+        self.assertEqual(overview["status_breakdown_total"], {})
+        self.assertEqual(overview["recent_failures"], [])
+
+    async def test_overview_breaks_down_non_sent_statuses(self):
+        await self.db.connection.execute(
+            """
+            INSERT INTO proactive_messages (
+                user_id, trigger_kind, status, source_last_user_message_at, created_at, error_text
+            )
+            VALUES
+                (1, 'inactivity_followup', 'failed', '2026-01-01 09:00:00', CURRENT_TIMESTAMP, 'telegram_forbidden'),
+                (2, 'reengagement', 'blocked', '2026-01-01 09:00:00', CURRENT_TIMESTAMP, 'quiet_hours'),
+                (3, 'reengagement', 'persist_failed', '2026-01-01 09:00:00', CURRENT_TIMESTAMP, 'db_persist_failed')
+            """
+        )
+        await self.db.connection.commit()
+
+        overview = await self.proactive_repository.get_overview()
+
+        self.assertEqual(overview["failed_total"], 3)
+        self.assertEqual(overview["status_breakdown_total"]["failed"], 1)
+        self.assertEqual(overview["status_breakdown_total"]["blocked"], 1)
+        self.assertEqual(overview["status_breakdown_total"]["persist_failed"], 1)
+        self.assertEqual(overview["status_breakdown_7d"]["failed"], 1)
+        self.assertEqual(overview["recent_failures"][0]["status"], "persist_failed")
+        self.assertEqual(overview["recent_failures"][-1]["error_text"], "telegram_forbidden")

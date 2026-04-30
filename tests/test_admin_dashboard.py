@@ -115,6 +115,14 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("aiUsage.top_users_30d||[]", source)
         self.assertIn("function formatUserLabel(item)", source)
 
+    def test_dashboard_exposes_proactive_failure_breakdown(self):
+        source = self._admin_source()
+
+        self.assertIn('id="proactive-failures"', source)
+        self.assertIn("function proactiveStatusLabel(status)", source)
+        self.assertIn("proactive.status_breakdown_total||{}", source)
+        self.assertIn("proactive.recent_failures||[]", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 
