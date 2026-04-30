@@ -31,7 +31,39 @@ class AdminSettingsServiceCacheTests(unittest.TestCase):
             after = bot_settings.get_runtime_settings()
             self.assertEqual(after["ai"]["openai_model"], "gpt-test-model")
 
+    def test_legacy_payment_packages_are_migrated_to_product_keys(self):
+        with TemporaryDirectory() as tmp:
+            base_dir = Path(tmp)
+            settings = AdminSettingsService(base_dir=base_dir)
+
+            settings.update_runtime_settings(
+                {
+                    "payment": {
+                        "default_package_key": "month",
+                        "packages": {
+                            "month": {
+                                "enabled": True,
+                                "title": "Legacy month",
+                                "description": "Legacy monthly plan",
+                                "price_minor_units": 55500,
+                                "access_duration_days": 30,
+                                "sort_order": 30,
+                                "badge": "Legacy",
+                                "recurring_stars_enabled": True,
+                            }
+                        },
+                    }
+                }
+            )
+
+            runtime = settings.get_runtime_settings()
+            payment = runtime["payment"]
+
+            self.assertEqual("premium_month", payment["default_package_key"])
+            self.assertIn("pro_month", payment["packages"])
+            self.assertIn("premium_month", payment["packages"])
+            self.assertNotIn("month", payment["packages"])
+
 
 if __name__ == "__main__":
     unittest.main()
-

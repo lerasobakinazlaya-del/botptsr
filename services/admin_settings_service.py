@@ -46,7 +46,7 @@ class AdminSettingsService:
             "enabled": True,
             "title": "Premium на 30 дней",
             "description": "Основной план: память диалога, инициатива от бота и все режимы на месяц.",
-            "price_minor_units": 49900,
+            "price_minor_units": 44900,
             "access_duration_days": 30,
             "sort_order": 30,
             "badge": "Основной",
@@ -62,6 +62,58 @@ class AdminSettingsService:
             "badge": "Выгодно",
             "recurring_stars_enabled": False,
         },
+    }
+    PRODUCT_PAYMENT_PACKAGES = {
+        "pro_month": {
+            "enabled": True,
+            "title": "Pro РЅР° 30 РґРЅРµР№",
+            "description": "Р‘Р°Р·РѕРІС‹Р№ РїР»Р°С‚РЅС‹Р№ РїР»Р°РЅ: Р±РѕР»СЊС€Рµ СЃРѕРѕР±С‰РµРЅРёР№, РІСЃРµ СЂРµР¶РёРјС‹ Рё РїР°РјСЏС‚СЊ РєРѕРЅС‚РµРєСЃС‚Р°.",
+            "price_minor_units": 44900,
+            "access_duration_days": 30,
+            "sort_order": 10,
+            "badge": "РЎС‚Р°СЂС‚",
+            "recurring_stars_enabled": True,
+            "plan_key": "pro",
+        },
+        "pro_year": {
+            "enabled": True,
+            "title": "Pro РЅР° 365 РґРЅРµР№",
+            "description": "Р“РѕРґРѕРІРѕР№ РґРѕСЃС‚СѓРї Рє РїР»Р°РЅСѓ Pro РїРѕ РІС‹РіРѕРґРЅРѕР№ С†РµРЅРµ.",
+            "price_minor_units": 399000,
+            "access_duration_days": 365,
+            "sort_order": 20,
+            "badge": "Р’С‹РіРѕРґРЅРѕ",
+            "recurring_stars_enabled": False,
+            "plan_key": "pro",
+        },
+        "premium_month": {
+            "enabled": True,
+            "title": "Premium РЅР° 30 РґРЅРµР№",
+            "description": "РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РїР»Р°РЅ: РґР»РёРЅРЅРµРµ РѕС‚РІРµС‚С‹, РіР»СѓР±РѕРєРёРµ СЂР°Р·Р±РѕСЂС‹ Рё РїСЂРёРѕСЂРёС‚РµС‚РЅС‹Р№ РґРѕСЃС‚СѓРї.",
+            "price_minor_units": 99000,
+            "access_duration_days": 30,
+            "sort_order": 30,
+            "badge": "Р“Р»СѓР±Р¶Рµ",
+            "recurring_stars_enabled": True,
+            "plan_key": "premium",
+        },
+        "premium_year": {
+            "enabled": True,
+            "title": "Premium РЅР° 365 РґРЅРµР№",
+            "description": "Р“РѕРґРѕРІРѕР№ РґРѕСЃС‚СѓРї Рє РїР»Р°РЅСѓ Premium РїРѕ Р»СѓС‡С€РµР№ С†РµРЅРµ.",
+            "price_minor_units": 899000,
+            "access_duration_days": 365,
+            "sort_order": 40,
+            "badge": "Р’С‹РіРѕРґРЅРѕ",
+            "recurring_stars_enabled": False,
+            "plan_key": "premium",
+        },
+    }
+    LEGACY_PAYMENT_PACKAGE_ALIASES = {
+        "day": "pro_month",
+        "week": "pro_month",
+        "month": "premium_month",
+        "year": "premium_year",
     }
 
     DEFAULT_RUNTIME_SETTINGS = {
@@ -460,11 +512,11 @@ class AdminSettingsService:
             "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
             "provider_token": "",
             "currency": "RUB",
-            "default_package_key": "month",
+            "default_package_key": "pro_month",
             "price_minor_units": 49900,
             "access_duration_days": 30,
             "recurring_stars_enabled": True,
-            "packages": deepcopy(DEFAULT_PAYMENT_PACKAGES),
+            "packages": deepcopy(PRODUCT_PAYMENT_PACKAGES),
             "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
             "premium_menu_packages_title": "Выбери формат доступа:",
             "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
@@ -1034,7 +1086,7 @@ class AdminSettingsService:
             payment["mode"] = "telegram"
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
-        payment["default_package_key"] = str(payment.get("default_package_key") or "month").strip().lower() or "month"
+        payment["default_package_key"] = str(payment.get("default_package_key") or "pro_month").strip().lower() or "pro_month"
         payment["packages"] = self._normalize_payment_packages(payment)
         default_package = payment["packages"][payment["default_package_key"]]
         payment["price_minor_units"] = int(default_package["price_minor_units"])
@@ -1107,14 +1159,25 @@ class AdminSettingsService:
         return current
 
     def _normalize_payment_packages(self, payment: dict[str, Any]) -> dict[str, Any]:
-        merged = deepcopy(self.DEFAULT_PAYMENT_PACKAGES)
+        merged = deepcopy(self.PRODUCT_PAYMENT_PACKAGES)
         raw_packages = payment.get("packages")
+        if isinstance(raw_packages, dict):
+            normalized_raw_packages: dict[str, Any] = {}
+            for package_key, payload in raw_packages.items():
+                if package_key in merged and isinstance(payload, dict):
+                    normalized_raw_packages[package_key] = payload
+            for legacy_key, product_key in self.LEGACY_PAYMENT_PACKAGE_ALIASES.items():
+                payload = raw_packages.get(legacy_key)
+                if product_key not in normalized_raw_packages and isinstance(payload, dict):
+                    normalized_raw_packages[product_key] = payload
+            raw_packages = normalized_raw_packages
         if isinstance(raw_packages, dict):
             self._deep_merge(merged, raw_packages)
 
-        requested_key = str(payment.get("default_package_key") or "month").strip().lower() or "month"
+        requested_key = str(payment.get("default_package_key") or "pro_month").strip().lower() or "pro_month"
+        requested_key = self.LEGACY_PAYMENT_PACKAGE_ALIASES.get(requested_key, requested_key)
         if requested_key not in merged:
-            requested_key = "month"
+            requested_key = "pro_month"
 
         if not isinstance(raw_packages, dict) or not raw_packages:
             merged[requested_key]["price_minor_units"] = max(1, int(payment.get("price_minor_units", 49900) or 49900))

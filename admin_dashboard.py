@@ -1081,7 +1081,10 @@ def _dashboard_html() -> str:
             <div class="panel"><h3>Система и релиз</h3><div id="health-summary"></div></div>
             <div class="panel"><h3>Последние события монетизации</h3><div id="recent-monetization"></div></div>
           </div>
-          <div class="panel"><h3>Последние OpenAI вызовы</h3><div id="recent-openai-usage"></div></div>
+          <div class="cols">
+            <div class="panel"><h3>Последние OpenAI вызовы</h3><div id="recent-openai-usage"></div></div>
+            <div class="panel"><h3>Кто тратит токены</h3><div id="top-openai-users"></div></div>
+          </div>
           <div class="cols">
             <div class="panel"><h3>По триггеру оффера</h3><div id="monetization-by-trigger"></div></div>
             <div class="panel"><h3>По A/B варианту</h3><div id="monetization-by-variant"></div></div>
@@ -2012,8 +2015,28 @@ def _dashboard_html() -> str:
     function openView(name){state.activeView=name||'overview';$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===state.activeView));$$('.page').forEach(p=>p.classList.toggle('active',p.dataset.view===state.activeView));renderChrome()}
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
-    const PAYMENT_PACKAGE_KEYS=['day','week','month','year']
-    function packageInputId(key,field){return `#payment_package_${key}_${field}`}
+    const PAYMENT_PACKAGE_CONFIG=[
+      {key:'pro_month',domKey:'day',title:'Pro — 30 дней',badge:'pro_month'},
+      {key:'pro_year',domKey:'week',title:'Pro — 365 дней',badge:'pro_year'},
+      {key:'premium_month',domKey:'month',title:'Premium — 30 дней',badge:'premium_month'},
+      {key:'premium_year',domKey:'year',title:'Premium — 365 дней',badge:'premium_year'},
+    ]
+    const PAYMENT_PACKAGE_KEYS=PAYMENT_PACKAGE_CONFIG.map(item=>item.key)
+    function paymentPackageConfig(key){return PAYMENT_PACKAGE_CONFIG.find(item=>item.key===key)||PAYMENT_PACKAGE_CONFIG[0]}
+    function packageInputId(key,field){const item=paymentPackageConfig(key);return `#payment_package_${item.domKey}_${field}`}
+    function renderPaymentPackageUi(){
+      const select=$('#payment_default_package_key')
+      if(select)select.innerHTML=PAYMENT_PACKAGE_CONFIG.map(item=>`<option value="${esc(item.key)}">${esc(item.title)}</option>`).join('')
+      PAYMENT_PACKAGE_CONFIG.forEach(item=>{
+        const input=$(packageInputId(item.key,'enabled'))
+        const card=input&&typeof input.closest==='function'?input.closest('.mode-card'):null
+        if(!card)return
+        const headTitle=card.querySelector('.mode-head strong')
+        const headBadge=card.querySelector('.mode-head .badge')
+        if(headTitle)headTitle.textContent=item.title
+        if(headBadge)headBadge.textContent=item.badge
+      })
+    }
     function renderPaymentPackages(packages){
       PAYMENT_PACKAGE_KEYS.forEach(key=>{
         const item=(packages&&packages[key])||{}
@@ -2044,6 +2067,16 @@ def _dashboard_html() -> str:
       return packages
     }
     function renderModeOverrides(ai,catalog){const overrides=ai.mode_overrides||{};const globalModel=ai.openai_model||'';const keys=Object.keys(catalog||{}).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));$('#ai-mode-overrides').innerHTML=keys.map(key=>{const meta=catalog[key]||{};const value=overrides[key]||{};const effectiveModel=value.model||globalModel||'—';return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon||'')} ${esc(meta.name||key)}</strong><div class="muted">${esc(key)} • сейчас: ${esc(effectiveModel)}</div></div></div><div class="three"><label>Модель<input data-ai-override="${key}.model" value="${esc(value.model||'')}"></label><label>Температура<input data-ai-override="${key}.temperature" type="number" step="0.1" value="${esc(value.temperature||'')}"></label><label>Макс. токены<input data-ai-override="${key}.max_completion_tokens" type="number" value="${esc(value.max_completion_tokens||'')}"></label><label>Память<input data-ai-override="${key}.memory_max_tokens" type="number" value="${esc(value.memory_max_tokens||'')}"></label><label>История<input data-ai-override="${key}.history_message_limit" type="number" value="${esc(value.history_message_limit||'')}"></label><label>Таймаут<input data-ai-override="${key}.timeout_seconds" type="number" value="${esc(value.timeout_seconds||'')}"></label></div><div class="three"><label>Повторы<input data-ai-override="${key}.max_retries" type="number" value="${esc(value.max_retries||'')}"></label></div><label>Доп. инструкция<textarea data-ai-override="${key}.prompt_suffix">${esc(value.prompt_suffix||'')}</textarea></label></div>`}).join('')}
+    function formatUserLabel(item){
+      if(!item)return '—';
+      const firstName=String(item.first_name||'').trim();
+      const username=String(item.username||'').trim();
+      const userId=item.user_id||item.id||'';
+      if(firstName&&username)return `${firstName} (@${username})`;
+      if(firstName)return firstName;
+      if(username)return `@${username}`;
+      return userId?String(userId):'—';
+    }
     function renderOverview(){
       if(!state.overview)return;
       const o=state.overview,users=o.users||{},content=o.content||{},aiUsage=content.openai_usage||{},payments=o.payments||{},monetization=o.monetization||{},funnel7=monetization.funnel_7d||{},funnel30=monetization.funnel_30d||{},byTrigger30=monetization.by_trigger_30d||{},byVariant30=monetization.by_variant_30d||{},growth=o.growth||{},runtime=o.runtime||{},chatRuntime=runtime.chat_sessions||{},support=o.support||{},episodes=support.episode_counts||{},proactive=o.proactive||{},preferences=o.preferences||{},referrals=o.referrals||{},recent=o.recent||{};
@@ -2058,15 +2091,17 @@ def _dashboard_html() -> str:
       $('#overview-cards').innerHTML=cards.map(x=>`<div class="card"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div><div class="muted">${x[2]}</div></div>`).join('');
       $('#overview-audience').innerHTML=`<div class="stack">${metricCards([['Всего пользователей',num(users.total||0),'База пользователей'],['Новые за 1 день',num(users.new_1d||0),'Свежие регистрации'],['Онбординг старт',num(onboardingStarted.users||0),'Стартовали за 30 дней'],['Активации 30д',num(activationReached.users||0),'Дошли до целевого первого опыта']])}${kvList([['Сообщений всего',esc(num(content.messages_total||0))],['Активных платных',esc(num(users.active_with_messages||0))],['Рефералов',esc(num(referrals.total||0))],['Конверсий рефералки',esc(num(referrals.converted||0))],['Топ source',esc(topSourceEntry[0]||'—')],['Топ campaign',esc(topCampaignEntry[0]||'—')]])}</div>`;
       $('#overview-revenue').innerHTML=`<div class="stack">${metricCards([['Успешные оплаты',num(payments.successful_payments||0),'Все провайдеры'],['Виртуальные',num(virtualProvider.successful_payments||0),`Выручка: ${num(virtualProvider.revenue||0)}`],['Telegram',num(telegramProvider.successful_payments||0),`Выручка: ${num(telegramProvider.revenue||0)}`],['Офферы 30д',num(offerShownStage.users||0),`Оплаты: ${num(paidStage.users||0)}`]])}${kvList([['Конверсия оффер -> инвойс (30д)',esc(`${funnel30Conversion.offer_to_invoice_pct||0}%`)],['Конверсия инвойс -> paid (30д)',esc(`${funnel30Conversion.invoice_to_paid_pct||0}%`)],['Конверсия paid -> renewed (30д)',esc(`${funnel30Conversion.paid_to_renewed_pct||0}%`)],['Продления 30д',esc(num(renewedStage.users||0))],['Referral menu opens',esc(num(referralMenuOpened.events||0))],['Insight shares',esc(num(insightShared.events||0))]])}</div>`;
-      $('#overview-runtime').innerHTML=`<div class="stack">${metricCards([['AI очередь',`${runtime.queue_size||0}/${runtime.queue_capacity||0}`,`busy: ${runtime.busy_workers||0}/${runtime.workers||0}`],['OpenAI',`${runtime.openai_in_flight_requests||0}/${runtime.openai_configured_limit||0}`,`ждут: ${runtime.openai_waiting_requests||0}`],['Токены 7д',num(aiUsage.tokens_7d||0),`Запросов: ${num(aiUsage.requests_7d||0)}`],['Инициативные 1д',num(proactive.sent_1d||0),`ответы: ${proactive.reply_after_proactive_rate||0}%`]])}${kvList([['Prompt tokens',esc(num(aiUsage.prompt_tokens_total||0))],['Completion tokens',esc(num(aiUsage.completion_tokens_total||0))],['Средняя задержка OpenAI',esc(`${aiUsage.avg_latency_ms||0} мс`)],['Отказались от инициативы',esc(num(preferences.proactive_disabled_users||0))]])}</div>`;
+      $('#overview-runtime').innerHTML=`<div class="stack">${metricCards([['AI очередь',`${runtime.queue_size||0}/${runtime.queue_capacity||0}`,`busy: ${runtime.busy_workers||0}/${runtime.workers||0}`],['OpenAI',`${runtime.openai_in_flight_requests||0}/${runtime.openai_configured_limit||0}`,`ждут: ${runtime.openai_waiting_requests||0}`],['Токены 7д',num(aiUsage.tokens_7d||0),`Запросов: ${num(aiUsage.requests_7d||0)}`],['Пользователи 7д',num(aiUsage.users_7d||0),`С токенами за 7 дней`],['Инициативные 1д',num(proactive.sent_1d||0),`ответы: ${proactive.reply_after_proactive_rate||0}%`]])}${kvList([['Prompt tokens',esc(num(aiUsage.prompt_tokens_total||0))],['Completion tokens',esc(num(aiUsage.completion_tokens_total||0))],['Пользователей всего с расходом',esc(num(aiUsage.users_total||0))],['Средняя задержка OpenAI',esc(`${aiUsage.avg_latency_ms||0} мс`)],['Отказались от инициативы',esc(num(preferences.proactive_disabled_users||0))]])}</div>`;
       const recentUsersRows=(recent.users||[]).map(user=>({'ID':user.id,'Имя':user.first_name||'—','Username':user.username||'—','Premium':user.is_premium?'Да':'Нет','Создан':user.created_at||'—'}));
       $('#recent-users').innerHTML=`<div class="table-wrap overview-table">${table(['ID','Имя','Username','Premium','Создан'],recentUsersRows)}</div>`;
       const recentPaymentsRows=(recent.payments||[]).map(item=>({'Пользователь':item.user_id||'—','Пакет':item.package_title||'—','Сумма':item.amount!=null?`${item.amount} ${item.currency||''}`.trim():'—','Провайдер':item.provider||'—','Статус':item.status||'—','Время':item.event_time||'—'}));
       $('#recent-payments').innerHTML=`<div class="table-wrap overview-table">${table(['Пользователь','Пакет','Сумма','Провайдер','Статус','Время'],recentPaymentsRows)}</div>`;
       const recentMonetizationRows=(recent.monetization||[]).map(item=>({'Пользователь':item.user_id||'—','Событие':item.event_name||'—','Trigger':item.offer_trigger||'—','Source':item.metadata.source||'—','Campaign':item.metadata.campaign||'—','Время':item.created_at||'—'}));
       $('#recent-monetization').innerHTML=`<div class="table-wrap overview-table">${table(['Пользователь','Событие','Trigger','Source','Campaign','Время'],recentMonetizationRows)}</div>`;
-      const recentUsageRows=(recent.openai_usage||[]).map(item=>({'Время':item.created_at||'—','Source':item.source||'—','Пользователь':item.user_id||'—','Модель':item.model||'—','Токены':item.total_tokens!=null?num(item.total_tokens):'—','Latency':item.latency_ms!=null?`${item.latency_ms} мс`:'—'}));
-      $('#recent-openai-usage').innerHTML=`<div class="table-wrap overview-table">${table(['Время','Source','Пользователь','Модель','Токены','Latency'],recentUsageRows)}</div>`;
+      const recentUsageRows=(recent.openai_usage||[]).map(item=>({'Время':item.created_at||'—','Source':item.source||'—','Пользователь':formatUserLabel(item),'User ID':item.user_id||'—','Модель':item.model||'—','Токены':item.total_tokens!=null?num(item.total_tokens):'—','Latency':item.latency_ms!=null?`${item.latency_ms} мс`:'—'}));
+      $('#recent-openai-usage').innerHTML=`<div class="table-wrap overview-table">${table(['Время','Source','Пользователь','User ID','Модель','Токены','Latency'],recentUsageRows)}</div>`;
+      const topUsersRows=(aiUsage.top_users_30d||[]).map(item=>({'Пользователь':formatUserLabel(item),'User ID':item.user_id||'—','Запросов':num(item.requests||0),'Токены':num(item.total_tokens||0),'Prompt':num(item.prompt_tokens||0),'Completion':num(item.completion_tokens||0),'USD':item.estimated_cost_usd!=null?String(item.estimated_cost_usd):'—','Последний вызов':item.last_seen_at||'—'}));
+      $('#top-openai-users').innerHTML=`<div class="table-wrap overview-table">${table(['Пользователь','User ID','Запросов','Токены','Prompt','Completion','USD','Последний вызов'],topUsersRows)}</div>`;
       $('#monetization-by-trigger').innerHTML=monetizationSegmentTable(byTrigger30);
       $('#monetization-by-variant').innerHTML=monetizationSegmentTable(byVariant30);
       $('#support-summary').innerHTML=`<div class="stack">${metricCards([['Профили поддержки',String(support.users_with_support_profile||0),'Пользователи с профилем поддержки'],['Рефералы',String(referrals.total||0),`Конверсий: ${referrals.converted||0}`],['Инициативные пользователи',String(proactive.users_contacted_7d||0),'Кому бот писал за 7 дней']])}${kvList([['Эпизоды паники',esc(num(episodes.panic||0))],['Эпизоды флэшбэков',esc(num(episodes.flashback||0))],['Эпизоды бессонницы',esc(num(episodes.insomnia||0))],['Флаги самоповреждения',esc(num(support.self_harm_flags||0))],['Отправлено инициативных',esc(num(proactive.sent_total||0))],['Ошибок инициативных',esc(num(proactive.failed_total||0))],['Ответы после инициативных',esc(`${proactive.reply_after_proactive_total||0} (${proactive.reply_after_proactive_rate||0}%)`)],['OpenAI всего',esc(`${num(aiUsage.tokens_total||0)} токенов / ${num(aiUsage.requests_total||0)} вызовов`)],['Пользователи с часовым поясом',esc(num(preferences.users_with_timezone||0))],['Пользователи с отказом',esc(num(preferences.proactive_disabled_users||0))],['Последнее обновление',esc(support.last_updated_at||'Нет данных')]])}</div>`;
@@ -2262,6 +2297,7 @@ def _dashboard_html() -> str:
     function renderModes(){if(!state.settings||!state.settings.modes||!state.settings.mode_catalog)return;const m=state.settings.modes,c=state.settings.mode_catalog,runtimeAi=state.settings.runtime.ai||{},modeOverrides=runtimeAi.mode_overrides||{},globalModel=runtimeAi.openai_model||'';const keys=Object.keys(c).sort((a,b)=>(c[a].sort_order||0)-(c[b].sort_order||0));const modeScaleLabel=k=>({warmth:'Теплота',flirt:'Флирт',depth:'Глубина',structure:'Структура',dominance:'Доминирование',initiative:'Инициатива',emoji_level:'Эмодзи',allow_bold:'Жирный текст',allow_italic:'Курсив'}[k]||k);$('#modes-container').innerHTML=keys.map(k=>{const meta=c[k]||{},scale=m[k]||{},override=modeOverrides[k]||{},numericEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='number'),booleanEntries=Object.entries(scale).filter(([,mv])=>typeof mv==='boolean');return `<div class="mode-card"><div class="mode-head"><div><strong>${esc(meta.icon)} ${esc(meta.name)}</strong><div class="muted">${esc(k)} • GPT: ${esc(override.model||globalModel||'—')}</div></div><span class="badge">${meta.is_premium?'Премиум':'Бесплатно'}</span></div><div class="three"><label>Название<input data-catalog="${k}.name" value="${esc(meta.name)}"></label><label>Иконка<input data-catalog="${k}.icon" value="${esc(meta.icon)}"></label><label>Порядок<input data-catalog="${k}.sort_order" type="number" value="${meta.sort_order||0}"></label></div><div class="two"><label>GPT-модель<input data-mode-model="${k}" value="${esc(override.model||'')}" placeholder="${esc(globalModel||'gpt-4o-mini')}"></label><div class="muted">Пусто = общая модель. Детальные override можно править во вкладке «ИИ и интерфейс».</div></div><label class="checkbox"><input data-catalog="${k}.is_premium" type="checkbox" ${meta.is_premium?'checked':''}>Премиум</label><label>Описание<textarea data-catalog="${k}.description">${esc(meta.description)}</textarea></label><label>Тон<input data-catalog="${k}.tone" value="${esc(meta.tone)}"></label><label>Эмоциональное состояние<input data-catalog="${k}.emotional_state" value="${esc(meta.emotional_state)}"></label><label>Правила<textarea data-catalog="${k}.behavior_rules">${esc(meta.behavior_rules)}</textarea></label><label>Фраза активации<textarea data-catalog="${k}.activation_phrase">${esc(meta.activation_phrase)}</textarea></label><div class="three">${numericEntries.map(([mk,mv])=>`<label>${esc(modeScaleLabel(mk))}<input data-mode-scale="${k}.${mk}" type="number" min="0" max="10" value="${mv}"></label>`).join('')}</div>${booleanEntries.length?`<div class="two">${booleanEntries.map(([mk,mv])=>`<label class="checkbox"><input data-mode-scale="${k}.${mk}" type="checkbox" ${mv?'checked':''}>${esc(modeScaleLabel(mk))}</label>`).join('')}</div>`:''}</div>`}).join('')}
     function renderPayments(){
       if(!state.settings||!state.settings.runtime)return
+      renderPaymentPackageUi()
       const p=state.settings.runtime.payment,ref=state.settings.runtime.referral
       setValue('#payment_provider_token',p.provider_token)
       setValue('#payment_mode',p.mode||'telegram')

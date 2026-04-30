@@ -19,6 +19,11 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertFalse(engagement["reengagement_enabled"])
         self.assertTrue(runtime["cost_control"]["usage_alerts"]["enabled"])
         self.assertGreater(runtime["cost_control"]["usage_alerts"]["daily_tokens_warn"], 0)
+        self.assertEqual("pro_month", payment["default_package_key"])
+        self.assertIn("pro_month", payment["packages"])
+        self.assertIn("premium_month", payment["packages"])
+        self.assertNotIn("day", payment["packages"])
+        self.assertNotIn("week", payment["packages"])
 
 
 if __name__ == "__main__":

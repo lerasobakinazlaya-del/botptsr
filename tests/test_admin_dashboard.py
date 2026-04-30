@@ -108,12 +108,28 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("cost_control:{usage_alerts:{enabled:$('#usage_alerts_enabled').checked", source)
         self.assertIn("renderOpenAIAlertStatus(healthUsage,usageAlerts)", source)
 
+    def test_dashboard_exposes_openai_user_spend_blocks(self):
+        source = self._admin_source()
+
+        self.assertIn('id="top-openai-users"', source)
+        self.assertIn("aiUsage.top_users_30d||[]", source)
+        self.assertIn("function formatUserLabel(item)", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 
         self.assertIn("Тарифы и оплата", source)
         self.assertIn("Пакеты тарифов", source)
         self.assertIn("Тарифы конечного пользователя", source)
+
+    def test_payments_page_uses_product_package_keys(self):
+        source = self._admin_source()
+
+        self.assertIn("PAYMENT_PACKAGE_CONFIG", source)
+        self.assertIn("pro_month", source)
+        self.assertIn("pro_year", source)
+        self.assertIn("premium_month", source)
+        self.assertIn("premium_year", source)
 
     def test_saas_dashboard_additions_are_localized(self):
         source = self._admin_source()
