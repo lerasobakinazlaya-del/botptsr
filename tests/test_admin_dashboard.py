@@ -112,6 +112,8 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         source = self._admin_source()
 
         self.assertIn('id="top-openai-users"', source)
+        self.assertIn('id="overview-openai-spend"', source)
+        self.assertIn("$('#overview-openai-spend').innerHTML", source)
         self.assertIn("aiUsage.top_users_30d||[]", source)
         self.assertIn("function formatUserLabel(item)", source)
 
