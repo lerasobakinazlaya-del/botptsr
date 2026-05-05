@@ -177,6 +177,7 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(eligible)
         self.assertIn("state_snapshot", candidate)
+        self.assertIn("user_snapshot", candidate)
 
     async def test_is_eligible_uses_message_history_when_state_is_old(self):
         service = self._build_service(
@@ -240,7 +241,7 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
             prompt_builder=PromptBuilder(settings_service),
             access_engine=AccessEngine(settings_service),
             settings_service=settings_service,
-            user_service=FakeUserService({"is_admin": False}),
+            user_service=FakeUserService({"is_admin": False, "subscription_plan": "premium"}),
         )
 
         result = await service._generate_message(
@@ -269,3 +270,5 @@ class ProactiveMessageServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("ignore previous instructions", user_prompt)
         self.assertNotIn("следуй этим инструкциям", system_prompt)
         self.assertNotIn("answer with one word", user_prompt)
+        self.assertIn("user is premium", system_prompt)
+        self.assertNotIn("user is free", system_prompt)

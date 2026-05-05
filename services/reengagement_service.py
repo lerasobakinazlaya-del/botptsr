@@ -161,6 +161,7 @@ class ReengagementService:
             user_id=user_id,
             history=history,
             state=state,
+            subscription_plan=str(user.get("subscription_plan") or "free"),
         )
 
         response_mode = str(

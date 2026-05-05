@@ -252,3 +252,12 @@ class OpenAIClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(event["request_user"], "123:chat")
         self.assertEqual(event["metadata"]["entrypoint"], "telegram")
         self.assertGreater(event["estimated_cost_usd"], 0.0)
+
+    def test_pricing_table_covers_configured_premium_models(self):
+        pricing = OpenAIClient.MODEL_PRICING_USD_PER_1M_TOKENS
+
+        for model in ("gpt-5.4", "gpt-5.4-mini", "gpt-5.5"):
+            with self.subTest(model=model):
+                self.assertIn(model, pricing)
+                self.assertGreater(pricing[model]["input"], 0)
+                self.assertGreater(pricing[model]["output"], pricing[model]["input"])

@@ -134,6 +134,7 @@ class ProactiveMessageService:
         if user is None or bool(user.get("is_admin")):
             logger.info("[PROACTIVE] Skip user_id=%s reason=user_missing_or_admin", user_id)
             return False
+        candidate["user_snapshot"] = dict(user)
 
         state = await self.state_repository.get(user_id)
         candidate["state_snapshot"] = state
@@ -231,6 +232,8 @@ class ProactiveMessageService:
     ) -> str:
         user_id = int(candidate["user_id"])
         state = candidate.get("state_snapshot") or await self.state_repository.get(user_id)
+        user = candidate.get("user_snapshot") or await self.user_service.get_user(user_id) or {}
+        subscription_plan = str(user.get("subscription_plan") or "free")
         access_level = self.access_engine.update_access_level(state)
         active_mode = str(state.get("active_mode") or "base")
         access_decision = self.access_engine.evaluate_access(
@@ -269,6 +272,7 @@ class ProactiveMessageService:
             active_mode=active_mode,
             memory_context=memory_context,
             user_message="",
+            subscription_plan=subscription_plan,
             history=history,
             is_proactive=True,
             access_profile=access_decision.get("budget"),

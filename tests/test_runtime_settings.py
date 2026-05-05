@@ -29,6 +29,23 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertNotIn("????", payment["offer_useful_advice_template"])
         self.assertIn("Premium", payment["premium_menu_description_template"])
 
+    def test_user_facing_config_has_no_mojibake_markers(self):
+        markers = ("Рџ", "Рњ", "Р§", "СЏ", "вЂ", "рџ")
+        paths = (
+            Path("config/runtime_settings.json"),
+            Path("config/prompt_templates.json"),
+            Path("config/mode_catalog.json"),
+        )
+
+        offenders = []
+        for path in paths:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            found = [marker for marker in markers if marker in text]
+            if found:
+                offenders.append(f"{path}: {', '.join(found)}")
+
+        self.assertEqual([], offenders)
+
 
 if __name__ == "__main__":
     unittest.main()

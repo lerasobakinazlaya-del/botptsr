@@ -47,6 +47,7 @@ DEFAULT_ADMIN_DASHBOARD_PASSWORDS = {
 }
 
 MOJIBAKE_MARKERS = ("Рџ", "Рќ", "РЎ", "Р°", "вЂ", "рџ")
+MOJIBAKE_MARKERS = MOJIBAKE_MARKERS + ("Рџ", "Рњ", "РЎ", "Р°", "вЂ", "рџ", "Р§", "СЏ")
 PUBLIC_COPY_PATHS = [
     REPO_ROOT / "config" / "runtime_settings.json",
     REPO_ROOT / "docs" / "launch-kit.md",

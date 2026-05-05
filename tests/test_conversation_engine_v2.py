@@ -156,6 +156,26 @@ class ConversationEngineV2Tests(unittest.TestCase):
         self.assertIn("User is premium", premium_prompt)
         self.assertIn("Do not upsell premium", premium_prompt)
 
+    def test_first_initiative_free_prompt_has_no_upsell_language(self):
+        for flag_name in ("is_reengagement", "is_proactive"):
+            with self.subTest(flag=flag_name):
+                prompt = self.engine.build_system_prompt(
+                    state={"active_mode": "base", "emotional_tone": "neutral", "interaction_count": 4},
+                    access_level="analysis",
+                    active_mode="base",
+                    user_message="Write one alive first-initiative message after a pause.",
+                    subscription_plan="free",
+                    history=[],
+                    **{flag_name: True},
+                ).lower()
+
+                self.assertIn("first-initiative message", prompt)
+                self.assertIn("do not include monetization language", prompt)
+                self.assertNotIn("premium nudge", prompt)
+                self.assertNotIn("upgrade hint", prompt)
+                self.assertNotIn("paid value", prompt)
+                self.assertNotIn("deeper version", prompt)
+
     def test_comfort_mode_contract_discourages_default_questions(self):
         prompt = self.engine.build_system_prompt(
             state={"active_mode": "comfort", "emotional_tone": "neutral"},

@@ -55,6 +55,7 @@ class AIBackpressureError(RuntimeError):
 
 
 class AIService:
+    FIRST_INITIATIVE_USER_PROMPT = "Write one alive first-initiative message after a pause."
     EMPTY_RESPONSE_FALLBACK = (
         "Я рядом. Попробуй написать это чуть иначе, и я отвечу точнее."
     )
@@ -459,6 +460,7 @@ class AIService:
         user_id: int,
         history: List[Dict[str, str]],
         state: Dict[str, Any],
+        subscription_plan: str = "free",
     ) -> AIResult:
         runtime_settings = self.settings_service.get_runtime_settings()
         ai_settings = runtime_settings["ai"]
@@ -466,7 +468,7 @@ class AIService:
         reengagement_style = dict(engagement_settings.get("reengagement_style") or {})
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
         ai_profile = self._apply_reengagement_profile(
-            resolve_ai_profile(ai_settings, active_mode),
+            resolve_ai_profile(ai_settings, active_mode, subscription_plan),
             reengagement_style=reengagement_style,
         )
         history_for_context = self._limit_history_messages(
@@ -505,7 +507,8 @@ class AIService:
             access_level=access_level,
             active_mode=active_mode,
             memory_context=memory_context,
-            user_message="Сформулируй одно живое сообщение первой инициативы.",
+            user_message=self.FIRST_INITIATIVE_USER_PROMPT,
+            subscription_plan=subscription_plan,
             base_instruction=(
                 (ai_profile["prompt_suffix"] + "\n\n") if ai_profile["prompt_suffix"] else ""
             )
@@ -530,7 +533,7 @@ class AIService:
         messages = (
             [{"role": "system", "content": system_prompt}]
             + memory_messages
-            + [{"role": "user", "content": "Сформулируй одно живое сообщение первой инициативы."}]
+            + [{"role": "user", "content": self.FIRST_INITIATIVE_USER_PROMPT}]
         )
         response_text, tokens_used = await self._call_with_retry(
             messages,
@@ -553,7 +556,7 @@ class AIService:
         )
         response_text = self.conversation_engine.guard_response(
             response_text,
-            user_message="Сформулируй одно живое сообщение первой инициативы.",
+            user_message=self.FIRST_INITIATIVE_USER_PROMPT,
             active_mode=active_mode,
             history=history_for_context,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),
@@ -566,7 +569,7 @@ class AIService:
         )
         response_text = self.conversation_engine.guard_response(
             response_text,
-            user_message="Сформулируй одно живое сообщение первой инициативы.",
+            user_message=self.FIRST_INITIATIVE_USER_PROMPT,
             active_mode=active_mode,
             history=history_for_context,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),

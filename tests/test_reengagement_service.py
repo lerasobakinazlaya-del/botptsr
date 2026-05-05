@@ -202,6 +202,17 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(service.ai_service.calls), 1)
         self.assertEqual(service._bot.messages, [(1, "Привет")])
 
+    async def test_process_candidate_passes_subscription_plan_to_ai(self):
+        service = self._build_service()
+        service.user_service = FakeUserService({"is_admin": False, "subscription_plan": "premium"})
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(service.ai_service.calls[0]["subscription_plan"], "premium")
+
     async def test_process_candidate_skips_when_last_message_is_not_assistant(self):
         service = self._build_service()
 

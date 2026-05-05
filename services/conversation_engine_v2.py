@@ -185,6 +185,8 @@ class ConversationEngineV2:
             self._build_subscription_block(
                 subscription_plan=subscription_plan,
                 interaction_count=int((state or {}).get("interaction_count", 0) or 0),
+                is_reengagement=is_reengagement,
+                is_proactive=is_proactive,
             ),
             (
                 "System boundaries:\n"
@@ -724,8 +726,21 @@ class ConversationEngineV2:
 
         return "\n".join(lines)
 
-    def _build_subscription_block(self, *, subscription_plan: str, interaction_count: int) -> str:
+    def _build_subscription_block(
+        self,
+        *,
+        subscription_plan: str,
+        interaction_count: int,
+        is_reengagement: bool = False,
+        is_proactive: bool = False,
+    ) -> str:
         plan = str(subscription_plan or "free").strip().lower() or "free"
+        if plan == "free" and (is_reengagement or is_proactive):
+            return (
+                "Subscription behavior:\n"
+                "- User is free, but this is a first-initiative message: do not include monetization language or plan-related hints.\n"
+                "- Make the message valuable, alive, and self-contained; commercial context can wait until the user re-engages."
+            )
         if plan == "premium":
             return (
                 "Subscription behavior:\n"
