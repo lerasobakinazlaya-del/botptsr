@@ -287,6 +287,8 @@ class HumanMemoryService:
         min_hours_between: int,
         last_user_message_at: str | None,
         callback_topic: str | None = None,
+        attempts_for_silence: int = 0,
+        max_attempts_per_silence: int = 1,
     ) -> bool:
         meta = self.get_reengagement_metadata(state)
         last_sent_at = meta.get("last_sent_at")
@@ -296,12 +298,18 @@ class HumanMemoryService:
         if not last_user_message_at:
             return False
 
+        max_attempts = max(1, int(max_attempts_per_silence or 1))
+        attempts = max(0, int(attempts_for_silence or 0))
         last_triggered_from_user_at = meta.get("last_triggered_from_user_at")
-        if last_triggered_from_user_at and last_triggered_from_user_at == last_user_message_at:
+        if (
+            last_triggered_from_user_at
+            and last_triggered_from_user_at == last_user_message_at
+            and not (0 < attempts < max_attempts)
+        ):
             return False
 
         normalized_callback_topic = str(callback_topic or "").strip().lower()
-        if normalized_callback_topic:
+        if normalized_callback_topic and not (0 < attempts < max_attempts):
             last_callback_topic = str(meta.get("last_callback_topic") or "").strip().lower()
             if last_callback_topic == normalized_callback_topic:
                 return False

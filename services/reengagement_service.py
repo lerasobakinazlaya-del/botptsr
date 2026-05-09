@@ -165,7 +165,10 @@ class ReengagementService:
             min_hours_between=settings["reengagement_min_hours_between"],
             last_user_message_at=last_user_message_at,
             callback_topic=callback_topic,
+            attempts_for_silence=attempts_for_silence,
+            max_attempts_per_silence=max_attempts,
         ):
+            logger.info("[REENGAGE] Skip user_id=%s reason=human_memory_reengagement_gate", user_id)
             return
 
         history_limit = ai_settings["history_message_limit"]

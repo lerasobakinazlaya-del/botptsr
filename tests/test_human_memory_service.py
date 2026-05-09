@@ -69,6 +69,40 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
 
         self.assertFalse(can_send)
 
+    def test_reengagement_allows_staged_same_silence_before_attempt_cap(self):
+        can_send = self.service.can_send_reengagement(
+            {
+                "reengagement": {
+                    "last_triggered_from_user_at": "2026-01-01T00:00:00+00:00",
+                    "last_callback_topic": "работа",
+                }
+            },
+            min_hours_between=24,
+            last_user_message_at="2026-01-01T00:00:00+00:00",
+            callback_topic="работа",
+            attempts_for_silence=1,
+            max_attempts_per_silence=3,
+        )
+
+        self.assertTrue(can_send)
+
+    def test_reengagement_blocks_staged_same_silence_at_attempt_cap(self):
+        can_send = self.service.can_send_reengagement(
+            {
+                "reengagement": {
+                    "last_triggered_from_user_at": "2026-01-01T00:00:00+00:00",
+                    "last_callback_topic": "работа",
+                }
+            },
+            min_hours_between=24,
+            last_user_message_at="2026-01-01T00:00:00+00:00",
+            callback_topic="работа",
+            attempts_for_silence=3,
+            max_attempts_per_silence=3,
+        )
+
+        self.assertFalse(can_send)
+
     def test_reengagement_prompt_rotates_starter_family(self):
         prompt = self.service.build_reengagement_prompt(
             {
