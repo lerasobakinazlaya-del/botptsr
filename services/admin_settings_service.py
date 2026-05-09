@@ -464,6 +464,7 @@ class AdminSettingsService:
             "reengagement_enabled": True,
             "reengagement_idle_hours": 12,
             "reengagement_min_hours_between": 24,
+            "reengagement_max_attempts_per_silence": 3,
             "reengagement_recent_window_days": 30,
             "reengagement_poll_seconds": 180,
             "reengagement_batch_size": 8,
@@ -1073,6 +1074,7 @@ class AdminSettingsService:
         engagement["reengagement_enabled"] = bool(engagement.get("reengagement_enabled"))
         engagement["reengagement_idle_hours"] = max(1, int(engagement.get("reengagement_idle_hours", 12)))
         engagement["reengagement_min_hours_between"] = max(1, int(engagement.get("reengagement_min_hours_between", 24)))
+        engagement["reengagement_max_attempts_per_silence"] = max(1, int(engagement.get("reengagement_max_attempts_per_silence", 3)))
         engagement["reengagement_recent_window_days"] = max(1, int(engagement.get("reengagement_recent_window_days", 30)))
         engagement["reengagement_poll_seconds"] = max(30, int(engagement.get("reengagement_poll_seconds", 180)))
         engagement["reengagement_batch_size"] = max(1, int(engagement.get("reengagement_batch_size", 8)))

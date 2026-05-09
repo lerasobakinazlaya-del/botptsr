@@ -63,6 +63,27 @@ class ProactiveRepository:
         )
         return await cursor.fetchone() is not None
 
+    async def count_events_for_silence(
+        self,
+        *,
+        user_id: int,
+        source_last_user_message_at: str | None,
+    ) -> int:
+        if not source_last_user_message_at:
+            return 0
+
+        cursor = await self.db.connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM proactive_messages
+            WHERE user_id = ?
+              AND source_last_user_message_at = ?
+            """,
+            (int(user_id), source_last_user_message_at),
+        )
+        row = await cursor.fetchone()
+        return int(row[0] or 0) if row else 0
+
     async def has_recent_event(
         self,
         *,

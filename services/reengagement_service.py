@@ -131,11 +131,25 @@ class ReengagementService:
         if str(relationship.get("last_user_mood") or "").strip().lower() in self.BLOCKED_LAST_MOODS:
             logger.info("[REENGAGE] Skip user_id=%s reason=blocked_last_user_mood", user_id)
             return
-        if await self.proactive_repository.has_event_for_silence(
+        attempts_for_silence = 0
+        if hasattr(self.proactive_repository, "count_events_for_silence"):
+            attempts_for_silence = await self.proactive_repository.count_events_for_silence(
+                user_id=user_id,
+                source_last_user_message_at=last_user_message_at,
+            )
+        elif await self.proactive_repository.has_event_for_silence(
             user_id=user_id,
             source_last_user_message_at=last_user_message_at,
         ):
-            logger.info("[REENGAGE] Skip user_id=%s reason=already_contacted_for_same_silence", user_id)
+            attempts_for_silence = 1
+        max_attempts = max(1, int(settings.get("reengagement_max_attempts_per_silence", 1)))
+        if attempts_for_silence >= max_attempts:
+            logger.info(
+                "[REENGAGE] Skip user_id=%s reason=max_attempts_for_same_silence attempts=%s max=%s",
+                user_id,
+                attempts_for_silence,
+                max_attempts,
+            )
             return
         if await self.proactive_repository.has_recent_event(
             user_id=user_id,

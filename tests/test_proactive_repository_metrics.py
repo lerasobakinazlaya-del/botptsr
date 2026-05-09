@@ -130,3 +130,24 @@ class ProactiveRepositoryMetricsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(timeline[0]["first_name"], "Валера")
         self.assertEqual(timeline[0]["assistant_text"], "Бот пишет первым из памяти")
         self.assertEqual(timeline[0]["last_user_text"], "Последний вопрос пользователя")
+
+    async def test_counts_events_for_same_silence(self):
+        await self.db.connection.execute(
+            """
+            INSERT INTO proactive_messages (
+                user_id, trigger_kind, status, source_last_user_message_at, created_at
+            )
+            VALUES
+                (1, 'reengagement', 'sent', '2026-01-01T09:00:00+00:00', '2026-01-01 10:00:00'),
+                (1, 'reengagement', 'send_failed', '2026-01-01T09:00:00+00:00', '2026-01-02 10:00:00'),
+                (1, 'reengagement', 'sent', '2026-01-03T09:00:00+00:00', '2026-01-03 10:00:00')
+            """
+        )
+        await self.db.connection.commit()
+
+        count = await self.proactive_repository.count_events_for_silence(
+            user_id=1,
+            source_last_user_message_at="2026-01-01T09:00:00+00:00",
+        )
+
+        self.assertEqual(count, 2)

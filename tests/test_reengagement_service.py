@@ -79,6 +79,7 @@ class FakeSettingsService:
         self.runtime_settings = {
             "engagement": {
                 "reengagement_min_hours_between": 24,
+                "reengagement_max_attempts_per_silence": 3,
                 "reengagement_poll_seconds": 60,
                 "reengagement_enabled": True,
                 "reengagement_idle_hours": 24,
@@ -121,13 +122,17 @@ class FakeDB:
 
 
 class FakeProactiveRepository:
-    def __init__(self, *, has_silence=False, has_recent=False):
+    def __init__(self, *, has_silence=False, has_recent=False, silence_count=0):
         self.events = []
         self.has_silence = has_silence
         self.has_recent = has_recent
+        self.silence_count = silence_count
 
     async def has_event_for_silence(self, **kwargs):
         return self.has_silence
+
+    async def count_events_for_silence(self, **kwargs):
+        return self.silence_count
 
     async def has_recent_event(self, **kwargs):
         return self.has_recent
@@ -145,7 +150,7 @@ class FixedDateTime:
 
 
 class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
-    def _build_service(self, *, preferences=None, result=None, quiet_hours_enabled=False, has_silence=False, has_recent=False):
+    def _build_service(self, *, preferences=None, result=None, quiet_hours_enabled=False, has_silence=False, has_recent=False, silence_count=0):
         service = ReengagementService(
             ai_service=FakeAIService(result=result),
             message_repository=FakeMessageRepository(),
@@ -161,6 +166,7 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
             proactive_repository=FakeProactiveRepository(
                 has_silence=has_silence,
                 has_recent=has_recent,
+                silence_count=silence_count,
             ),
             user_service=FakeUserService(),
             settings_service=FakeSettingsService(quiet_hours_enabled=quiet_hours_enabled),
@@ -270,8 +276,19 @@ class ReengagementServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(service.proactive_repository.events[0]["trigger_kind"], "reengagement")
         self.assertEqual(service.proactive_repository.events[0]["status"], "sent")
 
-    async def test_process_candidate_skips_when_same_silence_already_logged(self):
-        service = self._build_service(has_silence=True)
+    async def test_process_candidate_allows_same_silence_until_attempt_cap(self):
+        service = self._build_service(silence_count=1)
+
+        await service._process_candidate(
+            {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
+            service.settings_service.get_runtime_settings()["engagement"],
+        )
+
+        self.assertEqual(len(service.ai_service.calls), 1)
+        self.assertEqual(len(service._bot.messages), 1)
+
+    async def test_process_candidate_skips_when_same_silence_attempt_cap_reached(self):
+        service = self._build_service(silence_count=3)
 
         await service._process_candidate(
             {"user_id": 1, "last_user_message_at": "2026-01-01 00:00:00"},
