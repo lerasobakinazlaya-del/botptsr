@@ -1105,6 +1105,8 @@ class AIService:
 
         if not normalized_message:
             return False
+        if self._looks_like_lightweight_social_turn(normalized_message):
+            return False
         if self._looks_like_sensitive_intimacy_context(normalized_message):
             return False
         if self._looks_like_continuation_request(normalized_message):
@@ -1115,6 +1117,39 @@ class AIService:
             return False
 
         return self._looks_like_hook_turn(normalized_message) or len(normalized_message) <= 140
+
+    def _looks_like_lightweight_social_turn(self, text: str) -> bool:
+        normalized = self._normalize(text).strip(" .,!?:;")
+        if not normalized:
+            return True
+
+        greetings = {
+            "привет",
+            "приветик",
+            "здравствуй",
+            "здравствуйте",
+            "добрый день",
+            "доброе утро",
+            "добрый вечер",
+            "хай",
+            "hello",
+            "hi",
+        }
+        if normalized in greetings:
+            return True
+
+        identity_requests = (
+            "как меня зовут",
+            "помнишь как меня зовут",
+            "помнишь мое имя",
+            "помнишь моё имя",
+            "как мое имя",
+            "как моё имя",
+        )
+        if any(marker in normalized for marker in identity_requests):
+            return True
+
+        return False
 
     def _looks_like_sensitive_intimacy_context(self, text: str) -> bool:
         normalized = self._normalize(text)

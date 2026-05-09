@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone
 from math import ceil
 from zoneinfo import ZoneInfo
@@ -29,6 +30,61 @@ from services.telegram_formatting import (
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+_NAME_RECALL_PATTERNS = (
+    re.compile(r"\bкак\s+меня\s+зовут\b", re.IGNORECASE),
+    re.compile(r"\bпомнишь\s+(?:как\s+меня\s+зовут|мо[её]\s+имя)\b", re.IGNORECASE),
+    re.compile(r"\bкак\s+мо[её]\s+имя\b", re.IGNORECASE),
+)
+
+_USER_NAME_FACT_PREFIXES = (
+    "пользователя зовут ",
+    "юзера зовут ",
+    "его зовут ",
+    "ее зовут ",
+    "её зовут ",
+)
+
+
+def _looks_like_name_recall_request(text: str) -> bool:
+    normalized = " ".join(str(text or "").lower().split())
+    if not normalized:
+        return False
+    return any(pattern.search(normalized) for pattern in _NAME_RECALL_PATTERNS)
+
+
+def _extract_name_from_state(state: dict | None) -> str:
+    profile = (state or {}).get("user_profile") if isinstance(state, dict) else {}
+    if not isinstance(profile, dict):
+        return ""
+
+    for fact in profile.get("identity_facts") or []:
+        normalized = " ".join(str(fact or "").strip().split())
+        lowered = normalized.lower()
+        for prefix in _USER_NAME_FACT_PREFIXES:
+            if lowered.startswith(prefix):
+                return normalized[len(prefix) :].strip(" .,!?:;-")
+    return ""
+
+
+def _build_name_recall_response(
+    *,
+    user_text: str,
+    user: dict | None,
+    state: dict | None,
+) -> str | None:
+    if not _looks_like_name_recall_request(user_text):
+        return None
+
+    saved_name = _extract_name_from_state(state)
+    if saved_name:
+        return f"Тебя зовут {saved_name}."
+
+    telegram_name = str((user or {}).get("first_name") or "").strip()
+    if telegram_name:
+        return f"В Telegram вижу имя: {telegram_name}. Буду обращаться к тебе так, если это ок."
+
+    return "Пока не знаю. Напиши «меня зовут …», и я запомню."
 
 
 def _truncate_sentence(text: str, limit: int) -> str:
@@ -611,6 +667,24 @@ async def chat_handler(
 
         state = await state_repository.get(user_id)
         logger.debug("[STATE] Loaded for user %s", user_id)
+        name_recall_response = _build_name_recall_response(
+            user_text=user_text,
+            user=user,
+            state=state,
+        )
+        if name_recall_response:
+            try:
+                async with db.transaction():
+                    await message_repository.save(user_id, "user", user_text, commit=False)
+                    await message_repository.save(user_id, "assistant", name_recall_response, commit=False)
+            except Exception:
+                logger.exception("DB ERROR while saving name recall exchange")
+                await message.answer(chat_settings["ai_error_message"])
+                return
+
+            await message.answer(name_recall_response)
+            return
+
         active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
         ai_profile = resolve_ai_profile(ai_settings, active_mode, _subscription_plan(user))
         selection_status = mode_access_service.get_selection_status(
