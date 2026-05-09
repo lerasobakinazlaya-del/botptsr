@@ -45,6 +45,12 @@ _USER_NAME_FACT_PREFIXES = (
     "её зовут ",
 )
 
+_LONG_TERM_NAME_PATTERNS = (
+    re.compile(r"\b([А-ЯЁ][а-яё]{2,30})\s+(?:не\s+уточнил|планирует|ищет|хочет|просил|упоминал)\b"),
+    re.compile(r"\b([А-ЯЁ][а-яё]{2,30})\s+(?:говорил|сказал|думает|чувствует|обсужда\w+|нуждается)\b"),
+    re.compile(r"\bкак\s+([А-ЯЁ][а-яё]{2,30})\s+(?:будет|может|планирует|хочет)\b"),
+)
+
 
 def _looks_like_name_recall_request(text: str) -> bool:
     normalized = " ".join(str(text or "").lower().split())
@@ -67,11 +73,31 @@ def _extract_name_from_state(state: dict | None) -> str:
     return ""
 
 
+def _extract_name_from_long_term_memories(memories: list[dict] | None) -> str:
+    for memory in memories or []:
+        value = " ".join(str((memory or {}).get("value") or "").strip().split())
+        if not value:
+            continue
+
+        lowered = value.lower()
+        for prefix in _USER_NAME_FACT_PREFIXES:
+            if lowered.startswith(prefix):
+                return value[len(prefix) :].strip(" .,!?:;-")
+
+        for pattern in _LONG_TERM_NAME_PATTERNS:
+            match = pattern.search(value)
+            if match:
+                return match.group(1).strip(" .,!?:;-")
+
+    return ""
+
+
 def _build_name_recall_response(
     *,
     user_text: str,
     user: dict | None,
     state: dict | None,
+    long_term_memories: list[dict] | None = None,
 ) -> str | None:
     if not _looks_like_name_recall_request(user_text):
         return None
@@ -79,6 +105,10 @@ def _build_name_recall_response(
     saved_name = _extract_name_from_state(state)
     if saved_name:
         return f"Тебя зовут {saved_name}."
+
+    long_term_name = _extract_name_from_long_term_memories(long_term_memories)
+    if long_term_name:
+        return f"Тебя зовут {long_term_name}."
 
     telegram_name = str((user or {}).get("first_name") or "").strip()
     if telegram_name:
@@ -667,10 +697,21 @@ async def chat_handler(
 
         state = await state_repository.get(user_id)
         logger.debug("[STATE] Loaded for user %s", user_id)
+        long_term_name_memories: list[dict] = []
+        if _looks_like_name_recall_request(user_text):
+            try:
+                long_term_name_memories = await long_term_memory_service.get_user_memories(
+                    user_id,
+                    limit=80,
+                )
+            except Exception:
+                logger.exception("LONG TERM MEMORY ERROR while recalling user name")
+
         name_recall_response = _build_name_recall_response(
             user_text=user_text,
             user=user,
             state=state,
+            long_term_memories=long_term_name_memories,
         )
         if name_recall_response:
             try:
