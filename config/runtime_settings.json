@@ -392,7 +392,7 @@
         "playful_hook"
       ],
       "prefer_callback_thread": false,
-      "allow_question": false,
+      "allow_question": true,
       "max_chars": 220,
       "max_completion_tokens": 120
     }

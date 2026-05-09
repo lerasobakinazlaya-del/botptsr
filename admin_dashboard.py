@@ -423,6 +423,14 @@ async def api_overview(_: str = Depends(require_auth)):
     return await _ensure_admin_metrics().get_overview()
 
 
+@app.get("/api/proactive/events")
+async def api_proactive_events(limit: int = 100, _: str = Depends(require_auth)):
+    return {
+        "items": await container.proactive_repository.get_event_timeline(limit=limit),
+        "limit": max(1, min(int(limit), 300)),
+    }
+
+
 @app.get("/api/health")
 async def api_health(_: str = Depends(require_auth)):
     return await _build_health()
@@ -996,6 +1004,7 @@ def _dashboard_html() -> str:
           <button data-view="setup">Настройка</button>
           <button data-view="users">Пользователи</button>
           <button data-view="conversations">Диалоги</button>
+          <button data-view="initiative">Инициатива</button>
           <button data-view="runtime">ИИ и интерфейс</button>
           <button data-view="safety">Безопасность</button>
           <button data-view="prompts">Промпты</button>
@@ -1088,6 +1097,16 @@ def _dashboard_html() -> str:
           <div class="panel"><h3>Монетизация 30 дней</h3><div id="monetization-summary"></div></div>
         </div>
         <div class="panel"><h3>Инициативные ошибки</h3><div id="proactive-failures"></div></div>
+        <div class="panel">
+          <div class="mode-head">
+            <div>
+              <h3>Куда бот писал первым</h3>
+              <p class="muted section-note">Последние first-initiative/reengagement события: кому, когда, с каким статусом и какой текст был рядом в истории.</p>
+            </div>
+            <button data-open-view="initiative">Открыть вкладку</button>
+          </div>
+          <div id="overview-initiative-events"></div>
+        </div>
         <details class="panel details-panel overview-details">
           <summary>Подробная аналитика обзора</summary>
           <div class="details-content stack">
@@ -1105,6 +1124,27 @@ def _dashboard_html() -> str:
           </div>
           </div>
         </details>
+      </section>
+
+      <section class="page" data-view="initiative">
+        <div>
+          <h2>Инициатива бота</h2>
+          <p class="muted">Аудит сообщений, которые бот писал первым, чтобы продолжить диалог. Здесь видно, кому он писал, когда, почему не отправил, и какой текст ушел пользователю.</p>
+        </div>
+        <div class="panel">
+          <div class="mode-head">
+            <div>
+              <h3>Статус механизма</h3>
+              <p class="muted section-note">Работает reengagement worker. Он может спрашивать из памяти через callback/topic контекст, но не повторяет инициативу в одном и том же периоде молчания.</p>
+            </div>
+            <button id="reload-initiative">Обновить инициативу</button>
+          </div>
+          <div id="initiative-summary"></div>
+        </div>
+        <div class="panel">
+          <h3>История first-initiative</h3>
+          <div id="initiative-events"></div>
+        </div>
       </section>
 
       <section class="page" data-view="setup">
@@ -1859,6 +1899,7 @@ def _dashboard_html() -> str:
     const state={
       settings:{runtime:{ui:{message_templates:[]},payment:{},limits:{}},mode_catalog:{},modes:{}},
       overview:{},
+      proactiveEvents:{items:[],limit:100},
       health:{db:{},redis:{},ai_runtime:{},chat_runtime:{},config_files:{},modes_count:0,warnings:[]},
       logs:{},
       users:{items:[],matched_count:0,segments:[],query:'',limit:100,sort_by:'created_desc',filter_by:'all'},
@@ -1877,6 +1918,7 @@ def _dashboard_html() -> str:
       setup:{kicker:'Готовность к запуску',title:'Настройка и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
+      initiative:{kicker:'First initiative',title:'Инициатива бота',subtitle:'Кому бот писал первым, когда это было, что отправил и почему некоторые попытки были заблокированы.'},
       runtime:{kicker:'Настройки рантайма',title:'ИИ и интерфейс',subtitle:'Живые runtime-параметры модели, лимитов, инициативы и редактора шаблонов без похода в JSON вручную.'},
       safety:{kicker:'Guardrails',title:'Безопасность и ограничения',subtitle:'Guardrails, кризисные настройки и стоп-линии, которые реально формируют поведение бота на проде.'},
       prompts:{kicker:'Prompt control plane',title:'Промпты и шаблоны',subtitle:'Редактирование базовых инструкций, fallback-слоёв и prompt-контура без расползания по legacy-конфигам.'},
@@ -1921,6 +1963,7 @@ def _dashboard_html() -> str:
     function applyTemplate(textareaSelector,index){const textarea=$(textareaSelector);if(!textarea)return;const template=currentMessageTemplates()[index];if(!template)return;textarea.value=template;textarea.focus()}
     function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится preview и отчет по рассылке.';return}if(result.phase==='preview'){const lines=[`Preview: ${result.requested_count||0} получателей`,`Текст: ${result.preview_text||''}${result.truncated?'...':''}`];if((result.warnings||[]).length){lines.push('','Предупреждения:');(result.warnings||[]).forEach(item=>lines.push(`- ${item}`))}lines.push('','После подтверждения эта рассылка уйдет выбранным пользователям.');el.textContent=lines.join('\\n');return}const lines=[`Запрошено: ${result.requested_count||0}`,`Отправлено: ${result.sent_count||0}`,`Ошибок: ${result.failed_count||0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+    function clip(value,limit){const text=String(value||'').replace(/\s+/g,' ').trim();const max=Number(limit||120);return text.length>max?`${text.slice(0,Math.max(0,max-1)).trim()}…`:text}
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
     function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
@@ -2096,6 +2139,43 @@ def _dashboard_html() -> str:
       const labels={failed:'Не отправлено',blocked:'Заблокировано',send_failed:'Ошибка отправки',persist_failed:'Не сохранилось',unknown:'Неизвестно'};
       const key=String(status||'unknown').trim()||'unknown';
       return labels[key]||key;
+    }
+    function renderInitiativeEvents(items,compact){
+      const rows=(items||[]).map(item=>({
+        'Время':item.created_at||'—',
+        'Пользователь':formatUserLabel(item),
+        'User ID':item.user_id||'—',
+        'Статус':proactiveStatusLabel(item.status),
+        'Trigger':item.trigger_kind||'—',
+        'От последнего user':item.last_user_message_at||item.source_last_user_message_at||'—',
+        'Что писал бот':clip(item.assistant_text||'',compact?90:180)||'—',
+        'Последнее от user':clip(item.last_user_text||'',compact?70:140)||'—',
+        'Причина':item.error_text||'—'
+      }));
+      return `<div class="table-wrap overview-table">${table(['Время','Пользователь','User ID','Статус','Trigger','От последнего user','Что писал бот','Последнее от user','Причина'],rows)}</div>`;
+    }
+    function renderInitiative(){
+      const events=state.proactiveEvents||{},items=events.items||[],settings=(state.settings&&state.settings.runtime)||{},engagement=settings.engagement||{},proactive=(state.overview&&state.overview.proactive)||{};
+      const sent=items.filter(item=>item.status==='sent').length;
+      const failed=items.length-sent;
+      const enabled=engagement.reengagement_enabled!==false;
+      const summaryCards=metricCards([
+        ['Механизм',enabled?'включен':'выключен',`опрос: ${engagement.reengagement_poll_seconds||180} сек`],
+        ['Пауза перед письмом',`${engagement.reengagement_idle_hours||12} ч`,`cooldown: ${engagement.reengagement_min_hours_between||24} ч`],
+        ['В выборке',String(items.length),`sent: ${sent}, не sent: ${failed}`],
+        ['Ответы после инициативы',`${proactive.reply_after_proactive_rate||0}%`,`${proactive.reply_after_proactive_total||0} ответов`]
+      ]);
+      const notes=kvList([
+        ['Тихие часы',`${engagement.quiet_hours_enabled===false?'выкл':'вкл'} ${engagement.quiet_hours_start||0}:00-${engagement.quiet_hours_end||8}:00`],
+        ['Часовой пояс',esc(engagement.timezone||'Europe/Moscow')],
+        ['Семьи сообщений',esc((((engagement.reengagement_style||{}).enabled_families)||[]).join(', ')||'—')],
+        ['Вопросы в инициативе',((engagement.reengagement_style||{}).allow_question)?'разрешены':'выключены'],
+        ['Повтор в одной тишине','запрещен: already_contacted_for_same_silence']
+      ]);
+      $('#initiative-summary').innerHTML=`<div class="stack">${summaryCards}${notes}</div>`;
+      $('#initiative-events').innerHTML=renderInitiativeEvents(items,false);
+      const overviewEl=$('#overview-initiative-events');
+      if(overviewEl)overviewEl.innerHTML=renderInitiativeEvents(items.slice(0,8),true);
     }
     function renderOverview(){
       if(!state.overview)return;
@@ -2471,8 +2551,8 @@ def _dashboard_html() -> str:
     async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['setup',renderSetup],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['initiative',renderInitiative],['setup',renderSetup],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['proactiveEvents','/api/proactive/events?limit=100','proactiveEvents'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});state.lastTestResult=data;$('#test-result').textContent=JSON.stringify(data,null,2);renderTestQuality()}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
@@ -2504,6 +2584,7 @@ def _dashboard_html() -> str:
     on('#conversation-message-templates','click',event=>{const button=event.target.closest('[data-template-index]');if(!button)return;applyTemplate('#conversation_outbound_text',Number(button.dataset.templateIndex))});
     on('#test-case-buttons','click',event=>{const button=event.target.closest('[data-test-case]');if(!button)return;applyTestCase(button.dataset.testCase);notice('Тестовый кейс подставлен.')});
     on('#reload-logs','click',()=>api(`/api/logs?lines=${$('#log-lines').value||200}`).then(d=>{state.logs=d;renderLogs();notice('Логи обновлены.')}).catch(e=>notice(e.message,'error')));
+    on('#reload-initiative','click',()=>api('/api/proactive/events?limit=100').then(d=>{state.proactiveEvents=d;renderInitiative();notice('Инициатива обновлена.')}).catch(e=>notice(e.message,'error')));
     on('#log-redact-sensitive','change',()=>renderLogs());
     on('#invalidate-cache','click',()=>api('/api/actions/cache/invalidate',{method:'POST'}).then(()=>refreshAll()).then(()=>notice('Кеш сброшен.')).catch(e=>notice(e.message,'error')));
     on('#export-json','click',async()=>{try{const rawExport=$('#export-raw-json').checked===true;if(rawExport&&!window.confirm('Raw export will include sensitive settings values and identifiers. Continue?')){notice('Экспорт отменен.','error');return}const data=await api('/api/export');const payload=rawExport?data:redactSensitiveObject(data);const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=rawExport?'bot-admin-export-raw.json':'bot-admin-export-redacted.json';a.click();URL.revokeObjectURL(url);notice(rawExport?'Raw export prepared.':'Экспорт подготовлен с редактированием чувствительных данных.')}catch(e){notice(e.message,'error')}});

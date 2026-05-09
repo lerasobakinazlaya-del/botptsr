@@ -186,6 +186,80 @@ class ProactiveRepository:
             for row in rows
         ]
 
+    async def get_event_timeline(self, *, limit: int = 100) -> list[dict]:
+        safe_limit = max(1, min(limit, 300))
+        cursor = await self.db.connection.execute(
+            """
+            SELECT
+                p.id,
+                p.user_id,
+                COALESCE(u.first_name, '') AS first_name,
+                COALESCE(u.username, '') AS username,
+                p.trigger_kind,
+                p.status,
+                p.source_last_user_message_at,
+                p.created_at,
+                p.error_text,
+                (
+                    SELECT m.text
+                    FROM messages m
+                    WHERE m.user_id = p.user_id
+                      AND m.role = 'assistant'
+                      AND m.created_at >= datetime(p.created_at, '-5 minutes')
+                      AND m.created_at <= datetime(p.created_at, '+5 minutes')
+                    ORDER BY m.id DESC
+                    LIMIT 1
+                ) AS assistant_text,
+                (
+                    SELECT m.text
+                    FROM messages m
+                    WHERE m.user_id = p.user_id
+                      AND m.role = 'user'
+                      AND (
+                          p.source_last_user_message_at IS NULL
+                          OR m.created_at <= p.created_at
+                      )
+                    ORDER BY m.id DESC
+                    LIMIT 1
+                ) AS last_user_text,
+                (
+                    SELECT m.created_at
+                    FROM messages m
+                    WHERE m.user_id = p.user_id
+                      AND m.role = 'user'
+                      AND (
+                          p.source_last_user_message_at IS NULL
+                          OR m.created_at <= p.created_at
+                      )
+                    ORDER BY m.id DESC
+                    LIMIT 1
+                ) AS last_user_message_at
+            FROM proactive_messages p
+            LEFT JOIN users u ON u.id = p.user_id
+            ORDER BY p.id DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": int(row[0]),
+                "user_id": int(row[1]),
+                "first_name": row[2],
+                "username": row[3],
+                "trigger_kind": row[4],
+                "status": row[5],
+                "source_last_user_message_at": row[6],
+                "created_at": row[7],
+                "error_text": row[8],
+                "assistant_text": row[9],
+                "last_user_text": row[10],
+                "last_user_message_at": row[11],
+            }
+            for row in rows
+        ]
+
     async def get_recent_failures(self, *, limit: int = 20) -> list[dict]:
         safe_limit = max(1, min(limit, 100))
         cursor = await self.db.connection.execute(

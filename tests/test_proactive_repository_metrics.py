@@ -5,6 +5,7 @@ import unittest
 from database.db import Database
 from database.proactive_repository import ProactiveRepository
 from database.user_preference_repository import UserPreferenceRepository
+from services.user_service import UserService
 
 
 class ProactiveRepositoryMetricsTests(unittest.IsolatedAsyncioTestCase):
@@ -15,6 +16,8 @@ class ProactiveRepositoryMetricsTests(unittest.IsolatedAsyncioTestCase):
         await self.db.connect()
         self.proactive_repository = ProactiveRepository(self.db)
         self.user_preference_repository = UserPreferenceRepository(self.db)
+        self.user_service = UserService(self.db)
+        await self.user_service.init_table()
         await self.proactive_repository.init_table()
         await self.user_preference_repository.init_table()
 
@@ -94,3 +97,36 @@ class ProactiveRepositoryMetricsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(overview["status_breakdown_7d"]["failed"], 1)
         self.assertEqual(overview["recent_failures"][0]["status"], "persist_failed")
         self.assertEqual(overview["recent_failures"][-1]["error_text"], "telegram_forbidden")
+
+    async def test_event_timeline_includes_user_and_nearby_messages(self):
+        await self.db.connection.execute(
+            """
+            INSERT INTO users (id, username, first_name, active_mode, subscription_plan, is_premium, is_admin)
+            VALUES (1, 'valera', 'Валера', 'base', 'free', 0, 0)
+            """
+        )
+        await self.db.connection.execute(
+            """
+            INSERT INTO messages (user_id, role, text, created_at)
+            VALUES
+                (1, 'user', 'Последний вопрос пользователя', '2026-01-01 09:00:00'),
+                (1, 'assistant', 'Бот пишет первым из памяти', '2026-01-01 10:00:02')
+            """
+        )
+        await self.db.connection.execute(
+            """
+            INSERT INTO proactive_messages (
+                user_id, trigger_kind, status, source_last_user_message_at, created_at
+            )
+            VALUES
+                (1, 'reengagement', 'sent', '2026-01-01T09:00:00+00:00', '2026-01-01 10:00:00')
+            """
+        )
+        await self.db.connection.commit()
+
+        timeline = await self.proactive_repository.get_event_timeline(limit=10)
+
+        self.assertEqual(len(timeline), 1)
+        self.assertEqual(timeline[0]["first_name"], "Валера")
+        self.assertEqual(timeline[0]["assistant_text"], "Бот пишет первым из памяти")
+        self.assertEqual(timeline[0]["last_user_text"], "Последний вопрос пользователя")

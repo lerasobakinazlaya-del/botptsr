@@ -126,6 +126,16 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("proactive.status_breakdown_total||{}", source)
         self.assertIn("proactive.recent_failures||[]", source)
 
+    def test_dashboard_exposes_initiative_timeline_tab(self):
+        source = self._admin_source()
+
+        self.assertIn('data-view="initiative"', source)
+        self.assertIn('id="initiative-events"', source)
+        self.assertIn('id="overview-initiative-events"', source)
+        self.assertIn("/api/proactive/events?limit=100", source)
+        self.assertIn("function renderInitiative()", source)
+        self.assertIn("function renderInitiativeEvents(items,compact)", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 
