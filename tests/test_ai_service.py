@@ -381,12 +381,12 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("Conversation driver override:", system_prompt)
-        self.assertIn("Use this as a steering hint", system_prompt)
-        self.assertIn("detected intent: desire", system_prompt)
-        self.assertIn("selected question id: q01", system_prompt)
-        self.assertIn("possible follow-up question", system_prompt)
-        self.assertIn("Max 3 sentences.", system_prompt)
+        self.assertIn("Переопределение драйвера диалога:", system_prompt)
+        self.assertIn("рулевую подсказку", system_prompt)
+        self.assertIn("обнаруженное намерение: desire", system_prompt)
+        self.assertIn("id выбранного вопроса: q01", system_prompt)
+        self.assertIn("возможный follow-up вопрос", system_prompt)
+        self.assertIn("Максимум 3 предложения.", system_prompt)
         self.assertEqual(result.new_state["last_detected_intent"], "desire")
         self.assertEqual(result.new_state["last_driver_question_id"], "q01")
         self.assertEqual(result.new_state["driver_question_streak"], 1)
@@ -422,9 +422,9 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("User is free", system_prompt)
-        self.assertIn("Early conversation: make the value gap visible", system_prompt)
-        self.assertIn("natural continuation of this exact conversation", system_prompt)
+        self.assertIn("Пользователь на free", system_prompt)
+        self.assertIn("покажи value gap", system_prompt)
+        self.assertIn("естественное продолжение этого разговора", system_prompt)
         self.assertIn("premium", result.response.lower())
         self.assertNotIn("buy premium", result.response.lower())
         self.assertNotIn("upgrade now", result.response.lower())
@@ -492,7 +492,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertNotIn("Conversation driver override:", system_prompt)
+        self.assertNotIn("Переопределение драйвера диалога:", system_prompt)
         self.assertNotIn("last_driver_question_id", result.new_state)
     async def test_generate_response_skips_driver_for_crisis_signal(self):
         client = FakeClient("\u0421\u0435\u0439\u0447\u0430\u0441 \u0432\u0430\u0436\u043d\u043e \u0443\u0434\u0435\u0440\u0436\u0430\u0442\u044c\u0441\u044f \u0437\u0430 \u043e\u043f\u043e\u0440\u0443.")
@@ -553,7 +553,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertNotIn("Conversation driver override:", system_prompt)
+        self.assertNotIn("Переопределение драйвера диалога:", system_prompt)
         self.assertNotIn("last_driver_question_id", result.new_state)
     async def test_generate_response_adds_list_continuation_instruction(self):
         client = FakeClient("2. \u041e\u0431\u0441\u0443\u0434\u0438\u0442\u0435 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0441\u0442\u043e\u043f-\u0441\u0438\u0433\u043d\u0430\u043b \u0438 \u043a\u0442\u043e \u0441\u043b\u0435\u0434\u0438\u0442 \u0437\u0430 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435\u043c.\n3. \u0423\u0442\u0440\u043e\u043c \u043d\u0435 \u0441\u043f\u0435\u0448\u0438\u0442\u0435, \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435, \u0432\u0441\u0435\u043c \u043b\u0438 \u043e\u043a.")
@@ -589,8 +589,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("Continue directly from item 2", system_prompt)
-        self.assertIn("instead of restarting", system_prompt)
+        self.assertIn("Продолжай сразу с пункта 2", system_prompt)
+        self.assertIn("не повторяй прежние пункты", system_prompt)
         self.assertEqual(client.calls[0]["max_completion_tokens"], 140)
         self.assertEqual(client.calls[0]["verbosity"], "low")
         self.assertEqual(client.calls[0]["reasoning_effort"], "low")
@@ -623,9 +623,9 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("Do not romanticize altered-state scenarios with blurred control.", system_prompt)
-        self.assertIn("Do not provide step-by-step use, mixing, or escalation instructions.", system_prompt)
-        self.assertIn("Stay on harm reduction", system_prompt)
+        self.assertIn("Не романтизируй сценарии измененного состояния", system_prompt)
+        self.assertIn("Не давай пошаговые инструкции", system_prompt)
+        self.assertIn("Держись harm reduction", system_prompt)
     async def test_generate_response_allows_single_question_when_user_requests_it(self):
         client = FakeClient("Ок, давай так и сделаем.")
         service = AIService(
@@ -655,7 +655,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.close()
 
         system_prompt = client.calls[0]["messages"][0]["content"]
-        self.assertIn("The user explicitly invited questions.", system_prompt)
+        self.assertIn("Пользователь явно разрешил вопросы.", system_prompt)
     async def test_generate_response_clamps_overloaded_ptsd_reply(self):
         prompt_builder = RecordingPromptBuilder()
         service = AIService(
@@ -752,6 +752,36 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.calls[0]["max_completion_tokens"], 120)
         self.assertEqual(client.calls[0]["verbosity"], "low")
         self.assertEqual(client.calls[0]["reasoning_effort"], "low")
+
+    async def test_generate_reengagement_repairs_mixed_english_russian_output(self):
+        service = AIService(
+            client=FakeClient(
+                "Hey there! Just wanted to check in, и тут начинается то, что снаружи не видно. Any new projects?"
+            ),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        result = await service.generate_reengagement(
+            user_id=1,
+            history=[],
+            state={
+                "active_mode": "base",
+                "emotional_tone": "neutral",
+                "relationship_state": {"last_user_topic": "новый проект"},
+            },
+        )
+
+        self.assertIn("Привет", result.response)
+        self.assertNotIn("Hey", result.response)
+        self.assertNotIn("Any new projects", result.response)
+        self.assertFalse(service._looks_like_english_or_mixed_language(result.response))
 
     async def test_call_with_retry_retries_once_when_response_was_truncated(self):
         client = FakeTruncatingClient()

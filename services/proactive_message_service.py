@@ -277,9 +277,9 @@ class ProactiveMessageService:
             is_proactive=True,
             access_profile=access_decision.get("budget"),
             base_instruction=(
-                "Write one short proactive Telegram message after a pause. "
-                "No guilt, no logistics, no monitoring language, no agenda dump. "
-                "Keep it light and organic. Maximum 320 characters."
+                "Напиши одно короткое инициативное сообщение в Telegram после паузы. "
+                "Только на русском языке. Без вины, логистики, языка мониторинга и повестки. "
+                "Легко, органично, максимум 320 символов."
             ),
         )
         user_prompt = (

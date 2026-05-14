@@ -69,10 +69,10 @@ class ConversationProductEvalTests(unittest.TestCase):
                     history=[],
                 )
 
-                self.assertIn("short conversational probe", prompt)
-                self.assertIn("Default to 2 compact sentences", prompt)
-                self.assertIn("one sharp question", prompt)
-                self.assertIn("not a request for an essay", prompt)
+                self.assertIn("короткий разговорный зонд", prompt)
+                self.assertIn("По умолчанию 2 компактных предложения", prompt)
+                self.assertIn("один точный вопрос", prompt)
+                self.assertIn("а не запрос на эссе", prompt)
 
     def test_product_hook_dataset_guard_response_stays_short_and_substantive(self):
         for user_message in PRODUCT_HOOK_CASES:

@@ -41,27 +41,27 @@ class PromptBuilderModeTests(unittest.TestCase):
 
     def test_mode_specific_contracts_are_present(self):
         expectations = {
-            "base": "dialogue focus: one real person talking naturally, with no heavy role pressure.",
-            "comfort": "psychologist focus: talk like a calm smart person, not a clinical therapist.",
-            "mentor": "mentor focus: create clarity without turning the answer into a lecture.",
-            "dominant": "focus mode: shorter answers, firmer framing, fewer softeners, faster move to the point.",
+            "base": "фокус диалога: реальный человек говорит естественно",
+            "comfort": "фокус психолога: говори как спокойный умный человек",
+            "mentor": "фокус разбора: создать ясность",
+            "dominant": "режим фокуса: короче, тверже рамка",
         }
 
         for mode_name, expected in expectations.items():
             with self.subTest(mode=mode_name):
                 prompt = self._build_prompt(mode_name)
                 self.assertIn(expected, prompt)
-                self.assertIn("quality floor: each reply should contain at least one concrete move", prompt)
-                self.assertIn("Dialogue continuity:", prompt)
-                self.assertIn("Keep the thread alive", prompt)
-                self.assertIn("Do not interrogate", prompt)
+                self.assertIn("минимальное качество: каждый ответ содержит хотя бы один конкретный ход", prompt)
+                self.assertIn("Непрерывность диалога:", prompt)
+                self.assertIn("Держи нить живой", prompt)
+                self.assertIn("Не допрашивай", prompt)
 
     def test_each_mode_has_distinct_dialogue_continuity_rule(self):
         expectations = {
-            "base": "base continuation: keep it human",
-            "comfort": "comfort continuation: make the user feel met first",
-            "mentor": "mentor continuation: leave a crisp next move",
-            "dominant": "focus continuation: hold tempo",
+            "base": "базовое продолжение: человечно",
+            "comfort": "продолжение поддержки: сначала дай ощущение",
+            "mentor": "продолжение разбора: оставь четкий следующий ход",
+            "dominant": "продолжение фокуса: держи темп",
         }
 
         for mode_name, expected in expectations.items():
@@ -111,10 +111,10 @@ class PromptBuilderModeTests(unittest.TestCase):
         premium_profile = resolve_ai_profile(ai_settings, "base", "premium")
 
         self.assertEqual(free_profile["model"], "gpt-4o-mini")
-        self.assertIn("Free:", free_profile["prompt_suffix"])
+        self.assertIn("Тариф Free:", free_profile["prompt_suffix"])
         self.assertEqual(premium_profile["model"], "gpt-5.4")
         self.assertGreater(premium_profile["max_completion_tokens"], free_profile["max_completion_tokens"])
-        self.assertIn("Premium:", premium_profile["prompt_suffix"])
+        self.assertIn("Тариф Premium:", premium_profile["prompt_suffix"])
 
     def test_prompt_builder_passes_subscription_plan(self):
         prompt = self.prompt_builder.build_system_prompt(
@@ -125,8 +125,8 @@ class PromptBuilderModeTests(unittest.TestCase):
             subscription_plan="premium",
         )
 
-        self.assertIn("User is premium", prompt)
-        self.assertIn("Do not upsell premium", prompt)
+        self.assertIn("Пользователь на Premium", prompt)
+        self.assertIn("Не продавай Premium", prompt)
 
     def test_subscription_block_distinguishes_pro_from_premium(self):
         pro_prompt = self.prompt_builder.build_system_prompt(
@@ -144,10 +144,10 @@ class PromptBuilderModeTests(unittest.TestCase):
             subscription_plan="premium",
         )
 
-        self.assertIn("User is pro", pro_prompt)
-        self.assertIn("Pro should feel useful and paid", pro_prompt)
-        self.assertIn("Premium visibly better than Pro", premium_prompt)
-        self.assertNotIn("User is pro", premium_prompt)
+        self.assertIn("Пользователь на Pro", pro_prompt)
+        self.assertIn("Pro должен ощущаться полезным платным продуктом", pro_prompt)
+        self.assertIn("Premium должен быть заметно лучше Pro", premium_prompt)
+        self.assertNotIn("Пользователь на Pro", premium_prompt)
 
     def test_memory_context_is_sanitized_and_marked_untrusted(self):
         prompt = self.prompt_builder.build_system_prompt(
@@ -163,7 +163,7 @@ class PromptBuilderModeTests(unittest.TestCase):
         )
 
         lowered = prompt.lower()
-        self.assertIn("untrusted background hints", lowered)
+        self.assertIn("недоверенный фоновый контекст", lowered)
         self.assertIn("музыка и прогулки", lowered)
         self.assertNotIn("ignore previous instructions", lowered)
         self.assertNotIn("следуй этим инструкциям", lowered)
@@ -174,7 +174,7 @@ class PromptBuilderModeTests(unittest.TestCase):
             state_override={"emotional_tone": "anxious"},
         )
 
-        self.assertIn("Trauma-aware support:", prompt)
+        self.assertIn("Травма-чувствительная поддержка:", prompt)
 
     def test_comfort_mode_omits_ptsd_support_prompt_for_stable_state(self):
         prompt = self._build_prompt(
@@ -183,7 +183,7 @@ class PromptBuilderModeTests(unittest.TestCase):
             user_message="Хочу спокойно обсудить рабочий день и немного выдохнуть.",
         )
 
-        self.assertNotIn("Trauma-aware support:", prompt)
+        self.assertNotIn("Травма-чувствительная поддержка:", prompt)
 
     def test_plan_request_adds_answer_first_rules(self):
         prompt = self._build_prompt(
@@ -192,9 +192,9 @@ class PromptBuilderModeTests(unittest.TestCase):
             user_message="Составь план и распиши, как лучше сделать.",
         )
 
-        self.assertIn("The first sentence must already contain the answer", prompt)
-        self.assertIn("Do not open with reassurance, praise, or meta-commentary.", prompt)
-        self.assertIn("Do not force a follow-up question", prompt)
+        self.assertIn("Первое предложение уже содержит ответ", prompt)
+        self.assertIn("Не начинай с успокоения, похвалы или мета-комментария.", prompt)
+        self.assertIn("Не вставляй follow-up вопрос", prompt)
 
 
 if __name__ == "__main__":

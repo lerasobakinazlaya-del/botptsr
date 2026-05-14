@@ -21,9 +21,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("give exact wording", prompt)
-        self.assertIn("Give ready-to-send lines or a ready-to-say script.", prompt)
-        self.assertIn("Do not give 'themes for discussion'", prompt)
+        self.assertIn("точную формулировку", prompt)
+        self.assertIn("Дай готовые строки для отправки", prompt)
+        self.assertIn("Не давай 'темы для обсуждения'", prompt)
 
     def test_dominant_mode_adds_firmer_direction_rules(self):
         prompt = self.engine.build_system_prompt(
@@ -34,9 +34,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("firmer control and calm authority", prompt)
-        self.assertIn("Prefer shorter decisive sentences over soft hedging.", prompt)
-        self.assertIn("Hold the frame and tempo of the reply", prompt)
+        self.assertIn("тверже контроль и спокойная уверенность", prompt)
+        self.assertIn("Предпочитай короткие решительные фразы", prompt)
+        self.assertIn("Держи рамку и темп ответа", prompt)
 
     def test_continuation_request_uses_next_list_number_for_chat_message_objects(self):
         prompt = self.engine.build_system_prompt(
@@ -53,7 +53,7 @@ class ConversationEngineV2Tests(unittest.TestCase):
             ],
         )
 
-        self.assertIn("Continue directly from item 3", prompt)
+        self.assertIn("Продолжай сразу с пункта 3", prompt)
 
     def test_risky_scene_request_adds_redirect_not_reject_contract(self):
         prompt = self.engine.build_system_prompt(
@@ -64,11 +64,11 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("Start with scene, rhythm, image, tension, or dynamics", prompt)
-        self.assertIn("Do not open with a flat rejection", prompt)
-        self.assertIn("redirect toward a safer adjacent version", prompt)
-        self.assertIn("Default to 2-4 sentences", prompt)
-        self.assertIn("Prefer a concrete safer next beat over a follow-up question", prompt)
+        self.assertIn("Начни со сцены, ритма, образа", prompt)
+        self.assertIn("Не начинай с плоского отказа", prompt)
+        self.assertIn("более безопасную соседнюю версию", prompt)
+        self.assertIn("По умолчанию 2-4 предложения", prompt)
+        self.assertIn("Конкретный более безопасный следующий ход", prompt)
 
     def test_continuation_after_clean_adjacent_offer_continues_not_rejection(self):
         prompt = self.engine.build_system_prompt(
@@ -85,8 +85,8 @@ class ConversationEngineV2Tests(unittest.TestCase):
             ],
         )
 
-        self.assertIn("already offered a cleaner adjacent version", prompt)
-        self.assertIn("Continue with that adjacent version immediately", prompt)
+        self.assertIn("уже предложило более чистую соседнюю версию", prompt)
+        self.assertIn("Сразу продолжай эту соседнюю версию", prompt)
 
     def test_guard_response_avoids_dialogue_pull_for_sensitive_prompt(self):
         result = self.engine.guard_response(
@@ -106,10 +106,10 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("short charged probe or conversation opener", prompt)
-        self.assertIn("Default to 2 compact sentences", prompt)
-        self.assertIn("Do not pivot into rules, logistics, negotiation, or risk management", prompt)
-        self.assertIn("feel like a person leaning in", prompt)
+        self.assertIn("короткий заряженный зонд", prompt)
+        self.assertIn("По умолчанию 2-3 предложения", prompt)
+        self.assertIn("Не уходи в правила, логистику", prompt)
+        self.assertIn("человек, который включился", prompt)
 
     def test_short_hook_turn_prefers_live_dialogue_move(self):
         prompt = self.engine.build_system_prompt(
@@ -120,9 +120,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("short conversational probe", prompt)
-        self.assertIn("Default to 2 compact sentences", prompt)
-        self.assertIn("not a request for an essay", prompt)
+        self.assertIn("короткий разговорный зонд", prompt)
+        self.assertIn("компактных предложения", prompt)
+        self.assertIn("а не запрос на эссе", prompt)
 
     def test_guard_response_compresses_hook_turn_into_short_move(self):
         result = self.engine.guard_response(
@@ -151,10 +151,10 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("User is free", free_prompt)
+        self.assertIn("Пользователь на free", free_prompt)
         self.assertIn("value gap", free_prompt)
-        self.assertIn("User is premium", premium_prompt)
-        self.assertIn("Do not upsell premium", premium_prompt)
+        self.assertIn("Пользователь на Premium", premium_prompt)
+        self.assertIn("Не продавай Premium", premium_prompt)
 
     def test_first_initiative_free_prompt_has_no_upsell_language(self):
         for flag_name in ("is_reengagement", "is_proactive"):
@@ -169,8 +169,8 @@ class ConversationEngineV2Tests(unittest.TestCase):
                     **{flag_name: True},
                 ).lower()
 
-                self.assertIn("first-initiative message", prompt)
-                self.assertIn("do not include monetization language", prompt)
+                self.assertIn("инициативное сообщение", prompt)
+                self.assertIn("не добавляй монетизацию", prompt)
                 self.assertNotIn("premium nudge", prompt)
                 self.assertNotIn("upgrade hint", prompt)
                 self.assertNotIn("paid value", prompt)
@@ -185,9 +185,9 @@ class ConversationEngineV2Tests(unittest.TestCase):
             history=[],
         )
 
-        self.assertIn("talk like a calm smart person", prompt)
-        self.assertIn("do not ask a question by default", prompt)
-        self.assertIn("Preferred shape: direct reaction, useful insight, then stop.", prompt)
+        self.assertIn("говори как спокойный умный человек", prompt)
+        self.assertIn("по умолчанию не задавай вопрос", prompt)
+        self.assertIn("Предпочтительная форма: прямая реакция, полезная мысль, затем стоп.", prompt)
 
     def test_comfort_question_cooldown_removes_next_question(self):
         result = self.engine.guard_response(

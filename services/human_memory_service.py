@@ -231,35 +231,36 @@ class HumanMemoryService:
         )
 
         parts = [
-            "The user has been quiet for a while.",
-            f"Silence is roughly {hours_silent} hours.",
-            f"Active mode: {active_mode}.",
-            "Write one short, alive first-message opener.",
-            "It should feel natural, warm, human, and easy to answer.",
-            "Do not mention rules, tokens, settings, access, or automation.",
-            "If it fits, gently pick up a thread from the earlier conversation.",
-            "Keep it to at most two short paragraphs and no lists.",
-            f"Target length: up to {max(120, int(style.get('max_chars', 220) or 220))} characters if possible.",
-            "Do not reuse the same opener shape every time.",
-            f"Retention stage: {stage}.",
+            "Пользователь давно молчит.",
+            f"Пауза примерно {hours_silent} часов.",
+            f"Активный режим: {active_mode}.",
+            "Напиши одно короткое живое сообщение для мягкого возвращения в диалог.",
+            "Сообщение должно звучать естественно, тепло, человечно и легко для ответа.",
+            "Не упоминай правила, токены, настройки, доступ или автоматизацию.",
+            "Если уместно, аккуратно подхвати нить из предыдущего разговора.",
+            "Не больше двух коротких абзацев, без списков.",
+            f"Целевая длина: до {max(120, int(style.get('max_chars', 220) or 220))} символов, если возможно.",
+            "Не повторяй один и тот же шаблон начала.",
+            "Пиши только на русском языке, без английских приветствий и вопросов.",
+            f"Стадия удержания: {stage}.",
             self._build_reengagement_stage_guidance(stage),
-            f"For this message, prefer the opener family: {starter_family}.",
+            f"Для этого сообщения предпочти тип начала: {starter_family}.",
             self._build_reengagement_starter_guidance(starter_family, active_mode=active_mode),
         ]
         if bool(style.get("allow_question", True)):
-            parts.append("One light, easy-to-answer question is allowed near the end.")
+            parts.append("Один легкий вопрос в конце допустим, если он звучит естественно.")
         else:
-            parts.append("Do not end with a question. Let the opener stand on its own.")
+            parts.append("Не заканчивай вопросом. Пусть сообщение держится само.")
         if topic:
-            parts.append(f"Last important user topic: {topic}.")
+            parts.append(f"Последняя важная тема пользователя: {topic}.")
         if callback_hint:
-            parts.append(f"You may lean on this as a soft callback: {callback_hint}.")
+            parts.append(f"Можно мягко опереться на этот контекст: {callback_hint}.")
         if preference:
-            parts.append(f"User style preference: {preference}.")
+            parts.append(f"Предпочтение пользователя по стилю: {preference}.")
         if name_hint:
-            parts.append(f"If it feels natural, you may softly use the user's name: {name_hint}.")
+            parts.append(f"Если звучит естественно, можно мягко использовать имя пользователя: {name_hint}.")
         if last_mood:
-            parts.append(f"Last notable mood: {last_mood}. Avoid escalating it; meet it gently.")
+            parts.append(f"Последнее заметное настроение: {last_mood}. Не усиливай его; отвечай мягко.")
 
         return "\n".join(parts)
 
@@ -586,20 +587,20 @@ class HumanMemoryService:
     def _build_reengagement_stage_guidance(self, stage: str) -> str:
         guidance = {
             "day_1_checkin": (
-                "Stage day_1_checkin: sound like a light daily check-in. "
-                "Keep it easy, warm, and low-pressure."
+                "Стадия day_1_checkin: звучит как легкий дневной контакт. "
+                "Просто, тепло, без давления."
             ),
             "day_3_reengage": (
-                "Stage day_3_reengage: reopen the contact gently after a few days. "
-                "A soft callback to the last theme works well."
+                "Стадия day_3_reengage: мягко верни контакт после нескольких дней. "
+                "Хорошо работает спокойная отсылка к последней теме."
             ),
             "day_7_reset": (
-                "Stage day_7_reset: offer a simple weekly reset or a short emotional check-in. "
-                "Make replying feel effortless."
+                "Стадия day_7_reset: предложи простой недельный ресет или короткий эмоциональный чек-ин. "
+                "Ответ должен ощущаться необязательным и легким."
             ),
             "day_14_reopen": (
-                "Stage day_14_reopen: use the easiest possible entry point. "
-                "One calm line and a very low-friction invitation back is enough."
+                "Стадия day_14_reopen: используй максимально простой вход. "
+                "Достаточно одной спокойной строки и очень легкого приглашения вернуться."
             ),
         }
         return guidance.get(stage, guidance["day_1_checkin"])
@@ -616,26 +617,26 @@ class HumanMemoryService:
     def _build_reengagement_starter_guidance(self, starter_family: str, *, active_mode: str) -> str:
         mode_note = ""
         if active_mode == "dominant":
-            mode_note = "Keep the phrasing denser and more collected, but never theatrical."
+            mode_note = "Фраза плотнее и собраннее, но без театральности."
         elif active_mode == "comfort":
-            mode_note = "Keep the tone softer and simpler, with no extra push."
+            mode_note = "Тон мягче и проще, без лишнего подталкивания."
 
         templates = {
             "soft_presence": (
-                "Starter family soft_presence: open like a sudden warm thought about the person, without grand drama. "
-                "Rhythm: one warm line, then one light question."
+                "Тип начала soft_presence: начни как внезапная теплая мысль о человеке, без большой драмы. "
+                "Ритм: одна теплая строка, затем один легкий вопрос."
             ),
             "callback_thread": (
-                "Starter family callback_thread: lightly reopen an earlier thread, but do not sound like a reminder bot. "
-                "Hint at the thread and leave room for an answer."
+                "Тип начала callback_thread: легко верни прежнюю тему, но не звучи как бот-напоминалка. "
+                "Намекни на нить разговора и оставь место для ответа."
             ),
             "mood_ping": (
-                "Starter family mood_ping: begin with a small feeling or observation, like you are naturally checking in. "
-                "Quiet, alive, and unforced works best."
+                "Тип начала mood_ping: начни с маленького ощущения или наблюдения, как естественный контакт. "
+                "Лучше всего работает тихо, живо и без нажима."
             ),
             "playful_hook": (
-                "Starter family playful_hook: add a little spark or crooked hook, but no clowning and no pressure. "
-                "It should make replying feel immediate."
+                "Тип начала playful_hook: добавь маленькую искру или крючок, но без клоунады и давления. "
+                "Ответить должно хотеться сразу и легко."
             ),
         }
         base = templates.get(starter_family, templates["soft_presence"])

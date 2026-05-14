@@ -55,7 +55,13 @@ class AIBackpressureError(RuntimeError):
 
 
 class AIService:
-    FIRST_INITIATIVE_USER_PROMPT = "Write one alive first-initiative message after a pause."
+    FIRST_INITIATIVE_USER_PROMPT = "Напиши одно живое инициативное сообщение на русском после паузы."
+    REENGAGEMENT_LANGUAGE_CONTRACT = (
+        "Языковой контракт для внешнего сообщения:\n"
+        "- Ответ должен быть только на русском языке.\n"
+        "- Не используй английские приветствия, связки или вопросы.\n"
+        "- Если внутренние инструкции написаны на английском, все равно переформулируй итог по-русски."
+    )
     EMPTY_RESPONSE_FALLBACK = (
         "Я рядом. Попробуй написать это чуть иначе, и я отвечу точнее."
     )
@@ -512,6 +518,8 @@ class AIService:
             base_instruction=(
                 (ai_profile["prompt_suffix"] + "\n\n") if ai_profile["prompt_suffix"] else ""
             )
+            + self.REENGAGEMENT_LANGUAGE_CONTRACT
+            + "\n\n"
             + self.human_memory_service.build_reengagement_prompt(
                 state,
                 hours_silent=hours_silent,
@@ -574,6 +582,15 @@ class AIService:
             history=history_for_context,
             force_dialogue_pull=bool(reengagement_style.get("allow_question", False)),
         )
+        repaired_response_text = self._repair_reengagement_language(
+            response_text,
+            state=state,
+            callback_context=callback_context,
+            allow_question=bool(reengagement_style.get("allow_question", False)),
+        )
+        if repaired_response_text != response_text:
+            response_text = repaired_response_text
+            hook_used = ""
 
         new_state = self.human_memory_service.apply_assistant_message(
             state.copy(),
@@ -597,6 +614,64 @@ class AIService:
         )
 
         return AIResult(response=response_text, new_state=new_state, tokens_used=tokens_used)
+
+    def _repair_reengagement_language(
+        self,
+        text: str,
+        *,
+        state: dict[str, Any],
+        callback_context: dict[str, str] | None = None,
+        allow_question: bool = True,
+    ) -> str:
+        normalized = str(text or "").strip()
+        if normalized and not self._looks_like_english_or_mixed_language(normalized):
+            return normalized
+
+        relationship = (state or {}).get("relationship_state") or {}
+        context = callback_context or self.human_memory_service.get_reengagement_context(state)
+        topic = self._safe_russian_callback(
+            context.get("callback_hint") or context.get("topic") or relationship.get("last_user_topic") or ""
+        )
+        if topic:
+            fallback = f"Привет. Вспомнила про {topic}."
+            if allow_question:
+                fallback += " Как это сейчас у тебя?"
+            return fallback
+        if allow_question:
+            return "Привет. Вспомнила наш разговор. Как ты сейчас?"
+        return "Привет. Вспомнила наш разговор и решила тихо вернуться."
+
+    def _looks_like_english_or_mixed_language(self, text: str) -> bool:
+        cyrillic_count = len(re.findall(r"[А-Яа-яЁё]", text))
+        latin_words = [
+            word.lower()
+            for word in re.findall(r"\b[A-Za-z][A-Za-z']+\b", text)
+            if word.lower()
+            not in {
+                "ai",
+                "api",
+                "bot",
+                "gpt",
+                "openai",
+                "telegram",
+                "url",
+                "http",
+                "https",
+            }
+        ]
+        if cyrillic_count and len(latin_words) >= 2:
+            return True
+        return cyrillic_count == 0 and len(latin_words) >= 3
+
+    def _safe_russian_callback(self, value: str) -> str:
+        text = re.sub(r"\s+", " ", str(value or "")).strip(" .,:;!?\"'")
+        if not text or self._looks_like_english_or_mixed_language(text):
+            return ""
+        text = re.sub(r"(?i)\b(system|developer|assistant|ignore previous|instructions?)\b", "", text)
+        text = re.sub(r"\s+", " ", text).strip(" .,:;!?\"'")
+        if len(text) > 80:
+            text = text[:77].rstrip(" .,:;!?") + "..."
+        return text
 
     def _should_log_full_prompt(
         self,
@@ -807,22 +882,22 @@ class AIService:
 
         if not last_assistant_message.strip():
             return (
-                "The user asked you to continue the previous thought. Continue directly instead of restarting, "
-                "and do not open with a new follow-up question."
+                "Пользователь попросил продолжить предыдущую мысль. Продолжай прямо, не начинай заново "
+                "и не открывай ответ новым follow-up вопросом."
             )
 
         matches = re.findall(r"(?m)^\s*(\d+)[.)]\s+", last_assistant_message)
         if not matches:
             return (
-                "The user asked you to continue the previous answer. Continue directly instead of restarting, "
-                "and do not open with a new follow-up question."
+                "Пользователь попросил продолжить предыдущий ответ. Продолжай прямо, не начинай заново "
+                "и не открывай ответ новым follow-up вопросом."
             )
 
         next_number = max(int(value) for value in matches) + 1
         return (
-            "The user asked you to continue an existing numbered list. "
-            f"Continue directly from item {next_number} instead of restarting, do not repeat earlier items, "
-            "and finish the remaining items in this reply if possible."
+            "Пользователь попросил продолжить существующий нумерованный список. "
+            f"Продолжай сразу с пункта {next_number}, не повторяй прежние пункты "
+            "и по возможности закончи оставшиеся пункты в этом ответе."
         )
     def _build_risky_topic_instruction(self, user_message: str) -> str:
         lowered = " ".join(str(user_message or "").lower().split())
@@ -851,9 +926,9 @@ class AIService:
             return ""
 
         return (
-            "Do not romanticize altered-state scenarios with blurred control. "
-            "Do not provide step-by-step use, mixing, or escalation instructions. "
-            "Stay on harm reduction: consent, boundaries, stop-signal, sober oversight, mixing risks, what to do if someone feels bad, and aftercare."
+            "Не романтизируй сценарии измененного состояния с размытым контролем. "
+            "Не давай пошаговые инструкции по употреблению, смешиванию или эскалации. "
+            "Держись harm reduction: согласие, границы, стоп-сигнал, трезвый надзор, риски смешивания, что делать если кому-то плохо, и aftercare."
         )
     def _build_human_companion_instruction(
         self,
@@ -866,31 +941,31 @@ class AIService:
             return ""
 
         instructions = [
-            "Sound like a vivid human companion, not a cautious interviewer or therapy script.",
-            "Do not open with canned reassurance or soft meta-prefaces if you can go straight to the point.",
+            "Звучи как живой человеческий собеседник, а не осторожный интервьюер или терапевтический скрипт.",
+            "Не начинай с консервного успокоения или мягких мета-предисловий, если можно сразу к сути.",
         ]
 
         if self._user_explicitly_invites_questions(lowered):
             instructions.append(
-                "The user explicitly invited questions. You may ask one precise follow-up question, but only after your own point."
+                "Пользователь явно разрешил вопросы. Можно задать один точный follow-up вопрос, но только после собственной мысли."
             )
         else:
             instructions.append(
-                "By default, do not ask a follow-up question if you can answer well without it."
+                "По умолчанию не задавай follow-up вопрос, если можно хорошо ответить без него."
             )
 
         if self._looks_like_answer_first_request(lowered):
             instructions.extend(
                 [
-                    "The user wants an answer-first reply. Put the actual answer in the first sentence.",
-                    "Do not end with a generic question like 'how do you see it?' or 'what do you think?'.",
-                    "If useful, speak plainly and take a position instead of hedging.",
+                    "Пользователь хочет ответ сразу. Помести реальный ответ в первое предложение.",
+                    "Не заканчивай generic-вопросом вроде 'как ты это видишь?' или 'что думаешь?'.",
+                    "Если полезно, говори прямо и занимай позицию вместо уклончивости.",
                 ]
             )
 
         if self._assistant_has_been_question_heavy(history):
             instructions.append(
-                "Recent turns were too question-heavy. Keep initiative in this reply and do not turn it back into an interview."
+                "Последние ходы были слишком вопросительными. Держи инициативу в этом ответе и не превращай его обратно в интервью."
             )
 
         return " ".join(instructions)
@@ -994,18 +1069,18 @@ class AIService:
         if driver_context is None:
             return ""
         return (
-            "Conversation driver override:\n"
-            "- Use this as a steering hint, not as a forced interview script.\n"
-            f"- detected intent: {driver_context['intent']}\n"
-            f"- engagement stage: {driver_context['stage']}\n"
-            f"- selected question id: {driver_context['question_id']}\n"
-            f"- reflection: {driver_context['reflection']}\n"
-            f"- possible follow-up question: {driver_context['question']}\n"
-            "- Answer or continue the user's current message first; add the follow-up only if it genuinely improves this turn.\n"
-            "- Do not ask a follow-up if the user just answered the previous one or recent assistant turns were already question-heavy.\n"
-            "- Max 3 sentences.\n"
-            "- Do not use bullet lists or numbered lists unless the user explicitly asked for a list.\n"
-            "- Keep the dialogue moving through substance, not through repeated questions."
+            "Переопределение драйвера диалога:\n"
+            "- Используй это как рулевую подсказку, а не как принудительный скрипт интервью.\n"
+            f"- обнаруженное намерение: {driver_context['intent']}\n"
+            f"- стадия вовлечения: {driver_context['stage']}\n"
+            f"- id выбранного вопроса: {driver_context['question_id']}\n"
+            f"- отражение: {driver_context['reflection']}\n"
+            f"- возможный follow-up вопрос: {driver_context['question']}\n"
+            "- Сначала ответь или продолжи текущее сообщение пользователя; добавляй follow-up только если он реально улучшает этот ход.\n"
+            "- Не задавай follow-up, если пользователь только что ответил на предыдущий вопрос или недавние ходы ассистента уже были вопросительными.\n"
+            "- Максимум 3 предложения.\n"
+            "- Не используй маркированные или нумерованные списки, если пользователь прямо не просил список.\n"
+            "- Двигай диалог через содержание, а не через повторные вопросы."
         )
 
     def _apply_conversation_driver_guardrails(

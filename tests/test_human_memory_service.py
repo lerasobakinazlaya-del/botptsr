@@ -120,7 +120,7 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
             active_mode="base",
         )
 
-        self.assertIn("opener family: callback_thread", prompt)
+        self.assertIn("Для этого сообщения предпочти тип начала: callback_thread", prompt)
         self.assertIn("callback_thread", prompt)
 
     def test_reengagement_prompt_includes_stage_guidance_and_name_hint(self):
@@ -138,9 +138,9 @@ class HumanMemoryServiceModeTests(unittest.TestCase):
             active_mode="base",
         )
 
-        self.assertIn("Retention stage: day_7_reset", prompt)
-        self.assertIn("user's name: Лена", prompt)
-        self.assertIn("Last notable mood: подъём или хорошее настроение", prompt)
+        self.assertIn("Стадия удержания: day_7_reset", prompt)
+        self.assertIn("имя пользователя: Лена", prompt)
+        self.assertIn("Последнее заметное настроение: подъём или хорошее настроение", prompt)
 
     def test_reengagement_message_increments_sent_count(self):
         updated = self.service.apply_assistant_message(
