@@ -20,6 +20,8 @@ OFFER_TRIGGER_MODE_LOCKED = "mode_locked"
 OFFER_TRIGGER_PREVIEW_EXHAUSTED = "preview_exhausted"
 OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT = "emotional_engagement"
 OFFER_TRIGGER_USEFUL_ADVICE = "useful_advice"
+OFFER_TRIGGER_LONG_TASK = "long_task"
+OFFER_TRIGGER_LONG_TRANSLATION = OFFER_TRIGGER_LONG_TASK
 
 SUPPORTED_OFFER_TRIGGERS = {
     OFFER_TRIGGER_DEFAULT,
@@ -28,6 +30,7 @@ SUPPORTED_OFFER_TRIGGERS = {
     OFFER_TRIGGER_PREVIEW_EXHAUSTED,
     OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT,
     OFFER_TRIGGER_USEFUL_ADVICE,
+    OFFER_TRIGGER_LONG_TASK,
 }
 
 
@@ -48,6 +51,8 @@ def _build_offer_teaser(trigger: str, mode_name: str | None = None) -> str:
         return "Похоже, здесь тебе важен не разовый ответ, а опора, которая помнит контекст и может идти глубже."
     if trigger == OFFER_TRIGGER_USEFUL_ADVICE:
         return "Я могу продолжить это глубже: с более длинным разбором, памятью контекста и без обрыва на самом полезном месте."
+    if trigger == OFFER_TRIGGER_LONG_TASK:
+        return "Это большая задача: в free я дам полезный старт, но не буду притворяться, что короткий обрывок заменяет нормальный разбор. В Pro и Premium я удержу контекст и доведу ответ глубже."
 
     if "доминир" in normalized_mode or "жестк" in normalized_mode or "фокус" in normalized_mode:
         return "Если хочешь, я продолжу жёстче, увереннее и с более собранным темпом."
@@ -114,6 +119,13 @@ def _build_offer_intro(
     elif trigger == OFFER_TRIGGER_USEFUL_ADVICE:
         trigger_line = str(
             payment_settings.get("offer_useful_advice_template")
+            or payment_settings.get("offer_locked_mode_template")
+            or ""
+        ).strip()
+    elif trigger == OFFER_TRIGGER_LONG_TASK:
+        trigger_line = str(
+            payment_settings.get("offer_long_task_template")
+            or payment_settings.get("offer_useful_advice_template")
             or payment_settings.get("offer_locked_mode_template")
             or ""
         ).strip()

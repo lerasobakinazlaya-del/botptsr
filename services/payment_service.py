@@ -11,6 +11,17 @@ from services.payment_formatting import format_access_days_label, format_package
 class PaymentService:
     RECURRING_STARS_PERIOD_SECONDS = 30 * 24 * 60 * 60
     DEFAULT_PACKAGE_CATALOG = {
+        "day_pass": {
+            "enabled": True,
+            "title": "Pro на 1 день",
+            "description": "Короткий доступ для большого разбора, перевода допустимых фрагментов и проверки платного формата.",
+            "price_minor_units": 9900,
+            "access_duration_days": 1,
+            "sort_order": 5,
+            "badge": "На день",
+            "recurring_stars_enabled": False,
+            "plan_key": "pro",
+        },
         "pro_month": {
             "enabled": True,
             "title": "Pro на 30 дней",
@@ -125,7 +136,7 @@ class PaymentService:
         enabled = self.get_enabled_packages(payment)
         if enabled:
             return str(enabled[0]["key"])
-        return "pro_month"
+        return "day_pass"
 
     def get_default_package(self, payment_settings: dict | None = None) -> dict | None:
         payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
@@ -183,7 +194,7 @@ class PaymentService:
                     "month": "premium_month",
                     "year": "premium_year",
                     "week": "pro_month",
-                    "day": "pro_month",
+                    "day": "day_pass",
                 }
                 return {
                     "user_id": int(parts[1]),
@@ -716,7 +727,7 @@ class PaymentService:
 
     def _build_legacy_packages(self, payment: dict) -> dict:
         packages = deepcopy(self.DEFAULT_PACKAGE_CATALOG)
-        default_key = str(payment.get("default_package_key") or "pro_month").strip().lower()
+        default_key = str(payment.get("default_package_key") or "day_pass").strip().lower()
         if default_key not in packages:
             default_key = "pro_month"
 

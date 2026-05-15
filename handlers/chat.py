@@ -14,13 +14,14 @@ from handlers.modes import show_modes_menu
 from handlers.payments import (
     OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT,
     OFFER_TRIGGER_LIMIT_REACHED,
+    OFFER_TRIGGER_LONG_TASK,
     OFFER_TRIGGER_MODE_LOCKED,
     OFFER_TRIGGER_PREVIEW_EXHAUSTED,
     OFFER_TRIGGER_USEFUL_ADVICE,
     show_premium_menu,
 )
 from services.ai_profile_service import resolve_ai_profile
-from services.ai_service import AIBackpressureError
+from services.ai_service import AIBackpressureError, looks_like_full_translation_request
 from services.telegram_formatting import (
     TelegramFormattingOptions,
     escape_plain_text_for_telegram,
@@ -50,6 +51,78 @@ _LONG_TERM_NAME_PATTERNS = (
     re.compile(r"\b([А-ЯЁ][а-яё]{2,30})\s+(?:говорил|сказал|думает|чувствует|обсужда\w+|нуждается)\b"),
     re.compile(r"\bкак\s+([А-ЯЁ][а-яё]{2,30})\s+(?:будет|может|планирует|хочет)\b"),
 )
+
+
+def _looks_like_long_task_request(text: str, limits_settings: dict | None = None) -> bool:
+    settings = limits_settings or {}
+    normalized = str(text or "").strip()
+    if not normalized:
+        return False
+    min_chars = max(300, int(settings.get("free_long_task_min_chars", 900) or 900))
+    min_lines = max(3, int(settings.get("free_long_task_min_lines", 8) or 8))
+    if len(normalized) >= min_chars or normalized.count("\n") >= min_lines:
+        return True
+    long_answer_hints = (
+        "разбери",
+        "объясни",
+        "реши",
+        "составь",
+        "проанализируй",
+        "план",
+        "переведи",
+        "смысл",
+        "подробно",
+        "целиком",
+        "полностью",
+    )
+    return len(normalized) >= 600 and any(hint in normalized.lower() for hint in long_answer_hints)
+
+
+def _is_free_long_task_request(user: dict | None, user_text: str, limits_settings: dict) -> bool:
+    if not bool(limits_settings.get("free_long_task_enabled", True)):
+        return False
+    plan_key = _subscription_plan(user)
+    if plan_key != "free":
+        return False
+    return _looks_like_long_task_request(user_text, limits_settings)
+
+
+def _build_long_task_preview(user_text: str, limits_settings: dict) -> str:
+    preview_chars = max(120, int(limits_settings.get("free_long_task_preview_chars", 420) or 420))
+    normalized = str(user_text or "").strip()
+    excerpt = _truncate_sentence(normalized, min(preview_chars, 520))
+    lines_count = len([line for line in normalized.splitlines() if line.strip()])
+    chars_count = len(normalized)
+    translation_note = (
+        "\n\nВижу, что это похоже на перевод: для личных и рабочих текстов можно разбирать целиком; "
+        "для песен, книг и других защищенных текстов дам подробный пересказ смысла и короткий допустимый перевод фрагмента."
+        if looks_like_full_translation_request(user_text)
+        else ""
+    )
+    template = str(
+        limits_settings.get("free_long_task_preview_message")
+        or (
+            "Вижу большую задачу: {chars_count} символов, {lines_count} строк.\n\n"
+            "Бесплатно дам короткий полезный старт, чтобы не оставлять тебя с пустыми руками: «{excerpt}»\n\n"
+            "Дальше могу в платном доступе удержать весь контекст, разложить задачу по шагам и дать длинный ответ без обрыва.{translation_note}\n\n"
+            "Если хочешь бесплатно, пришли один короткий фрагмент или один конкретный вопрос."
+        )
+    ).strip()
+    return template.format(
+        chars_count=chars_count,
+        lines_count=lines_count,
+        excerpt=excerpt,
+        translation_note=translation_note,
+    )
+
+
+def _mark_long_task_preview_state(state: dict | None, user_text: str) -> dict:
+    updated = dict(state or {})
+    monetization = dict(updated.get("monetization") or {})
+    monetization["last_long_task_preview_at"] = datetime.now(timezone.utc).isoformat()
+    monetization["last_long_task_chars"] = len(str(user_text or ""))
+    updated["monetization"] = monetization
+    return updated
 
 
 def _looks_like_name_recall_request(text: str) -> bool:
@@ -752,6 +825,30 @@ async def chat_handler(
                 admin_settings_service,
                 trigger=OFFER_TRIGGER_PREVIEW_EXHAUSTED,
                 mode_name=mode_name,
+                premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
+            )
+            return
+
+        if _is_free_long_task_request(user, user_text, limits_settings):
+            preview_response = _build_long_task_preview(user_text, limits_settings)
+            preview_state = _mark_long_task_preview_state(state, user_text)
+            try:
+                async with db.transaction():
+                    await message_repository.save(user_id, "user", user_text, commit=False)
+                    await state_repository.save(user_id, preview_state, commit=False)
+                    await message_repository.save(user_id, "assistant", preview_response, commit=False)
+            except Exception:
+                logger.exception("DB ERROR while saving long task preview")
+                await message.answer(chat_settings["ai_error_message"])
+                return
+
+            await message.answer(preview_response)
+            await show_premium_menu(
+                message,
+                payment_service,
+                user_service,
+                admin_settings_service,
+                trigger=OFFER_TRIGGER_LONG_TASK,
                 premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
             )
             return

@@ -147,10 +147,12 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         source = self._admin_source()
 
         self.assertIn("PAYMENT_PACKAGE_CONFIG", source)
+        self.assertIn("day_pass", source)
         self.assertIn("pro_month", source)
         self.assertIn("pro_year", source)
         self.assertIn("premium_month", source)
         self.assertIn("premium_year", source)
+        self.assertIn("payment_offer_long_task_template", source)
 
     def test_saas_dashboard_additions_are_localized(self):
         source = self._admin_source()

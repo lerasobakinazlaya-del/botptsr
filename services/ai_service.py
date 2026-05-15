@@ -31,6 +31,68 @@ from services.response_guardrails import (
 logger = logging.getLogger(__name__)
 
 
+def looks_like_full_translation_request(text: str) -> bool:
+    normalized = " ".join(str(text or "").lower().split())
+    if not normalized:
+        return False
+    translation_hints = (
+        "переведи",
+        "перевод",
+        "перевести",
+        "как переведешь",
+        "как ты переведешь",
+    )
+    completeness_hints = (
+        "целиком",
+        "полностью",
+        "весь текст",
+        "текст целиком",
+        "до конца",
+        "все строки",
+    )
+    explanation_hints = (
+        "смысл",
+        "объясни",
+        "разбери",
+        "как видишь",
+        "что значит",
+    )
+    has_translation = any(hint in normalized for hint in translation_hints)
+    has_completeness = any(hint in normalized for hint in completeness_hints)
+    has_explanation = any(hint in normalized for hint in explanation_hints)
+    looks_like_pasted_source = len(str(text or "")) >= 700 or str(text or "").count("\n") >= 6
+    return has_translation and (has_completeness or has_explanation or looks_like_pasted_source)
+
+
+def looks_like_long_task_request(text: str) -> bool:
+    raw = str(text or "").strip()
+    normalized = " ".join(raw.lower().split())
+    if not normalized:
+        return False
+    if looks_like_full_translation_request(raw):
+        return True
+    long_answer_hints = (
+        "разбери",
+        "объясни",
+        "реши",
+        "составь",
+        "проанализируй",
+        "план",
+        "архитектур",
+        "код",
+        "ошибк",
+        "почему",
+        "как сделать",
+        "подробно",
+        "целиком",
+        "полностью",
+        "до конца",
+    )
+    looks_big = len(raw) >= 900 or raw.count("\n") >= 8
+    looks_medium_with_task = len(raw) >= 600 and any(hint in normalized for hint in long_answer_hints)
+    return looks_big or looks_medium_with_task
+
+
 @dataclass(frozen=True)
 class AIResult:
     response: str
@@ -68,6 +130,8 @@ class AIService:
     MAX_TRUNCATION_RETRIES = 1
     TRUNCATION_TOKEN_MULTIPLIER = 2
     MAX_TRUNCATION_COMPLETION_TOKENS = 1200
+    LONG_TASK_MIN_COMPLETION_TOKENS = 950
+    TRANSLATION_REQUEST_MIN_COMPLETION_TOKENS = LONG_TASK_MIN_COMPLETION_TOKENS
 
     def __init__(
         self,
@@ -292,18 +356,24 @@ class AIService:
         if crisis_signal is not None:
             logger.info("[AI] user_id=%s crisis_signal=%s no_bypass", user_id, crisis_signal)
 
-        ai_profile = self._apply_fast_lane_profile(
-            resolve_ai_profile(ai_settings, active_mode, subscription_plan),
-            user_message=user_message,
-            active_mode=active_mode,
-            subscription_plan=subscription_plan,
-        )
-        ai_profile = self._apply_cost_control_profile(
-            ai_profile,
-            runtime_settings=runtime_settings,
-            user_message=user_message,
-            subscription_plan=subscription_plan,
-        )
+        translation_request = self._looks_like_full_translation_request(user_message)
+        long_task_request = self._looks_like_long_task_request(user_message)
+        ai_profile = resolve_ai_profile(ai_settings, active_mode, subscription_plan)
+        if long_task_request:
+            ai_profile = self._apply_long_task_profile(ai_profile)
+        else:
+            ai_profile = self._apply_fast_lane_profile(
+                ai_profile,
+                user_message=user_message,
+                active_mode=active_mode,
+                subscription_plan=subscription_plan,
+            )
+            ai_profile = self._apply_cost_control_profile(
+                ai_profile,
+                runtime_settings=runtime_settings,
+                user_message=user_message,
+                subscription_plan=subscription_plan,
+            )
         history_for_context = self._limit_history_messages(
             history,
             ai_profile["history_message_limit"],
@@ -358,6 +428,8 @@ class AIService:
                 user_message=user_message,
                 history=history_for_context,
                 driver_context=driver_context,
+                translation_request=translation_request,
+                long_task_request=long_task_request,
             ),
             history=history_for_context,
             access_profile=access_decision.get("budget"),
@@ -845,9 +917,13 @@ class AIService:
         user_message: str,
         history: list[dict[str, str]],
         driver_context: dict[str, Any] | None,
+        translation_request: bool = False,
+        long_task_request: bool = False,
     ) -> str:
         parts = [
             str(base_instruction or "").strip(),
+            self._build_full_translation_instruction(user_message) if translation_request else "",
+            self._build_long_task_instruction(user_message) if long_task_request and not translation_request else "",
             self._build_continuation_instruction(
                 user_message=user_message,
                 history=history,
@@ -860,6 +936,26 @@ class AIService:
             self._build_conversation_driver_instruction(driver_context),
         ]
         return "\n\n".join(part for part in parts if part)
+
+    def _build_full_translation_instruction(self, user_message: str) -> str:
+        return (
+            "Запрос на перевод и разбор:\n"
+            "- Если это личный, рабочий или пользовательский текст, переведи его целиком и не ограничивайся первыми строками.\n"
+            "- Если это песня, книга, статья или другой вероятно защищенный авторским правом текст, не делай полный перевод всего текста: дай краткий допустимый перевод небольшого фрагмента и подробно перескажи смысл остального своими словами.\n"
+            "- После перевода отдельно объясни смысл: конфликт, позицию говорящего, эмоциональную динамику и ключевые образы.\n"
+            "- Не обрывай ответ на середине предложения. Если нужно сжать, сжимай объяснение и явно заверши мысль.\n"
+            "- Не начинай с извинений и не уходи в общий комментарий вместо перевода."
+        )
+
+    def _build_long_task_instruction(self, user_message: str) -> str:
+        return (
+            "Длинная задача или большое сообщение:\n"
+            "- Пользователь дал много контекста и ожидает не короткую реплику, а рабочий разбор.\n"
+            "- Дай развернутый ответ с ясной структурой, но без воды: сначала итог/решение, затем шаги, затем важные нюансы.\n"
+            "- Используй весь предоставленный контекст; не отвечай только на первую часть сообщения.\n"
+            "- Если задача объемная, доведи хотя бы главный сценарий до применимого результата и явно обозначь, что осталось следующим шагом.\n"
+            "- Не обрывай ответ на середине предложения."
+        )
 
     def _build_continuation_instruction(
         self,
@@ -1368,6 +1464,34 @@ class AIService:
         optimized["reasoning_effort_override"] = "low"
         return optimized
 
+    def _apply_long_task_profile(self, ai_profile: dict[str, Any]) -> dict[str, Any]:
+        optimized = dict(ai_profile)
+        optimized["max_completion_tokens"] = max(
+            int(optimized.get("max_completion_tokens", 220)),
+            self.LONG_TASK_MIN_COMPLETION_TOKENS,
+        )
+        optimized["memory_max_tokens"] = min(
+            max(int(optimized.get("memory_max_tokens", 1200)), 900),
+            1600,
+        )
+        optimized["history_message_limit"] = min(
+            int(optimized.get("history_message_limit", 20)),
+            6,
+        )
+        optimized["timeout_seconds"] = max(
+            int(optimized.get("timeout_seconds", self.timeout_seconds)),
+            20,
+        )
+        optimized["max_retries"] = max(
+            int(optimized.get("max_retries", self.max_retries)),
+            1,
+        )
+        optimized.pop("verbosity_override", None)
+        return optimized
+
+    def _apply_full_translation_profile(self, ai_profile: dict[str, Any]) -> dict[str, Any]:
+        return self._apply_long_task_profile(ai_profile)
+
     def _apply_cost_control_profile(
         self,
         ai_profile: dict[str, Any],
@@ -1418,6 +1542,8 @@ class AIService:
         return dict(runtime_settings.get("ai", {}).get("fast_lane") or {})
 
     def _should_use_fast_lane(self, text: str, *, active_mode: str) -> bool:
+        if self._looks_like_long_task_request(text):
+            return False
         if active_mode == "mentor":
             return False
         if self._looks_like_hook_turn(text):
@@ -1449,6 +1575,12 @@ class AIService:
     @staticmethod
     def _normalize(text: str) -> str:
         return " ".join(str(text or "").lower().split())
+
+    def _looks_like_full_translation_request(self, text: str) -> bool:
+        return looks_like_full_translation_request(text)
+
+    def _looks_like_long_task_request(self, text: str) -> bool:
+        return looks_like_long_task_request(text)
 
     @staticmethod
     def _looks_like_continuation_request(text: str) -> bool:

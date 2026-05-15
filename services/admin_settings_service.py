@@ -64,6 +64,17 @@ class AdminSettingsService:
         },
     }
     PRODUCT_PAYMENT_PACKAGES = {
+        "day_pass": {
+            "enabled": True,
+            "title": "Pro на 1 день",
+            "description": "Короткий доступ для большого разбора, решения задач, перевода допустимых фрагментов и проверки платного формата.",
+            "price_minor_units": 9900,
+            "access_duration_days": 1,
+            "sort_order": 5,
+            "badge": "На день",
+            "recurring_stars_enabled": False,
+            "plan_key": "pro",
+        },
         "pro_month": {
             "enabled": True,
             "title": "Pro РЅР° 30 РґРЅРµР№",
@@ -110,7 +121,7 @@ class AdminSettingsService:
         },
     }
     LEGACY_PAYMENT_PACKAGE_ALIASES = {
-        "day": "pro_month",
+        "day": "day_pass",
         "week": "pro_month",
         "month": "premium_month",
         "year": "premium_year",
@@ -151,7 +162,7 @@ class AdminSettingsService:
                     "max_completion_tokens": 180,
                     "memory_max_tokens": 700,
                     "history_message_limit": 12,
-                    "prompt_suffix": "Тариф Free: дай полезный короткий ответ и мягко покажи, какой следующий слой раскроет Premium.",
+                    "prompt_suffix": "Тариф Free: дай полезный короткий ответ без воды. Оставь ощущение живой нити: один конкретный вывод сейчас и один естественный незакрытый следующий слой, который раскроет Pro или Premium. Не дави оплатой, но мягко показывай, что с платным доступом ты удержишь больше контекста, продолжишь глубже и не оборвешь мысль.",
                 },
                 "pro": {
                     "model": "gpt-4o-mini",
@@ -458,6 +469,11 @@ class AdminSettingsService:
                 "dominant": 2,
             },
             "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium.",
+            "free_long_task_enabled": True,
+            "free_long_task_min_chars": 900,
+            "free_long_task_min_lines": 8,
+            "free_long_task_preview_chars": 420,
+            "free_long_task_preview_message": "Вижу большую задачу: {chars_count} символов, {lines_count} строк.\n\nБесплатно дам короткий полезный старт, чтобы не оставлять тебя с пустыми руками: «{excerpt}»\n\nЧто я могу сделать дальше в платном доступе: разобрать задачу по шагам, удержать весь контекст, дать длинный ответ без обрыва и довести до результата. Если это перевод чужого защищенного текста, дам подробный разбор и короткий допустимый перевод фрагмента; личные и рабочие тексты можно разбирать целиком.\n\nЕсли хочешь бесплатно, пришли один короткий фрагмент или один конкретный вопрос.",
         },
         "engagement": {
             "adaptive_mode_enabled": True,
@@ -511,11 +527,12 @@ class AdminSettingsService:
             "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium вернёт разговор без обрыва: {premium_limit} сообщений в день, память контекста и все сильные режимы на {access_days_label}.",
             "offer_locked_mode_template": "Режим {mode_name} входит в Premium. Внутри также память диалога, инициатива от бота и до {premium_limit} сообщений в день на {access_days_label}.",
             "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
+            "offer_long_task_template": "Большие задачи лучше не резать на полуслове. Доступ на день откроет длинный разбор, больше контекста и продолжение без обрыва за {price_label}.",
             "provider_token": "",
             "currency": "RUB",
-            "default_package_key": "pro_month",
-            "price_minor_units": 49900,
-            "access_duration_days": 30,
+            "default_package_key": "day_pass",
+            "price_minor_units": 9900,
+            "access_duration_days": 1,
             "recurring_stars_enabled": True,
             "packages": deepcopy(PRODUCT_PAYMENT_PACKAGES),
             "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
@@ -1068,6 +1085,17 @@ class AdminSettingsService:
             limits.get("mode_preview_exhausted_message", ""),
             multiline=True,
         )
+        limits["free_long_task_enabled"] = bool(limits.get("free_long_task_enabled", True))
+        limits["free_long_task_min_chars"] = max(300, int(limits.get("free_long_task_min_chars", 900) or 900))
+        limits["free_long_task_min_lines"] = max(3, int(limits.get("free_long_task_min_lines", 8) or 8))
+        limits["free_long_task_preview_chars"] = max(
+            120,
+            int(limits.get("free_long_task_preview_chars", 420) or 420),
+        )
+        limits["free_long_task_preview_message"] = self._normalize_text(
+            limits.get("free_long_task_preview_message", ""),
+            multiline=True,
+        )
 
         engagement = current["engagement"]
         engagement["adaptive_mode_enabled"] = bool(engagement.get("adaptive_mode_enabled"))
@@ -1106,7 +1134,7 @@ class AdminSettingsService:
             payment["mode"] = "telegram"
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
-        payment["default_package_key"] = str(payment.get("default_package_key") or "pro_month").strip().lower() or "pro_month"
+        payment["default_package_key"] = str(payment.get("default_package_key") or "day_pass").strip().lower() or "day_pass"
         payment["packages"] = self._normalize_payment_packages(payment)
         default_package = payment["packages"][payment["default_package_key"]]
         payment["price_minor_units"] = int(default_package["price_minor_units"])
@@ -1128,6 +1156,7 @@ class AdminSettingsService:
             "offer_limit_reached_template",
             "offer_locked_mode_template",
             "offer_preview_exhausted_template",
+            "offer_long_task_template",
             "premium_menu_description_template",
             "premium_menu_packages_title",
             "premium_menu_package_line_template",
@@ -1194,10 +1223,10 @@ class AdminSettingsService:
         if isinstance(raw_packages, dict):
             self._deep_merge(merged, raw_packages)
 
-        requested_key = str(payment.get("default_package_key") or "pro_month").strip().lower() or "pro_month"
+        requested_key = str(payment.get("default_package_key") or "day_pass").strip().lower() or "day_pass"
         requested_key = self.LEGACY_PAYMENT_PACKAGE_ALIASES.get(requested_key, requested_key)
         if requested_key not in merged:
-            requested_key = "pro_month"
+            requested_key = "day_pass"
 
         if not isinstance(raw_packages, dict) or not raw_packages:
             merged[requested_key]["price_minor_units"] = max(1, int(payment.get("price_minor_units", 49900) or 49900))

@@ -1,6 +1,6 @@
 import unittest
 
-from services.ai_service import AIService
+from services.ai_service import AIService, looks_like_long_task_request
 from services.memory_engine import ChatMessage
 
 
@@ -223,6 +223,40 @@ class ConversationDriverFlagSettingsService(FakeSettingsService):
 
 
 class AIServiceTests(unittest.IsolatedAsyncioTestCase):
+    def test_long_task_detector_catches_big_context(self):
+        text = "Разбери задачу и предложи решение.\n" + ("Контекст, ограничения, варианты.\n" * 8)
+
+        self.assertTrue(looks_like_long_task_request(text))
+
+    async def test_generate_response_expands_profile_for_long_task(self):
+        client = FakeClient("Готово: разбор по шагам.")
+        service = AIService(
+            client=client,
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+        await service.start()
+        try:
+            await service.generate_response(
+                user_id=1,
+                history=[],
+                user_message="Разбери задачу и предложи решение.\n" + ("Контекст, ограничения, варианты.\n" * 8),
+                state={"active_mode": "base", "relationship_state": {}},
+                subscription_plan="pro",
+            )
+        finally:
+            await service.close()
+
+        self.assertGreaterEqual(client.calls[0]["max_completion_tokens"], 950)
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        self.assertIn("Длинная задача", system_prompt)
+
     async def test_fast_lane_profile_shrinks_short_hook_turns(self):
         service = AIService(
             client=FakeClient("ok"),

@@ -60,6 +60,7 @@ class AdminSettingsServiceCacheTests(unittest.TestCase):
             payment = runtime["payment"]
 
             self.assertEqual("premium_month", payment["default_package_key"])
+            self.assertIn("day_pass", payment["packages"])
             self.assertIn("pro_month", payment["packages"])
             self.assertIn("premium_month", payment["packages"])
             self.assertNotIn("month", payment["packages"])

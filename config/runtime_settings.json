@@ -33,7 +33,7 @@
         "max_completion_tokens": 180,
         "memory_max_tokens": 700,
         "history_message_limit": 12,
-        "prompt_suffix": "Тариф Free: дай полезный, конкретный ответ без воды. Не обрывай мысль, но оставь один естественный намек, какой следующий слой раскроет Pro или Premium."
+        "prompt_suffix": "Тариф Free: дай полезный короткий ответ без воды. Оставь ощущение живой нити: один конкретный вывод сейчас и один естественный незакрытый следующий слой, который раскроет Pro или Premium. Не дави оплатой, но мягко показывай, что с платным доступом ты удержишь больше контекста, продолжишь глубже и не оборвешь мысль."
       },
       "pro": {
         "model": "gpt-4o-mini",
@@ -360,6 +360,11 @@
       "dominant": 2
     },
     "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium.",
+    "free_long_task_enabled": true,
+    "free_long_task_min_chars": 900,
+    "free_long_task_min_lines": 8,
+    "free_long_task_preview_chars": 420,
+    "free_long_task_preview_message": "Вижу большую задачу: {chars_count} символов, {lines_count} строк.\n\nБесплатно дам короткий полезный старт, чтобы не оставлять тебя с пустыми руками: «{excerpt}»\n\nЧто я могу сделать дальше в платном доступе: разобрать задачу по шагам, удержать весь контекст, дать длинный ответ без обрыва и довести до результата. Если это перевод чужого защищенного текста, дам подробный разбор и короткий допустимый перевод фрагмента; личные и рабочие тексты можно разбирать целиком.\n\nЕсли хочешь бесплатно, пришли один короткий фрагмент или один конкретный вопрос.",
     "pro_daily_messages_enabled": true,
     "pro_daily_messages_limit": 80,
     "pro_daily_warning_thresholds": [
@@ -427,11 +432,23 @@
     "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
     "provider_token": "",
     "currency": "RUB",
-    "default_package_key": "pro_month",
-    "price_minor_units": 44900,
-    "access_duration_days": 30,
+    "default_package_key": "day_pass",
+    "price_minor_units": 9900,
+    "access_duration_days": 1,
     "recurring_stars_enabled": true,
     "packages": {
+      "day_pass": {
+        "enabled": true,
+        "title": "Pro на 1 день",
+        "description": "Короткий доступ для большого разбора, решения задач, перевода допустимых фрагментов и проверки платного формата.",
+        "price_minor_units": 9900,
+        "access_duration_days": 1,
+        "sort_order": 5,
+        "badge": "На день",
+        "recurring_stars_enabled": false,
+        "plan_key": "pro",
+        "is_default": true
+      },
       "pro_month": {
         "enabled": true,
         "title": "Pro на 30 дней",
@@ -442,7 +459,7 @@
         "badge": "Старт",
         "recurring_stars_enabled": true,
         "plan_key": "pro",
-        "is_default": true
+        "is_default": false
       },
       "pro_year": {
         "enabled": true,
@@ -507,7 +524,8 @@
     ],
     "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не терять память диалога и все режимы.",
     "offer_emotional_engagement_template": "Похоже, тебе важен не сухой ответ, а контакт, который держит нить.\n\nPro даст больше сообщений и контекста. Premium добавит память диалога, инициативу после паузы и режимы, которые звучат заметно глубже.",
-    "offer_useful_advice_template": "Если хочешь не просто совет, а нормальный разбор с продолжением, Pro снимет короткий лимит. Premium даст больше глубины, памяти и точности в следующих ответах."
+    "offer_useful_advice_template": "Если хочешь не просто совет, а нормальный разбор с продолжением, Pro снимет короткий лимит. Premium даст больше глубины, памяти и точности в следующих ответах.",
+    "offer_long_task_template": "Большие задачи лучше не резать на полуслове. Доступ на день откроет длинный разбор, больше контекста и продолжение без обрыва за {price_label}."
   },
   "ui": {
     "write_button_text": "💬 Начать диалог",

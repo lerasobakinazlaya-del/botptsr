@@ -1733,6 +1733,7 @@ def _dashboard_html() -> str:
             <div class="soft-panel">
               <h3>Меню тарифов</h3>
               <label>Оффер при исчерпании preview<textarea id="payment_offer_preview_exhausted_template"></textarea></label>
+              <label>Оффер для больших задач<textarea id="payment_offer_long_task_template"></textarea></label>
               <label>Описание меню тарифов<textarea id="payment_premium_menu_description_template"></textarea></label>
               <div class="two">
                 <label>Заголовок блока тарифов<input id="payment_premium_menu_packages_title"></label>
@@ -1757,6 +1758,19 @@ def _dashboard_html() -> str:
           <h3>Пакеты тарифов</h3>
           <p class="muted section-note">Именно эти варианты увидит пользователь в едином меню платных планов.</p>
           <div class="package-grid">
+            <div class="mode-card">
+              <div class="mode-head"><strong>Pro — 1 день</strong><span class="badge">day_pass</span></div>
+              <label class="checkbox"><input id="payment_package_day_pass_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_day_pass_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="three">
+                <label>Название<input id="payment_package_day_pass_title"></label>
+                <label>Цена<input id="payment_package_day_pass_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_day_pass_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_day_pass_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_day_pass_badge"></label>
+              </div>
+              <label>Описание<textarea id="payment_package_day_pass_description"></textarea></label>
+            </div>
             <div class="mode-card">
               <div class="mode-head"><strong>1 день</strong><span class="badge">day</span></div>
               <label class="checkbox"><input id="payment_package_day_enabled" type="checkbox">Показывать пакет</label>
@@ -2074,6 +2088,7 @@ def _dashboard_html() -> str:
     function formatModeLimitsMap(map){return Object.entries(map||{}).map(([key,value])=>`${key}=${value}`).join('\\n')}
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     const PAYMENT_PACKAGE_CONFIG=[
+      {key:'day_pass',domKey:'day_pass',title:'Pro — 1 день',badge:'day_pass'},
       {key:'pro_month',domKey:'day',title:'Pro — 30 дней',badge:'pro_month'},
       {key:'pro_year',domKey:'week',title:'Pro — 365 дней',badge:'pro_year'},
       {key:'premium_month',domKey:'month',title:'Premium — 30 дней',badge:'premium_month'},
@@ -2413,6 +2428,7 @@ def _dashboard_html() -> str:
       setValue('#payment_premium_benefits_text',p.premium_benefits_text)
       setValue('#payment_buy_cta_text',p.buy_cta_text)
       setValue('#payment_offer_preview_exhausted_template',p.offer_preview_exhausted_template||'')
+      setValue('#payment_offer_long_task_template',p.offer_long_task_template||'')
       setValue('#payment_premium_menu_description_template',p.premium_menu_description_template||'')
       setValue('#payment_premium_menu_packages_title',p.premium_menu_packages_title||'')
       setValue('#payment_premium_menu_package_line_template',p.premium_menu_package_line_template||'')
@@ -2486,6 +2502,7 @@ def _dashboard_html() -> str:
           premium_benefits_text:$('#payment_premium_benefits_text').value,
           buy_cta_text:$('#payment_buy_cta_text').value,
           offer_preview_exhausted_template:$('#payment_offer_preview_exhausted_template').value,
+          offer_long_task_template:$('#payment_offer_long_task_template').value,
           premium_menu_description_template:$('#payment_premium_menu_description_template').value,
           premium_menu_packages_title:$('#payment_premium_menu_packages_title').value,
           premium_menu_package_line_template:$('#payment_premium_menu_package_line_template').value,

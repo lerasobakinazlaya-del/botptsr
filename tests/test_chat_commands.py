@@ -3,10 +3,14 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from handlers.chat import (
+    _build_long_task_preview,
     _build_quota_notice,
     _build_subscription_expiry_notice,
     _handle_proactive_command,
     _handle_timezone_command,
+    _is_free_long_task_request,
+    _looks_like_long_task_request,
+    _mark_long_task_preview_state,
     _should_trigger_emotional_paywall,
     _should_trigger_useful_advice_paywall,
 )
@@ -74,6 +78,29 @@ class FakeMessage:
 
 
 class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
+    def test_long_task_gate_detects_free_large_task(self):
+        text = "Разбери задачу и составь план.\n" + ("Нужно учесть контекст, риски и шаги.\n" * 9)
+        limits = {
+            "free_long_task_enabled": True,
+            "free_long_task_min_chars": 300,
+            "free_long_task_min_lines": 5,
+        }
+
+        self.assertTrue(_looks_like_long_task_request(text, limits))
+        self.assertTrue(_is_free_long_task_request({"subscription_plan": "free"}, text, limits))
+        self.assertFalse(_is_free_long_task_request({"subscription_plan": "pro"}, text, limits))
+
+    def test_long_task_preview_marks_state_and_mentions_paid_continuation(self):
+        text = "Реши большую задачу.\n" + ("Контекст и детали.\n" * 8)
+        limits = {"free_long_task_preview_chars": 160}
+
+        preview = _build_long_task_preview(text, limits)
+        state = _mark_long_task_preview_state({}, text)
+
+        self.assertIn("платном доступе", preview)
+        self.assertIn("last_long_task_preview_at", state["monetization"])
+        self.assertEqual(len(text), state["monetization"]["last_long_task_chars"])
+
     async def test_proactive_off_disables_initiative(self):
         repo = FakeStateRepository()
         pref_repo = FakeUserPreferenceRepository()
