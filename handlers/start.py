@@ -85,6 +85,8 @@ def _parse_start_context(text: str, prefix: str) -> dict[str, object]:
         "referrer_user_id": None,
         "source": "",
         "campaign": "",
+        "medium": "",
+        "content": "",
     }
     if not parameter:
         return context
@@ -105,11 +107,17 @@ def _parse_start_context(text: str, prefix: str) -> dict[str, object]:
             raw_id = part[len(prefix):].strip()
             context["referrer_user_id"] = int(raw_id) if raw_id.isdigit() else None
             continue
-        if part.startswith("src_"):
-            context["source"] = part[4:].strip().lower()
+        if part.startswith(("src_", "utm_source_")):
+            context["source"] = part.split("_", 1)[1].strip().lower() if part.startswith("src_") else part[11:].strip().lower()
             continue
-        if part.startswith("cmp_"):
-            context["campaign"] = part[4:].strip().lower()
+        if part.startswith(("cmp_", "utm_campaign_")):
+            context["campaign"] = part.split("_", 1)[1].strip().lower() if part.startswith("cmp_") else part[13:].strip().lower()
+            continue
+        if part.startswith(("med_", "utm_medium_")):
+            context["medium"] = part.split("_", 1)[1].strip().lower() if part.startswith("med_") else part[11:].strip().lower()
+            continue
+        if part.startswith(("cnt_", "utm_content_")):
+            context["content"] = part.split("_", 1)[1].strip().lower() if part.startswith("cnt_") else part[12:].strip().lower()
             continue
         normalized = aliases.get(part.strip().lower())
         if normalized and not context["source"]:
@@ -176,6 +184,8 @@ async def start_handler(
         onboarding["started_at"] = onboarding.get("started_at") or started_at
         acquisition["source"] = str(start_context.get("source") or "").strip() or None
         acquisition["campaign"] = str(start_context.get("campaign") or "").strip() or None
+        acquisition["medium"] = str(start_context.get("medium") or "").strip() or None
+        acquisition["content"] = str(start_context.get("content") or "").strip() or None
         acquisition["referrer_user_id"] = start_context.get("referrer_user_id")
         acquisition["start_parameter"] = str(start_context.get("raw_parameter") or "").strip() or None
         state["onboarding"] = onboarding
@@ -186,6 +196,8 @@ async def start_handler(
         metadata = {
             "source": str(start_context.get("source") or "").strip() or "direct",
             "campaign": str(start_context.get("campaign") or "").strip(),
+            "medium": str(start_context.get("medium") or "").strip(),
+            "content": str(start_context.get("content") or "").strip(),
             "referrer_user_id": start_context.get("referrer_user_id"),
             "start_parameter": str(start_context.get("raw_parameter") or "").strip(),
         }

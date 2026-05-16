@@ -449,12 +449,13 @@ class PaymentService:
     ) -> None:
         if self.monetization_repository is None:
             return
+        enriched_metadata = await self._merge_acquisition_metadata(user_id, metadata)
         await self.monetization_repository.log_event(
             user_id=user_id,
             event_name="offer_shown",
             offer_trigger=trigger,
             offer_variant=variant,
-            metadata=metadata,
+            metadata=enriched_metadata,
         )
 
     async def track_invoice_opened(
@@ -467,12 +468,13 @@ class PaymentService:
     ) -> None:
         if self.monetization_repository is None:
             return
+        enriched_metadata = await self._merge_acquisition_metadata(user_id, metadata)
         await self.monetization_repository.log_event(
             user_id=user_id,
             event_name="invoice_opened",
             offer_trigger=trigger,
             offer_variant=variant,
-            metadata=metadata,
+            metadata=enriched_metadata,
         )
 
     async def handle_successful_payment(self, message: Message) -> dict | None:
@@ -641,22 +643,41 @@ class PaymentService:
 
         event_name = "paid" if payment_info.get("is_first_payment") else "renewed"
         latest_offer_context = await self.monetization_repository.get_latest_offer_context(user_id)
+        metadata = {
+            "currency": payment.currency,
+            "total_amount": payment.total_amount,
+            "is_recurring": bool(getattr(payment, "is_recurring", False)),
+            "is_first_payment": bool(payment_info.get("is_first_payment")),
+            "package_key": package["key"],
+            "package_title": package["title"],
+            "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
+        }
+        for key in ("source", "campaign", "medium", "content", "start_parameter", "referrer_user_id"):
+            value = (latest_offer_context or {}).get(key)
+            if value not in (None, ""):
+                metadata[key] = value
         await self.monetization_repository.log_event(
             user_id=user_id,
             event_name=event_name,
             offer_trigger=(latest_offer_context or {}).get("offer_trigger"),
             offer_variant=(latest_offer_context or {}).get("offer_variant"),
             payment_external_id=payment.telegram_payment_charge_id,
-            metadata={
-                "currency": payment.currency,
-                "total_amount": payment.total_amount,
-                "is_recurring": bool(getattr(payment, "is_recurring", False)),
-                "is_first_payment": bool(payment_info.get("is_first_payment")),
-                "package_key": package["key"],
-                "package_title": package["title"],
-                "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
-            },
+            metadata=metadata,
         )
+
+    async def _merge_acquisition_metadata(self, user_id: int, metadata: dict | None) -> dict:
+        merged = dict(metadata or {})
+        if self.monetization_repository is None:
+            return merged
+        getter = getattr(self.monetization_repository, "get_latest_acquisition_context", None)
+        if getter is None:
+            return merged
+        acquisition = await getter(user_id)
+        for key in ("source", "campaign", "medium", "content", "start_parameter", "referrer_user_id"):
+            value = (acquisition or {}).get(key)
+            if value not in (None, "") and not merged.get(key):
+                merged[key] = value
+        return merged
 
     def _normalize_payment_settings(self, payment_settings: dict) -> dict:
         payment = deepcopy(payment_settings)

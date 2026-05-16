@@ -92,10 +92,46 @@ class MonetizationRepository:
             },
         }
 
+    async def get_segmented_funnel_by_metadata(self, *, days: int = 30, metadata_field: str) -> dict[str, Any]:
+        safe_field = self._sanitize_metadata_field(metadata_field)
+        if not safe_field:
+            raise ValueError("Unsupported metadata field")
+
+        cursor = await self.db.connection.execute(
+            f"""
+            SELECT
+                COALESCE(NULLIF(json_extract(metadata_json, '$.{safe_field}'), ''), 'unknown') AS segment_value,
+                event_name,
+                COUNT(*) AS total_events,
+                COUNT(DISTINCT user_id) AS unique_users
+            FROM monetization_events
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY COALESCE(NULLIF(json_extract(metadata_json, '$.{safe_field}'), ''), 'unknown'), event_name
+            ORDER BY segment_value ASC
+            """,
+            (f"-{days} days",),
+        )
+        rows = await cursor.fetchall()
+
+        grouped: dict[str, list[tuple[str, int, int]]] = {}
+        for row in rows:
+            grouped.setdefault(str(row[0] or "unknown"), []).append(
+                (str(row[1] or ""), int(row[2] or 0), int(row[3] or 0))
+            )
+
+        return {
+            "days": days,
+            "segment_by": f"metadata.{safe_field}",
+            "segments": {
+                segment: self._build_funnel_payload(segment_rows, days)
+                for segment, segment_rows in grouped.items()
+            },
+        }
+
     async def get_latest_offer_context(self, user_id: int) -> dict[str, str] | None:
         cursor = await self.db.connection.execute(
             """
-            SELECT offer_trigger, offer_variant
+            SELECT offer_trigger, offer_variant, metadata_json
             FROM monetization_events
             WHERE user_id = ?
               AND event_name IN ('invoice_opened', 'offer_shown')
@@ -110,7 +146,25 @@ class MonetizationRepository:
         return {
             "offer_trigger": str(row[0] or "").strip(),
             "offer_variant": str(row[1] or "").strip(),
+            **self._extract_acquisition_context(self._load_metadata(row[2])),
         }
+
+    async def get_latest_acquisition_context(self, user_id: int) -> dict[str, Any]:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT metadata_json
+            FROM monetization_events
+            WHERE user_id = ?
+              AND event_name IN ('acquisition_attributed', 'onboarding_started')
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return {}
+        return self._extract_acquisition_context(self._load_metadata(row[0]))
 
     async def get_recent_events(self, limit: int = 20) -> list[dict[str, Any]]:
         cursor = await self.db.connection.execute(
@@ -186,10 +240,7 @@ class MonetizationRepository:
         event_name: str,
         metadata_field: str,
     ) -> dict[str, Any]:
-        safe_field = "".join(
-            char for char in str(metadata_field or "").strip()
-            if char.isalnum() or char in {"_", "-"}
-        )
+        safe_field = self._sanitize_metadata_field(metadata_field)
         if not safe_field:
             raise ValueError("Unsupported metadata field")
 
@@ -220,6 +271,20 @@ class MonetizationRepository:
                 for row in rows
             },
         }
+
+    def _sanitize_metadata_field(self, metadata_field: str) -> str:
+        return "".join(
+            char for char in str(metadata_field or "").strip()
+            if char.isalnum() or char in {"_", "-"}
+        )
+
+    def _extract_acquisition_context(self, metadata: dict[str, Any]) -> dict[str, Any]:
+        context: dict[str, Any] = {}
+        for key in ("source", "campaign", "medium", "content", "start_parameter", "referrer_user_id"):
+            value = metadata.get(key)
+            if value not in (None, ""):
+                context[key] = value
+        return context
 
     def _ratio(self, numerator: int, denominator: int) -> float:
         if denominator <= 0:

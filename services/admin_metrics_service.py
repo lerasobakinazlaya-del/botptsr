@@ -117,6 +117,14 @@ class AdminMetricsService:
             days=30,
             segment_by="offer_variant",
         )
+        monetization_by_source_30d = await self.monetization_repository.get_segmented_funnel_by_metadata(
+            days=30,
+            metadata_field="source",
+        )
+        monetization_by_campaign_30d = await self.monetization_repository.get_segmented_funnel_by_metadata(
+            days=30,
+            metadata_field="campaign",
+        )
         growth_overview_30d = await self.monetization_repository.get_event_overview(
             days=30,
             event_names=growth_event_names,
@@ -168,6 +176,8 @@ class AdminMetricsService:
                 "funnel_30d": monetization_30d,
                 "by_trigger_30d": monetization_by_trigger_30d,
                 "by_variant_30d": monetization_by_variant_30d,
+                "by_source_30d": monetization_by_source_30d,
+                "by_campaign_30d": monetization_by_campaign_30d,
             },
             "growth": {
                 "events_30d": growth_overview_30d,

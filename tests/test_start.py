@@ -176,11 +176,38 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         saved_state = state_repository.saved[0][1]
         self.assertEqual(saved_state["acquisition"]["source"], "telegram")
         self.assertEqual(saved_state["acquisition"]["campaign"], "spring_launch")
+        self.assertIsNone(saved_state["acquisition"]["medium"])
+        self.assertIsNone(saved_state["acquisition"]["content"])
         self.assertTrue(saved_state["onboarding"]["started_at"])
         self.assertEqual(
             [event["event_name"] for event in monetization_repository.events],
             ["onboarding_started", "acquisition_attributed"],
         )
+
+    async def test_start_handler_tracks_utm_medium_and_content(self):
+        message = FakeMessage(
+            text="/start utm_source_tiktok__utm_campaign_launch__utm_medium_video__utm_content_hook1",
+            user_id=778,
+        )
+        state_repository = FakeStateRepository()
+        monetization_repository = FakeMonetizationRepository()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(is_new_user=True),
+            admin_settings_service=FakeAdminSettingsService(),
+            referral_service=FakeReferralService(),
+            state_repository=state_repository,
+            monetization_repository=monetization_repository,
+        )
+
+        saved_state = state_repository.saved[0][1]
+        self.assertEqual(saved_state["acquisition"]["source"], "tiktok")
+        self.assertEqual(saved_state["acquisition"]["campaign"], "launch")
+        self.assertEqual(saved_state["acquisition"]["medium"], "video")
+        self.assertEqual(saved_state["acquisition"]["content"], "hook1")
+        self.assertEqual(monetization_repository.events[0]["metadata"]["medium"], "video")
+        self.assertEqual(monetization_repository.events[0]["metadata"]["content"], "hook1")
 
     async def test_start_handler_keeps_inline_cta_for_returning_user(self):
         message = FakeMessage()

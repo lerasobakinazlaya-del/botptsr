@@ -25,6 +25,8 @@ from services.admin_guardrails import (
 )
 from services.ai_profile_service import resolve_ai_profile
 from services.admin_metrics_service import AdminMetricsService
+from services.content_studio_service import build_content_calendar
+from services.launch_service import build_launch_links
 from services.release_service import build_health_warnings, load_release_info
 from services.response_guardrails import (
     analyze_response_style,
@@ -439,6 +441,16 @@ async def api_health(_: str = Depends(require_auth)):
 @app.get("/api/settings")
 async def api_settings(_: str = Depends(require_auth)):
     return container.admin_settings_service.export_all()
+
+
+@app.get("/api/launch/links")
+async def api_launch_links(_: str = Depends(require_auth)):
+    runtime = container.admin_settings_service.get_runtime_settings()
+    return {
+        "items": build_launch_links(runtime.get("launch", {})),
+        "content_calendar": build_content_calendar(runtime.get("launch", {})),
+        "launch": runtime.get("launch", {}),
+    }
 
 
 @app.get("/api/export")
@@ -1002,6 +1014,7 @@ def _dashboard_html() -> str:
         <div class="nav">
           <button class="active" data-view="overview">Обзор</button>
           <button data-view="setup">Настройка</button>
+          <button data-view="launch">Запуск</button>
           <button data-view="users">Пользователи</button>
           <button data-view="conversations">Диалоги</button>
           <button data-view="initiative">Инициатива</button>
@@ -1197,6 +1210,25 @@ def _dashboard_html() -> str:
         <div class="panel">
           <h3>Фокус SaaS-MVP</h3>
           <div id="setup-saas-summary"></div>
+        </div>
+      </section>
+
+      <section class="page" data-view="launch">
+        <div class="cols">
+          <div class="panel">
+            <h3>Launch links</h3>
+            <p class="muted section-note">Deep links для Telegram, TikTok, Instagram и других каналов. Source/campaign теперь доходят до оплаты.</p>
+            <div id="launch-links"></div>
+          </div>
+          <div class="panel">
+            <h3>SMM штаб</h3>
+            <p class="muted section-note">Чеклист, безопасные правила подачи и готовые тексты для постов перед запуском.</p>
+            <div id="launch-ops"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Денежная воронка по каналам</h3>
+          <div id="launch-funnel"></div>
         </div>
       </section>
 
@@ -1913,6 +1945,7 @@ def _dashboard_html() -> str:
     const state={
       settings:{runtime:{ui:{message_templates:[]},payment:{},limits:{}},mode_catalog:{},modes:{}},
       overview:{},
+      launchLinks:{items:[],launch:{}},
       proactiveEvents:{items:[],limit:100},
       health:{db:{},redis:{},ai_runtime:{},chat_runtime:{},config_files:{},modes_count:0,warnings:[]},
       logs:{},
@@ -1930,6 +1963,7 @@ def _dashboard_html() -> str:
     const VIEW_META={
       overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
       setup:{kicker:'Готовность к запуску',title:'Настройка и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
+      launch:{kicker:'Growth room',title:'Запуск и привлечение',subtitle:'Ссылки, SMM-материалы, checklist и сквозная воронка от TikTok/Instagram/Telegram до оплаты.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
       initiative:{kicker:'First initiative',title:'Инициатива бота',subtitle:'Кому бот писал первым, когда это было, что отправил и почему некоторые попытки были заблокированы.'},
@@ -2489,6 +2523,19 @@ def _dashboard_html() -> str:
       return {safety:{throttle_rate_limit_seconds:Number($('#safety_throttle_rate_limit_seconds').value),throttle_warning_interval_seconds:Number($('#safety_throttle_warning_interval_seconds').value),max_message_length:Number($('#safety_max_message_length').value),reject_suspicious_messages:$('#safety_reject_suspicious_messages').checked,throttle_warning_text:$('#safety_throttle_warning_text').value,message_too_long_text:$('#safety_message_too_long_text').value,suspicious_rejection_text:$('#safety_suspicious_rejection_text').value,suspicious_keywords:$('#safety_suspicious_keywords').value},state_engine:{defaults,positive_keywords:$('#state_positive_keywords').value,negative_keywords:$('#state_negative_keywords').value,attraction_keywords:$('#state_attraction_keywords').value,message_effects:effects},access:{forced_level:$('#access_forced_level').value.trim(),default_level:$('#access_default_level').value.trim(),interest_observation_threshold:Number($('#access_interest_observation_threshold').value),rare_layer_instability_threshold:Number($('#access_rare_layer_instability_threshold').value),rare_layer_attraction_threshold:Number($('#access_rare_layer_attraction_threshold').value),personal_focus_attraction_threshold:Number($('#access_personal_focus_attraction_threshold').value),personal_focus_interest_threshold:Number($('#access_personal_focus_interest_threshold').value),tension_attraction_threshold:Number($('#access_tension_attraction_threshold').value),tension_control_threshold:Number($('#access_tension_control_threshold').value),analysis_interest_threshold:Number($('#access_analysis_interest_threshold').value),analysis_control_threshold:Number($('#access_analysis_control_threshold').value)},limits:{free_daily_messages_enabled:$('#limits_free_daily_messages_enabled').checked,premium_daily_messages_enabled:$('#limits_premium_daily_messages_enabled').checked,admins_bypass_daily_limits:$('#limits_admins_bypass_daily_limits').checked,free_daily_messages_limit:Number($('#limits_free_daily_messages_limit').value),premium_daily_messages_limit:Number($('#limits_premium_daily_messages_limit').value),free_daily_limit_message:$('#limits_free_daily_limit_message').value,premium_daily_limit_message:$('#limits_premium_daily_limit_message').value,mode_preview_enabled:$('#limits_mode_preview_enabled').checked,mode_preview_default_limit:Number($('#limits_mode_preview_default_limit').value),mode_daily_limits:parseModeLimitsMap($('#limits_mode_daily_limits').value),mode_preview_exhausted_message:$('#limits_mode_preview_exhausted_message').value},engagement:{adaptive_mode_enabled:$('#engagement_adaptive_mode_enabled').checked}}}
     function promptsPayload(){return {personality_core:$('#prompt_personality_core').value,safety_block:$('#prompt_safety_block').value,response_style:$('#prompt_response_style').value,engagement_rules:$('#prompt_engagement_rules').value,ptsd_mode_prompt:$('#prompt_ptsd_mode_prompt').value,memory_intro:$('#prompt_memory_intro').value,state_intro:$('#prompt_state_intro').value,mode_intro:$('#prompt_mode_intro').value,access_intro:$('#prompt_access_intro').value,final_instruction:$('#prompt_final_instruction').value,access_rules:{observation:$('#access_observation').value,analysis:$('#access_analysis').value,tension:$('#access_tension').value,personal_focus:$('#access_personal_focus').value,rare_layer:$('#access_rare_layer').value}}}
     function modesPayload(){const modes={},catalog={},modeModels={};document.querySelectorAll('[data-mode-scale]').forEach(i=>{const [m,k]=i.dataset.modeScale.split('.');if(!modes[m])modes[m]={};modes[m][k]=i.type==='checkbox'?i.checked:Number(i.value)});document.querySelectorAll('[data-catalog]').forEach(i=>{const [m,k]=i.dataset.catalog.split('.');if(!catalog[m])catalog[m]={};catalog[m][k]=i.type==='checkbox'?i.checked:(k==='sort_order'?Number(i.value):i.value)});document.querySelectorAll('[data-mode-model]').forEach(i=>{const mode=String(i.dataset.modeModel||'').trim();if(!mode)return;modeModels[mode]={model:String(i.value||'').trim()}});return {modes,catalog,modeModels}}
+    function renderLaunch(){
+      const payload=state.launchLinks||{},launch=payload.launch||{},links=payload.items||[],calendar=payload.content_calendar||[],studio=launch.content_studio||{},overview=state.overview||{},monetization=overview.monetization||{},bySource=monetization.by_source_30d||{},byCampaign=monetization.by_campaign_30d||{};
+      const linkRows=links.map(item=>({'Канал':item.source||'—','Campaign':item.campaign||'—','Medium':item.medium||'—','Content':item.content||'—','Start':item.start_parameter||'—','URL':item.url?`<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.url)}</a>`:'—','Caption':esc(item.caption||'—')}));
+      $('#launch-links').innerHTML=linkRows.length?`<div class="table-wrap overview-table">${table(['Канал','Campaign','Medium','Content','Start','URL','Caption'],linkRows)}</div>`:'<div class="muted">Укажи launch.bot_username и кампании в runtime settings.</div>';
+      const checklist=(launch.checklist||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${item.done?'ok':'warn'}"></span><div><strong>${esc(item.label||item.key)}</strong><div class="muted">${esc(item.detail||'')}</div><div class="muted">${esc(item.action||'')}</div></div><span>${item.done?'OK':'TODO'}</span></div>`).join('');
+      const templates=(launch.invite_templates||[]).map(item=>`<div class="soft-panel">${esc(item)}</div>`).join('');
+      const calendarRows=calendar.map(item=>({'День':item.day,'Площадка':item.platform,'Ролик':item.title||'—','Start':item.start_parameter||'—','Caption':esc(item.caption||'—')}));
+      const rules=(launch.safe_copy_rules||[]).map(item=>`<div class="kv-row"><span class="kv-key">Rule</span><span class="kv-value">${esc(item)}</span></div>`).join('');
+      $('#launch-ops').innerHTML=`<div class="stack">${metricCards([['Launch mode',launch.enabled?'включен':'выключен',`bot: ${launch.bot_username||'не указан'}`],['Кампаний',String((launch.campaigns||[]).filter(x=>x&&x.enabled!==false).length),'Включенные источники'],['Активная',esc(launch.active_campaign||'—'),'Главная кампания']])}${kvList([['Позиционирование',esc(studio.brand_angle||'—')],['Визуальный стиль',esc(studio.visual_direction||'—')],['Telegram канал',esc((studio.telegram_channel&&studio.telegram_channel.title)||'—')]])}<div class="readiness-list">${checklist||'<div class="muted">Чеклист пуст.</div>'}</div><h4>Контент-план роликов</h4><div class="table-wrap overview-table">${table(['День','Площадка','Ролик','Start','Caption'],calendarRows)}</div><h4>Тексты для посева</h4>${templates||'<div class="muted">Шаблоны не заданы.</div>'}<h4>Правила модерации</h4><div class="kv-list">${rules||'<div class="muted">Правила не заданы.</div>'}</div></div>`;
+      const toRows=segments=>Object.entries(segments||{}).map(([name,item])=>{const stages=item.stages||{},paid=stages.paid||{},offer=stages.offer_shown||{},invoice=stages.invoice_opened||{},conversion=item.conversion||{};return {'Сегмент':name,'Оффер users':offer.users||0,'Инвойс users':invoice.users||0,'Paid users':paid.users||0,'Offer -> invoice':`${conversion.offer_to_invoice_pct||0}%`,'Invoice -> paid':`${conversion.invoice_to_paid_pct||0}%`}});
+      $('#launch-funnel').innerHTML=`<div class="cols"><div><h4>По source</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(bySource.segments))}</div></div><div><h4>По campaign</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(byCampaign.segments))}</div></div></div>`;
+    }
+
     function paymentsPayload(){
       return {
         payment:{
@@ -2568,8 +2615,8 @@ def _dashboard_html() -> str:
     async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['initiative',renderInitiative],['setup',renderSetup],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['proactiveEvents','/api/proactive/events?limit=100','proactiveEvents'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['initiative',renderInitiative],['setup',renderSetup],['launch',renderLaunch],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['launchLinks','/api/launch/links','launchLinks'],['proactiveEvents','/api/proactive/events?limit=100','proactiveEvents'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});state.lastTestResult=data;$('#test-result').textContent=JSON.stringify(data,null,2);renderTestQuality()}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));

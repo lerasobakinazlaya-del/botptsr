@@ -17,6 +17,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from services.launch_service import build_launch_links  # noqa: E402
+from services.content_campaign_service import validate_campaign_config  # noqa: E402
+
 CONFIG_DIR = REPO_ROOT / "config"
 CHECK_PATHS = [
     "main.py",
@@ -258,6 +261,74 @@ def _check_launch_payments() -> CheckResult:
     )
 
 
+def _check_launch_config() -> CheckResult:
+    runtime_path = REPO_ROOT / "config" / "runtime_settings.json"
+    runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
+    launch = dict(runtime.get("launch") or {})
+    links = build_launch_links(launch)
+    enabled_campaigns = [item for item in launch.get("campaigns", []) if isinstance(item, dict) and item.get("enabled", True)]
+    missing: list[str] = []
+    if not str(launch.get("bot_username") or "").strip():
+        missing.append("launch.bot_username")
+    if not enabled_campaigns:
+        missing.append("launch.campaigns")
+    if missing:
+        return CheckResult(
+            name="launch-config",
+            status="failed",
+            detail="Missing launch settings: " + ", ".join(missing),
+        )
+
+    parameters = [item["start_parameter"] for item in links]
+    duplicates = sorted({item for item in parameters if parameters.count(item) > 1})
+    if duplicates:
+        return CheckResult(
+            name="launch-config",
+            status="failed",
+            detail="Duplicate launch start parameters",
+            stdout="\n".join(duplicates),
+        )
+
+    empty_urls = [item["name"] for item in links if not item.get("url")]
+    if empty_urls:
+        return CheckResult(
+            name="launch-config",
+            status="failed",
+            detail="Some launch links have empty URLs",
+            stdout="\n".join(empty_urls),
+        )
+
+    return CheckResult(
+        name="launch-config",
+        status="passed",
+        detail=f"Generated {len(links)} unique launch links",
+    )
+
+
+def _check_content_pipeline() -> CheckResult:
+    config_path = REPO_ROOT / "config" / "content_campaigns.json"
+    if not config_path.exists():
+        return CheckResult(
+            name="content-pipeline",
+            status="failed",
+            detail="config/content_campaigns.json is missing",
+        )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    errors = validate_campaign_config(config)
+    if errors:
+        return CheckResult(
+            name="content-pipeline",
+            status="failed",
+            detail="Content campaign validation failed",
+            stdout="\n".join(errors),
+        )
+    return CheckResult(
+        name="content-pipeline",
+        status="passed",
+        detail="Content campaign registry is valid",
+    )
+
+
 def _check_launch_redis() -> CheckResult:
     redis_url = str(os.getenv("REDIS_URL") or "redis://localhost:6379/0").strip()
     try:
@@ -326,6 +397,8 @@ def main() -> int:
         results.extend(
             [
                 _check_launch_copy_encoding(),
+                _check_launch_config(),
+                _check_content_pipeline(),
                 _check_launch_payments(),
                 _check_launch_redis(),
             ]

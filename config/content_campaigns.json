@@ -1,0 +1,66 @@
+{
+  "campaign": "pilot_day_1",
+  "bot_username": "",
+  "items": [
+    {
+      "id": "memory_01",
+      "status": "ready",
+      "platform": "tiktok",
+      "pillar": "memory",
+      "source": "tiktok",
+      "medium": "short_video",
+      "campaign": "pilot_day_1",
+      "content": "memory_01",
+      "hook": "Спроси AI, как тебя зовут. Если он не помнит, диалог уже сломан.",
+      "title": "Он помнит то, что ты сказал раньше",
+      "shot_list": [
+        "0-2с: крупный текст 'Как меня зовут?'",
+        "2-6с: плохой ответ обычного бота",
+        "6-14с: показать память/профиль в Нити",
+        "14-22с: CTA 'проверь длинной задачей'"
+      ],
+      "caption": "Если AI забывает контекст, диалог рассыпается. Проверяем бота, который держит нить: {url}",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "long_task_01",
+      "status": "ready",
+      "platform": "instagram",
+      "pillar": "long_task",
+      "source": "instagram",
+      "medium": "reels",
+      "campaign": "pilot_day_1",
+      "content": "long_task_01",
+      "hook": "Большой текст не должен умирать на первой строке ответа.",
+      "title": "Длинная задача без обрыва",
+      "shot_list": [
+        "0-3с: показать длинный текст и просьбу разобрать целиком",
+        "3-9с: preview бесплатно",
+        "9-16с: дневной доступ для полного разбора",
+        "16-25с: CTA 'не режь задачу на куски'"
+      ],
+      "caption": "Для коротких вопросов хватит free. Для большого разбора нужен день доступа: {url}",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "channel_seed_01",
+      "status": "ready",
+      "platform": "telegram",
+      "pillar": "build_in_public",
+      "source": "telegram",
+      "medium": "channel",
+      "campaign": "pilot_day_1",
+      "content": "channel_seed_01",
+      "hook": "Запускаем Нить: AI-собеседника с памятью и дневным доступом.",
+      "title": "Первый пост канала",
+      "shot_list": [
+        "Launch-card",
+        "Обещание продукта",
+        "Три сценария использования",
+        "Deep link с source=telegram"
+      ],
+      "caption": "Запускаем Нить: AI-собеседника с памятью и дневным доступом для длинных задач.\n\nЧто можно проверить:\n• длинный текст или перевод допустимого фрагмента\n• разбор ситуации\n• продолжение диалога после паузы\n\nВход: {url}",
+      "safe_copy_checked": true
+    }
+  ]
+}

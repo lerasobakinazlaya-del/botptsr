@@ -377,6 +377,17 @@ class FakeMonetizationRepository:
         self.latest_offer_context = {
             "offer_trigger": "limit_reached",
             "offer_variant": "b",
+            "source": "tiktok",
+            "campaign": "pilot_day_1",
+            "medium": "short_video",
+            "content": "hook_memory",
+        }
+        self.latest_acquisition_context = {
+            "source": "tiktok",
+            "campaign": "pilot_day_1",
+            "medium": "short_video",
+            "content": "hook_memory",
+            "start_parameter": "src_tiktok__cmp_pilot_day_1__med_short_video__cnt_hook_memory",
         }
 
     async def log_event(self, **kwargs):
@@ -385,8 +396,36 @@ class FakeMonetizationRepository:
     async def get_latest_offer_context(self, user_id: int):
         return dict(self.latest_offer_context)
 
+    async def get_latest_acquisition_context(self, user_id: int):
+        return dict(self.latest_acquisition_context)
+
 
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
+    async def test_payment_service_enriches_offer_and_invoice_with_acquisition_context(self):
+        monetization_repository = FakeMonetizationRepository()
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium",
+                premium_product_description="",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+            monetization_repository=monetization_repository,
+        )
+
+        await service.track_offer_shown(user_id=42, trigger="long_task", variant="a", metadata={"mode_name": "base"})
+        await service.track_invoice_opened(user_id=42, trigger="long_task", variant="a", metadata={"package_key": "day_pass"})
+
+        self.assertEqual(monetization_repository.events[0]["metadata"]["source"], "tiktok")
+        self.assertEqual(monetization_repository.events[0]["metadata"]["campaign"], "pilot_day_1")
+        self.assertEqual(monetization_repository.events[1]["metadata"]["medium"], "short_video")
+        self.assertEqual(monetization_repository.events[1]["metadata"]["content"], "hook_memory")
+
     async def test_show_premium_menu_renders_package_buttons_and_details(self):
         message = FakeMessage()
         payment_service = FakePaymentServiceForOffer()
@@ -580,6 +619,8 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(monetization_repository.events[-1]["event_name"], "paid")
         self.assertEqual(monetization_repository.events[-1]["offer_trigger"], "limit_reached")
         self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
+        self.assertEqual(monetization_repository.events[-1]["metadata"]["source"], "tiktok")
+        self.assertEqual(monetization_repository.events[-1]["metadata"]["campaign"], "pilot_day_1")
 
     async def test_handle_successful_payment_uses_provider_subscription_expiry_when_present(self):
         subscription_expires_at = datetime(2026, 3, 31, 4, 0, 0, tzinfo=timezone.utc)

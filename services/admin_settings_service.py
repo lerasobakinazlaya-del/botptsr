@@ -517,6 +517,150 @@ class AdminSettingsService:
             "referred_welcome_message": "Тебя пригласили в бота. Осмотрись, выбери режим и, если формат зайдёт, открой Premium.",
             "referrer_reward_message": "Твой реферал оплатил Premium. Бонус уже начислен.",
         },
+        "launch": {
+            "enabled": False,
+            "bot_username": "",
+            "active_campaign": "pilot_day_1",
+            "default_source": "telegram",
+            "default_medium": "organic",
+            "default_caption": (
+                "Попробуй AI-собеседника, который помнит контекст, помогает разбирать мысли "
+                "и не обрывает длинные задачи на полуслове: {url}"
+            ),
+            "campaigns": [
+                {
+                    "enabled": True,
+                    "name": "Telegram seed",
+                    "source": "telegram",
+                    "campaign": "pilot_day_1",
+                    "medium": "organic",
+                    "content": "channel_post",
+                    "caption": "Стартовый пост в Telegram: показать живой диалог, память и дневной доступ.",
+                },
+                {
+                    "enabled": True,
+                    "name": "TikTok organic",
+                    "source": "tiktok",
+                    "campaign": "pilot_day_1",
+                    "medium": "short_video",
+                    "content": "hook_memory",
+                    "caption": "Видео-хук: спроси бота то, что обычные ассистенты забывают через минуту.",
+                },
+                {
+                    "enabled": True,
+                    "name": "Instagram Reels",
+                    "source": "instagram",
+                    "campaign": "pilot_day_1",
+                    "medium": "reels",
+                    "content": "long_task",
+                    "caption": "Reels-сценарий: длинный текст, первая полезная часть бесплатно, продолжение по дневному доступу.",
+                },
+            ],
+            "checklist": [
+                {
+                    "key": "payments_real",
+                    "label": "Реальная оплата включена",
+                    "detail": "Перед платным трафиком должен быть Telegram provider token или осознанный virtual-mode для теста.",
+                    "action": "Проверить payment.mode и provider_token.",
+                    "done": False,
+                },
+                {
+                    "key": "attribution",
+                    "label": "Атрибуция до оплаты работает",
+                    "detail": "source/campaign должны проходить путь start -> offer -> invoice -> paid.",
+                    "action": "Открыть deep link, вызвать оффер, оплатить тестово и посмотреть Overview.",
+                    "done": False,
+                },
+                {
+                    "key": "copy_safe",
+                    "label": "SMM-тексты безопасны",
+                    "detail": "Без обещаний терапии, гарантированных результатов и давления на уязвимость.",
+                    "action": "Проверить invite_templates и campaign captions.",
+                    "done": False,
+                },
+                {
+                    "key": "moderation",
+                    "label": "Модерация и безопасность проверены",
+                    "detail": "Бот должен корректно отказывать в опасных сценариях и не смешивать языки в русских сообщениях.",
+                    "action": "Прогнать safety и dialogue smoke-тесты.",
+                    "done": False,
+                },
+            ],
+            "invite_templates": [
+                "Я тестирую AI-собеседника с памятью контекста. Он хорош для разборов, длинных задач и продолжения диалога: {url}",
+                "Если хочешь проверить бота не на игрушечном вопросе, а на настоящей задаче, вот вход: {url}",
+                "Дневной доступ удобен, когда нужно один раз глубоко разобрать текст, ситуацию или план без обрыва ответа: {url}",
+            ],
+            "safe_copy_rules": [
+                "Не обещать медицинский, юридический или финансовый результат.",
+                "Не давить на одиночество, тревогу или зависимость пользователя.",
+                "Не писать, что бот заменяет живого специалиста или близких людей.",
+                "В русских кампаниях не смешивать английский и русский без явной причины.",
+            ],
+            "content_studio": {
+                "brand_angle": "AI-собеседник с памятью, который помогает не потерять мысль и довести длинную задачу до результата.",
+                "visual_direction": "Темный кинематографичный фон, теплый зеленый акцент, карточки с ощущением личного кабинета и живой переписки.",
+                "telegram_channel": {
+                    "title": "Нить: AI-собеседник",
+                    "handle": "",
+                    "description": "Живой AI-собеседник для разборов, длинных задач и продолжения мысли.",
+                    "pinned_post_template": "Это канал Нити: показываем, как AI может помнить контекст, разбирать хаос и доводить длинные задачи до результата.\n\nСтарт здесь: {url}",
+                },
+                "pillars": [
+                    {"key": "memory", "title": "Память и продолжение", "hook": "Обычный бот забывает нить. Этот должен держать контекст."},
+                    {"key": "long_task", "title": "Длинные задачи", "hook": "Проверь не игрушечным вопросом, а настоящим длинным текстом."},
+                    {"key": "alive_dialogue", "title": "Живой диалог", "hook": "Ответ без ассистентского лака: короче, теплее, ближе к делу."},
+                    {"key": "paid_day", "title": "Доступ на день", "hook": "Когда нужно один раз глубоко разобрать задачу, день дешевле подписки."},
+                ],
+                "video_scripts": [
+                    {
+                        "platform": "tiktok",
+                        "campaign": "pilot_day_1",
+                        "content": "hook_memory",
+                        "title": "Он помнит то, что ты сказал раньше",
+                        "shot_list": [
+                            "0-2с: крупный текст на экране: 'Спроси бота, как тебя зовут'",
+                            "2-7с: показать плохой ответ обычного бота",
+                            "7-14с: показать Нить: профиль/память/контекст",
+                            "14-22с: CTA: 'проверь длинной задачей, ссылка в профиле'",
+                        ],
+                        "caption": "Если AI забывает контекст, диалог рассыпается. Проверяем бота, который держит нить: {url}",
+                    },
+                    {
+                        "platform": "instagram",
+                        "campaign": "pilot_day_1",
+                        "content": "long_task",
+                        "title": "Почему длинный текст не должен обрываться",
+                        "shot_list": [
+                            "0-3с: вставить большой текст и вопрос 'переведи целиком'",
+                            "3-9с: показать preview бесплатно",
+                            "9-16с: показать предложение дневного доступа",
+                            "16-25с: финал: 'большие задачи требуют нормального контекста'",
+                        ],
+                        "caption": "Для коротких вопросов хватит free. Для большого разбора нужен день доступа: {url}",
+                    },
+                    {
+                        "platform": "telegram",
+                        "campaign": "pilot_day_1",
+                        "content": "channel_seed",
+                        "title": "Первый пост канала",
+                        "shot_list": [
+                            "Скрин launch-card",
+                            "Короткое обещание продукта",
+                            "Три примера задач",
+                            "Deep link с source=telegram",
+                        ],
+                        "caption": "Запускаем Нить: AI-собеседника с памятью и дневным доступом для длинных задач. Вход: {url}",
+                    },
+                ],
+            },
+            "utm": {
+                "source_prefix": "src_",
+                "campaign_prefix": "cmp_",
+                "medium_prefix": "med_",
+                "content_prefix": "cnt_",
+            },
+        },
         "payment": {
             "mode": "virtual",
             "offer_cta_text_a": "Открыть Premium на 30 дней",
@@ -901,6 +1045,7 @@ class AdminSettingsService:
                 "limits",
                 "engagement",
                 "referral",
+                "launch",
                 "payment",
                 "ui",
                 "cost_control",
@@ -1127,6 +1272,26 @@ class AdminSettingsService:
         for key in ("program_title", "program_description", "share_text_template", "referred_welcome_message", "referrer_reward_message"):
             referral[key] = self._normalize_text(referral[key], multiline=True)
 
+        launch = current["launch"]
+        launch["enabled"] = bool(launch.get("enabled", False))
+        launch["bot_username"] = str(launch.get("bot_username") or "").strip().lstrip("@")
+        launch["active_campaign"] = str(launch.get("active_campaign") or "").strip()
+        launch["default_source"] = str(launch.get("default_source") or "telegram").strip().lower() or "telegram"
+        launch["default_medium"] = str(launch.get("default_medium") or "organic").strip().lower() or "organic"
+        launch["default_caption"] = self._normalize_text(launch.get("default_caption", ""), multiline=True)
+        launch["campaigns"] = self._normalize_launch_campaigns(launch.get("campaigns"))
+        launch["checklist"] = self._normalize_launch_checklist(launch.get("checklist"))
+        launch["invite_templates"] = self._normalize_string_list(launch.get("invite_templates"))
+        launch["safe_copy_rules"] = self._normalize_string_list(launch.get("safe_copy_rules"))
+        launch["content_studio"] = self._normalize_launch_content_studio(launch.get("content_studio"))
+        utm = launch.get("utm") if isinstance(launch.get("utm"), dict) else {}
+        launch["utm"] = {
+            "source_prefix": str(utm.get("source_prefix") or "src_").strip() or "src_",
+            "campaign_prefix": str(utm.get("campaign_prefix") or "cmp_").strip() or "cmp_",
+            "medium_prefix": str(utm.get("medium_prefix") or "med_").strip() or "med_",
+            "content_prefix": str(utm.get("content_prefix") or "cnt_").strip() or "cnt_",
+        }
+
         payment = current["payment"]
         payment["provider_token"] = str(payment["provider_token"]).strip()
         payment["mode"] = str(payment.get("mode") or "telegram").strip().lower() or "telegram"
@@ -1263,6 +1428,86 @@ class AdminSettingsService:
 
         payment["default_package_key"] = requested_key
         return merged
+
+    def _normalize_launch_campaigns(self, value: Any) -> list[dict[str, Any]]:
+        campaigns = value if isinstance(value, list) else []
+        normalized: list[dict[str, Any]] = []
+        for index, item in enumerate(campaigns):
+            if not isinstance(item, dict):
+                continue
+            source = str(item.get("source") or "").strip().lower() or "telegram"
+            campaign = str(item.get("campaign") or "").strip().lower() or f"campaign_{index + 1}"
+            normalized.append(
+                {
+                    "enabled": bool(item.get("enabled", True)),
+                    "name": str(item.get("name") or f"{source} {campaign}").strip(),
+                    "source": source,
+                    "campaign": campaign,
+                    "medium": str(item.get("medium") or "organic").strip().lower() or "organic",
+                    "content": str(item.get("content") or "").strip().lower(),
+                    "caption": self._normalize_text(item.get("caption") or "", multiline=True),
+                }
+            )
+        return normalized
+
+    def _normalize_launch_checklist(self, value: Any) -> list[dict[str, Any]]:
+        checklist = value if isinstance(value, list) else []
+        normalized: list[dict[str, Any]] = []
+        for index, item in enumerate(checklist):
+            if not isinstance(item, dict):
+                continue
+            key = str(item.get("key") or f"item_{index + 1}").strip().lower()
+            normalized.append(
+                {
+                    "key": key,
+                    "label": str(item.get("label") or key).strip(),
+                    "detail": self._normalize_text(item.get("detail") or "", multiline=True),
+                    "action": self._normalize_text(item.get("action") or "", multiline=True),
+                    "done": bool(item.get("done", False)),
+                }
+            )
+        return normalized
+
+    def _normalize_launch_content_studio(self, value: Any) -> dict[str, Any]:
+        defaults = deepcopy(self.DEFAULT_RUNTIME_SETTINGS["launch"]["content_studio"])
+        payload = value if isinstance(value, dict) else {}
+        self._deep_merge(defaults, payload)
+        defaults["brand_angle"] = self._normalize_text(defaults.get("brand_angle") or "", multiline=True)
+        defaults["visual_direction"] = self._normalize_text(defaults.get("visual_direction") or "", multiline=True)
+
+        channel = defaults.get("telegram_channel") if isinstance(defaults.get("telegram_channel"), dict) else {}
+        defaults["telegram_channel"] = {
+            "title": self._normalize_text(channel.get("title") or ""),
+            "handle": str(channel.get("handle") or "").strip().lstrip("@"),
+            "description": self._normalize_text(channel.get("description") or "", multiline=True),
+            "pinned_post_template": self._normalize_text(channel.get("pinned_post_template") or "", multiline=True),
+        }
+
+        pillars = defaults.get("pillars") if isinstance(defaults.get("pillars"), list) else []
+        defaults["pillars"] = [
+            {
+                "key": str(item.get("key") or "").strip().lower(),
+                "title": self._normalize_text(item.get("title") or ""),
+                "hook": self._normalize_text(item.get("hook") or "", multiline=True),
+            }
+            for item in pillars
+            if isinstance(item, dict)
+        ]
+
+        scripts = defaults.get("video_scripts") if isinstance(defaults.get("video_scripts"), list) else []
+        defaults["video_scripts"] = [
+            {
+                "platform": str(item.get("platform") or "").strip().lower(),
+                "campaign": str(item.get("campaign") or "").strip().lower(),
+                "content": str(item.get("content") or "").strip().lower(),
+                "title": self._normalize_text(item.get("title") or ""),
+                "shot_list": self._normalize_string_list(item.get("shot_list")),
+                "caption": self._normalize_text(item.get("caption") or "", multiline=True),
+            }
+            for item in scripts
+            if isinstance(item, dict)
+        ]
+        return defaults
 
     def _normalize_mode_scales(self, payload: dict[str, Any]) -> dict[str, Any]:
         merged = deepcopy(self.DEFAULT_MODE_SCALES)
