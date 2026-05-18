@@ -154,6 +154,13 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("premium_year", source)
         self.assertIn("payment_offer_long_task_template", source)
 
+    def test_user_editor_exposes_subscription_plan_and_saves_it(self):
+        source = self._admin_source()
+
+        self.assertIn('id="user_subscription_plan"', source)
+        self.assertIn("subscription_plan:subscriptionPlan", source)
+        self.assertIn("setValue('#user_subscription_plan',user.subscription_plan||'free')", source)
+
     def test_saas_dashboard_additions_are_localized(self):
         source = self._admin_source()
 

@@ -614,7 +614,10 @@ class UserService:
             else existing_plan
         )
         if is_premium is not None:
-            normalized_plan = "premium" if bool(is_premium) else "free"
+            if subscription_plan is None:
+                normalized_plan = "premium" if bool(is_premium) else "free"
+            elif not bool(is_premium):
+                normalized_plan = "free"
         premium_value = normalized_plan != "free"
         admin_value = (
             bool(is_admin)

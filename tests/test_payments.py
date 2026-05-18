@@ -737,6 +737,33 @@ class PaymentFormattingTests(unittest.TestCase):
         self.assertIn("28.04.2026 12:00 UTC", text)
 
 
+
+    def test_build_subscription_status_text_distinguishes_pro(self):
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium plan",
+                premium_product_description="Unlock premium modes.",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+        )
+
+        text = service.build_subscription_status_text(
+            {
+                "is_premium": True,
+                "subscription_plan": "pro",
+                "premium_expires_at": "2026-04-28 12:00:00",
+            }
+        )
+
+        self.assertIn("Pro", text)
+        self.assertIn("28.04.2026 12:00 UTC", text)
+
 class ModesKeyboardTests(unittest.TestCase):
     def test_modes_keyboard_adds_premium_menu_button_for_non_premium_user(self):
         keyboard = get_modes_keyboard(

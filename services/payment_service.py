@@ -256,7 +256,11 @@ class PaymentService:
             return ""
 
         expires_at = str(user.get("premium_expires_at") or "").strip()
-        status_text = str(payment.get("already_premium_message") or "").strip()
+        plan_key = str(user.get("subscription_plan") or "").strip().lower()
+        if plan_key == "pro":
+            status_text = "Pro уже активен. Можно продлить его заранее."
+        else:
+            status_text = str(payment.get("already_premium_message") or "").strip()
         if not expires_at:
             return status_text
 

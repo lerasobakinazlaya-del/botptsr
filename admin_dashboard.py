@@ -547,10 +547,12 @@ async def api_user_update(user_id: int, request: Request, _: str = Depends(requi
         raise HTTPException(status_code=400, detail="Неизвестный режим")
 
     try:
+        subscription_plan = str(payload.get("subscription_plan") or "free").strip().lower() or "free"
         user = await container.user_service.upsert_user_access(
             user_id,
             active_mode=active_mode,
-            is_premium=bool(payload.get("is_premium")),
+            is_premium=subscription_plan != "free",
+            subscription_plan=subscription_plan,
             is_admin=bool(payload.get("is_admin")),
         )
         await container.state_repository.set_active_mode(user_id, active_mode)
@@ -889,13 +891,15 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
         }
 
     ai_settings = runtime_settings["ai"]
-    ai_profile = resolve_ai_profile(ai_settings, context["active_mode"])
+    subscription_plan = str(payload.get("subscription_plan") or "free").strip().lower() or "free"
+    ai_profile = resolve_ai_profile(ai_settings, context["active_mode"], subscription_plan)
     system_prompt = container.ai_service.conversation_engine.build_system_prompt(
         state=context["updated_state"],
         access_level=context["access_level"],
         active_mode=context["active_mode"],
         memory_context=context["memory_context"],
         user_message=context["user_message"],
+        subscription_plan=subscription_plan,
         base_instruction=ai_profile["prompt_suffix"],
         history=history,
     )
@@ -1264,7 +1268,14 @@ def _dashboard_html() -> str:
               <label>Имя<input id="user_first_name" readonly></label>
             </div>
             <label class="checkbox"><input id="user_is_admin" type="checkbox">Администратор</label>
-            <label class="checkbox"><input id="user_is_premium" type="checkbox">Премиум-доступ</label>
+            <label>План доступа
+              <select id="user_subscription_plan">
+                <option value="free">Free</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </label>
+            <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <p class="muted" id="user_meta">Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.</p>
             <div class="actions">
               <button id="load-user">Загрузить</button>
@@ -2103,7 +2114,7 @@ def _dashboard_html() -> str:
     function premiumExpiryMeta(user){const expiresText=String(user.premium_expires_at||'').trim();if(!expiresText)return {tone:'bad',label:'Не активен',dateText:'—'};const expiresAt=parseUtcTimestamp(expiresText);if(!expiresAt||Number.isNaN(expiresAt.getTime()))return {tone:'warn',label:'Срок не распознан',dateText:expiresText};const msLeft=expiresAt.getTime()-Date.now();if(msLeft<=0)return {tone:'bad',label:'Истёк',dateText:expiresText};const daysLeft=msLeft/(24*60*60*1000);if(daysLeft<=3)return {tone:'warn',label:'Скоро закончится',dateText:expiresText};return {tone:'ok',label:'Активен',dateText:expiresText}}
     function renderPremiumExpiryCell(user){const meta=premiumExpiryMeta(user);return `<div class="stack" style="gap:6px"><span class="status-pill ${meta.tone}">${esc(meta.label)}</span><div class="muted">${esc(meta.dateText)}</div></div>`}
     function renderPremiumExpiryInline(user){const meta=premiumExpiryMeta(user);return `<span class="status-pill ${meta.tone}">${esc(meta.label)}</span> <span class="muted">${esc(meta.dateText)}</span>`}
-    function recentUsersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Создан</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td>${esc(user.created_at||'—')}</td></tr>`).join('')}</tbody></table>`}
+    function recentUsersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>План</th><th>Premium до</th><th>Админ</th><th>Создан</th></tr></thead><tbody>${items.map(user=>`<tr><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${esc((user.subscription_plan||'free').toUpperCase())}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td>${esc(user.created_at||'—')}</td></tr>`).join('')}</tbody></table>`}
     function currentUserFilter(){return $('#user-filter-buttons .template-chip.active').dataset.userFilter||'all'}
     function userFilterLabel(filterBy){return ({all:'Все пользователи',premium_active:'Платные активны',premium_expiring_3d:'Истекают за 3 дня',premium_expired:'Истекли',without_premium:'Free и истекшие'})[filterBy]||'Все пользователи'}
     function userSortLabel(sortBy){return ({created_desc:'новые сначала',premium_active_first:'premium наверху',premium_expiry_asc:'срок истекает раньше',premium_expiry_desc:'срок истекает позже',premium_expiring_soon:'скоро истекают наверху',premium_expired:'истекшие наверху'})[sortBy]||'новые сначала'}
@@ -2301,8 +2312,8 @@ def _dashboard_html() -> str:
     function renderUserModeOptions(){const select=$('#user_active_mode');if(!select||!state.settings||!state.settings.mode_catalog)return;const catalog=state.settings.mode_catalog||{};const keys=Object.keys(catalog).sort((a,b)=>(catalog[a].sort_order||0)-(catalog[b].sort_order||0));select.innerHTML=keys.map(key=>{const mode=catalog[key]||{};const suffix=mode.is_premium?' (Премиум)':' (Бесплатно)';return `<option value="${esc(key)}">${esc((mode.icon||'')+' '+(mode.name||key)+suffix)}</option>`}).join('')}
     function renderUsers(){renderUserModeOptions();if(!state.users)return;renderUserSegments();$('#users-table').innerHTML=usersTable(state.users.items||[]);if(state.currentUser){setValue('#user_active_mode',state.currentUser.active_mode||'base')}syncSelectedUsersUi();renderBroadcastResult(state.lastBroadcastResult);renderTemplateEditor()}
     function conversationMessages(items){if(!items||!items.length)return '<div class="muted">У пользователя пока нет сообщений.</div>';return items.map(item=>`<div class="message-card ${item.role==='user'?'user':'assistant'}"><div class="message-meta"><strong>${item.role==='user'?'Пользователь':'Бот'}</strong><span>${esc(item.created_at||'')}</span></div><div>${escText(item.text||'')}</div></div>`).join('')}
-    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user.id||'');setValue('#conversation_user_id',user.id||$('#conversation_user_id').value||'');setValue('#user_username',user.username||'');setValue('#user_first_name',user.first_name||'');setValue('#user_active_mode',user.active_mode||'base');setChecked('#user_is_admin',user.is_admin);setChecked('#user_is_premium',user.is_premium);$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.';renderChrome()}
-    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>Премиум</th><th>Premium до</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${user.is_premium?'Да':'Нет'}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
+    function fillUserForm(user){state.currentUser=user||null;renderUserModeOptions();setValue('#user_user_id',user.id||'');setValue('#conversation_user_id',user.id||$('#conversation_user_id').value||'');setValue('#user_username',user.username||'');setValue('#user_first_name',user.first_name||'');setValue('#user_active_mode',user.active_mode||'base');setChecked('#user_is_admin',user.is_admin);setValue('#user_subscription_plan',user.subscription_plan||'free');$('#user_meta').innerHTML=user?`Создан: ${esc(user.created_at||'неизвестно')} • ${renderPremiumExpiryInline(user)}`:'Можно ввести ID вручную и сохранить: запись создастся даже если пользователь ещё не появился в таблице.';renderChrome()}
+    function usersTable(items){if(!items||!items.length)return '<div class="muted">Пока нет данных.</div>';const visibleIds=items.map(user=>normalizeUserId(user.id)).filter(Boolean);const allVisibleSelected=!!visibleIds.length&&visibleIds.every(id=>state.selectedUserIds.has(id));return `<table><thead><tr><th class="user-select-cell"><input id="users-select-all-visible" class="inline-checkbox" type="checkbox" ${allVisibleSelected?'checked':''}></th><th>ID</th><th>Имя пользователя</th><th>Имя</th><th>Режим</th><th>План</th><th>Premium до</th><th>Админ</th><th>Действие</th></tr></thead><tbody>${items.map(user=>{const userId=normalizeUserId(user.id);const checked=userId&&state.selectedUserIds.has(userId)?'checked':'';return `<tr><td class="user-select-cell"><input class="inline-checkbox" type="checkbox" data-user-select="${esc(userId)}" ${checked}></td><td>${esc(user.id)}</td><td>${esc(user.username||'')}</td><td>${esc(user.first_name||'')}</td><td>${esc(user.active_mode||'base')}</td><td>${esc((user.subscription_plan||'free').toUpperCase())}</td><td>${renderPremiumExpiryCell(user)}</td><td>${user.is_admin?'Да':'Нет'}</td><td><button data-user-pick="${esc(user.id)}">Выбрать</button></td></tr>`}).join('')}</tbody></table>`}
     function memoryCategoryOptions(items){return (items||[]).map(item=>`<option value="${esc(item.key)}">${esc(item.label)}</option>`).join('')}
     function resetMemoryEditor(categories){const categorySelect=$('#memory_editor_category');const categoryList=categories||state.currentConversation.settings.memory_categories||[];categorySelect.innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id','');setValue('#memory_editor_weight','1.0');setValue('#memory_editor_value','');setChecked('#memory_editor_pinned',false);if(categoryList.length){setValue('#memory_editor_category',categoryList[0].key)}state.currentMemoryId=null}
     function fillMemoryEditor(memory,categories){if(!memory){resetMemoryEditor(categories);return}const categoryList=categories||state.currentConversation.settings.memory_categories||[];$('#memory_editor_category').innerHTML=memoryCategoryOptions(categoryList);setValue('#memory_editor_id',memory.id);setValue('#memory_editor_category',memory.category||'');setValue('#memory_editor_weight',memory.weight||1.0);setValue('#memory_editor_value',memory.value||'');setChecked('#memory_editor_pinned',memory.pinned);state.currentMemoryId=memory.id}
@@ -2659,8 +2670,8 @@ def _dashboard_html() -> str:
       if(!rows.length){el.innerHTML='Запусти live reply, чтобы увидеть оценку ответа.';return}
       el.innerHTML=`<div class="qa-note">${rows.map(([label,status,detail])=>`<div class="kv-row"><div class="kv-key"><span class="status-pill ${esc(status)}">${esc(label)}</span></div><div class="kv-value">${esc(detail)}</div></div>`).join('')}</div>`;
     }
-    function testPayload(){return {user_id:Number($('#test_user_id').value||0),active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
-    function currentUserPayload(){return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:$('#user_is_premium').checked}}
+    function testPayload(){const currentPlan=(state.currentUser&&state.currentUser.subscription_plan)||$('#user_subscription_plan').value||'free';return {user_id:Number($('#test_user_id').value||0),active_mode:$('#test_active_mode').value.trim(),access_level:$('#test_access_level').value.trim(),subscription_plan:String(currentPlan).trim()||'free',user_message:$('#test_user_message').value,history:$('#test_history').value,state:$('#test_state').value}}
+    function currentUserPayload(){const subscriptionPlan=$('#user_subscription_plan').value.trim()||'free';return {active_mode:$('#user_active_mode').value.trim()||'base',is_admin:$('#user_is_admin').checked,is_premium:subscriptionPlan!=='free',subscription_plan:subscriptionPlan}}
     function currentUserSort(){return $('#user-sort').value.trim()||'created_desc'}
     async function refreshUsers(query){const search=query||$('#user-search').value.trim();const sortBy=currentUserSort();const filterBy=currentUserFilter();state.users=await api(`/api/users?query=${encodeURIComponent(search)}&limit=100&sort_by=${encodeURIComponent(sortBy)}&filter_by=${encodeURIComponent(filterBy)}`);if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||filterBy);renderUsers()}
     async function loadUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`);fillUserForm(user);renderUsers();renderChrome()}

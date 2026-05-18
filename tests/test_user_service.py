@@ -75,6 +75,19 @@ class UserServiceSortingTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual([item["id"] for item in items], [1, 4])
 
+    async def test_upsert_user_access_preserves_pro_when_paid_flag_is_true(self):
+        await self.user_service.upsert_user_access(
+            7,
+            subscription_plan="pro",
+            is_premium=True,
+        )
+
+        user = await self.user_service.get_user(7)
+
+        self.assertIsNotNone(user)
+        self.assertEqual(user["subscription_plan"], "pro")
+        self.assertTrue(user["is_premium"])
+
     async def test_search_users_combines_query_with_without_premium_filter(self):
         items = await self.user_service.search_users(
             query="soon",
