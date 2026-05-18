@@ -10,7 +10,7 @@
 - Новый `BOT_TOKEN` для окружения продакшена.
 - Аватар бота: `assets/nit-avatar.png`.
 - Стартовая карточка: `assets/launch-card.png`.
-- Ссылка для продвижения: `https://t.me/<new_bot_username>`.
+- Ссылка для продвижения: `https://t.me/asknitai_bot`.
 - Если используются платежи Telegram, проверить provider token и соответствие нового бота платежному провайдеру.
 
 ## Единый стиль

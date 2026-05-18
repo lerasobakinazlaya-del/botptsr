@@ -519,7 +519,7 @@ class AdminSettingsService:
         },
         "launch": {
             "enabled": False,
-            "bot_username": "",
+            "bot_username": "asknitai_bot",
             "active_campaign": "pilot_day_1",
             "default_source": "telegram",
             "default_medium": "organic",
