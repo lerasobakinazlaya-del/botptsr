@@ -52,18 +52,18 @@ def validate_campaign_config(config: dict[str, Any]) -> list[str]:
         item_id = str(item.get("id") or item.get("content") or "unknown")
         start_parameter = str(item.get("start_parameter") or "")
         if not item.get("platform"):
-            errors.append(f"{item_id}: platform is required")
+            errors.append(f"{item_id}: укажи площадку platform")
         if not item.get("hook"):
-            errors.append(f"{item_id}: hook is required")
+            errors.append(f"{item_id}: укажи крючок hook")
         if not item.get("caption"):
-            errors.append(f"{item_id}: caption is required")
+            errors.append(f"{item_id}: укажи подпись caption")
         if not item.get("safe_copy_checked"):
-            errors.append(f"{item_id}: safe_copy_checked must be true")
+            errors.append(f"{item_id}: safe_copy_checked должен быть true")
         if len(start_parameter) > START_PARAMETER_MAX_LENGTH:
-            errors.append(f"{item_id}: start_parameter is too long ({len(start_parameter)} > {START_PARAMETER_MAX_LENGTH})")
+            errors.append(f"{item_id}: start_parameter слишком длинный ({len(start_parameter)} > {START_PARAMETER_MAX_LENGTH})")
         if start_parameter in seen:
-            errors.append(f"{item_id}: duplicate start_parameter {start_parameter}")
+            errors.append(f"{item_id}: повторяется start_parameter {start_parameter}")
         seen.add(start_parameter)
     if not items:
-        errors.append("No content campaign items found")
+        errors.append("Не найдены элементы контент-кампании")
     return errors

@@ -38,4 +38,4 @@ def test_validate_campaign_config_catches_missing_safety_and_duplicates():
     )
 
     assert any("safe_copy_checked" in error for error in errors)
-    assert any("duplicate start_parameter" in error for error in errors)
+    assert any("повторяется start_parameter" in error for error in errors)

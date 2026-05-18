@@ -1,38 +1,38 @@
-# Script Templates
+# Шаблоны сценариев
 
-## Memory Demo
+## Демо памяти
 
-1. Hook: “Спроси AI, как тебя зовут.”
-2. Show a generic bot forgetting context.
-3. Show Nить using saved profile/memory.
+1. Крючок: “Спроси AI, как тебя зовут.”
+2. Показать, как обычный бот забывает контекст.
+3. Показать, как Нить использует сохранённый профиль или память.
 4. CTA: “Проверь на своей задаче.”
 
-## Long Task Demo
+## Демо длинной задачи
 
-1. Hook: “Большой текст не должен обрываться.”
-2. Show a long user message.
-3. Show a useful free preview.
-4. Show day-pass offer for the full deep answer.
+1. Крючок: “Большой текст не должен обрываться.”
+2. Показать длинное сообщение пользователя.
+3. Показать полезный бесплатный preview.
+4. Показать дневной доступ для полного глубокого ответа.
 5. CTA: “Открой день, если нужен полный разбор.”
 
-## Prompt Of The Day
+## Промпт дня
 
-1. Hook: “Скопируй этот промпт.”
-2. Prompt text on screen.
-3. Show what the bot returns.
+1. Крючок: “Скопируй этот промпт.”
+2. Показать текст промпта на экране.
+3. Показать, что возвращает бот.
 4. CTA: “Отправь в Нить.”
 
-## Build In Public
+## Разработка в открытую
 
-1. Hook: “Мы починили то, что бесило в боте.”
-2. Before/after.
-3. Metric being watched.
-4. CTA to Telegram channel and bot deep link.
+1. Крючок: “Мы починили то, что бесило в боте.”
+2. Показать “до/после”.
+3. Показать метрику, за которой следим.
+4. CTA на Telegram-канал и deep link бота.
 
-## Moderation Check
+## Проверка модерации
 
-- No therapy guarantees.
-- No claims that the bot replaces specialists.
-- No pressure on fear, loneliness, or dependence.
-- No misleading “free forever” framing.
-- No mixed language in Russian campaigns unless intentionally explained.
+- Без обещаний терапевтического эффекта.
+- Без утверждений, что бот заменяет специалиста.
+- Без давления на страх, одиночество или зависимость.
+- Без вводящего в заблуждение “бесплатно навсегда”.
+- Без смешения языков в русских кампаниях, если это не объяснено креативом.

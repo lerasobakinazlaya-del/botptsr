@@ -1216,12 +1216,12 @@ def _dashboard_html() -> str:
       <section class="page" data-view="launch">
         <div class="cols">
           <div class="panel">
-            <h3>Launch links</h3>
-            <p class="muted section-note">Deep links для Telegram, TikTok, Instagram и других каналов. Source/campaign теперь доходят до оплаты.</p>
+            <h3>Стартовые ссылки</h3>
+            <p class="muted section-note">Глубокие ссылки для Telegram, TikTok, Instagram и других каналов. Источник и кампания теперь доходят до оплаты.</p>
             <div id="launch-links"></div>
           </div>
           <div class="panel">
-            <h3>SMM штаб</h3>
+            <h3>SMM-штаб</h3>
             <p class="muted section-note">Чеклист, безопасные правила подачи и готовые тексты для постов перед запуском.</p>
             <div id="launch-ops"></div>
           </div>
@@ -1230,19 +1230,19 @@ def _dashboard_html() -> str:
           <h3>Управление запуском</h3>
           <p class="muted section-note">Операционная форма для Telegram-канала, TikTok/Reels кампаний и контент-студии. JSON-поля сохраняются в runtime settings.</p>
           <div class="two">
-            <label class="checkbox"><input id="launch_enabled" type="checkbox">Launch включен</label>
-            <label>Bot username<input id="launch_bot_username" placeholder="my_bot"></label>
+            <label class="checkbox"><input id="launch_enabled" type="checkbox">Запуск включён</label>
+            <label>Юзернейм бота<input id="launch_bot_username" placeholder="my_bot"></label>
             <label>Активная кампания<input id="launch_active_campaign" placeholder="pilot_day_1"></label>
-            <label>Telegram channel handle<input id="launch_channel_handle" placeholder="channel_handle"></label>
+            <label>Юзернейм Telegram-канала<input id="launch_channel_handle" placeholder="channel_handle"></label>
           </div>
           <label>Позиционирование<textarea id="launch_brand_angle"></textarea></label>
           <label>Визуальный стиль<textarea id="launch_visual_direction"></textarea></label>
           <label>Описание Telegram-канала<textarea id="launch_channel_description"></textarea></label>
-          <label>Pinned post template<textarea id="launch_pinned_post_template"></textarea></label>
+          <label>Шаблон закреплённого поста<textarea id="launch_pinned_post_template"></textarea></label>
           <label>Кампании JSON<textarea id="launch_campaigns_json"></textarea></label>
-          <label>Content studio JSON<textarea id="launch_content_studio_json"></textarea></label>
-          <label>Invite templates<textarea id="launch_invite_templates"></textarea></label>
-          <label>Safe copy rules<textarea id="launch_safe_copy_rules"></textarea></label>
+          <label>Контент-студия JSON<textarea id="launch_content_studio_json"></textarea></label>
+          <label>Шаблоны приглашений<textarea id="launch_invite_templates"></textarea></label>
+          <label>Правила безопасного текста<textarea id="launch_safe_copy_rules"></textarea></label>
           <div class="actions"><button class="primary" id="save-launch">Сохранить запуск</button></div>
         </div>
         <div class="panel">
@@ -1530,7 +1530,7 @@ def _dashboard_html() -> str:
               </div>
             </div>
             <div class="soft-panel">
-              <h3>Hook turns</h3>
+              <h3>Короткие ответы</h3>
               <div class="three">
                 <label>Токены<input id="fast_lane_hook_max_completion_tokens" type="number" min="32"></label>
                 <label>Память<input id="fast_lane_hook_memory_max_tokens" type="number" min="64"></label>
@@ -1982,7 +1982,7 @@ def _dashboard_html() -> str:
     const VIEW_META={
       overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
       setup:{kicker:'Готовность к запуску',title:'Настройка и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
-      launch:{kicker:'Growth room',title:'Запуск и привлечение',subtitle:'Ссылки, SMM-материалы, checklist и сквозная воронка от TikTok/Instagram/Telegram до оплаты.'},
+      launch:{kicker:'Комната роста',title:'Запуск и привлечение',subtitle:'Ссылки, SMM-материалы, чеклист и сквозная воронка от TikTok/Instagram/Telegram до оплаты.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
       initiative:{kicker:'First initiative',title:'Инициатива бота',subtitle:'Кому бот писал первым, когда это было, что отправил и почему некоторые попытки были заблокированы.'},
@@ -2557,15 +2557,15 @@ def _dashboard_html() -> str:
       setValue('#launch_content_studio_json',JSON.stringify(studio||{},null,2));
       setValue('#launch_invite_templates',(launch.invite_templates||[]).join('\\n'));
       setValue('#launch_safe_copy_rules',(launch.safe_copy_rules||[]).join('\\n'));
-      const linkRows=links.map(item=>({'Канал':item.source||'—','Campaign':item.campaign||'—','Medium':item.medium||'—','Content':item.content||'—','Start':item.start_parameter||'—','URL':item.url?`<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.url)}</a>`:'—','Caption':esc(item.caption||'—')}));
-      $('#launch-links').innerHTML=linkRows.length?`<div class="table-wrap overview-table">${table(['Канал','Campaign','Medium','Content','Start','URL','Caption'],linkRows)}</div>`:'<div class="muted">Укажи launch.bot_username и кампании в runtime settings.</div>';
+      const linkRows=links.map(item=>({'Канал':item.source||'—','Кампания':item.campaign||'—','Тип':item.medium||'—','Материал':item.content||'—','Старт':item.start_parameter||'—','Ссылка':item.url?`<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.url)}</a>`:'—','Подпись':esc(item.caption||'—')}));
+      $('#launch-links').innerHTML=linkRows.length?`<div class="table-wrap overview-table">${table(['Канал','Кампания','Тип','Материал','Старт','Ссылка','Подпись'],linkRows)}</div>`:'<div class="muted">Укажи launch.bot_username и кампании в runtime settings.</div>';
       const checklist=(launch.checklist||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${item.done?'ok':'warn'}"></span><div><strong>${esc(item.label||item.key)}</strong><div class="muted">${esc(item.detail||'')}</div><div class="muted">${esc(item.action||'')}</div></div><span>${item.done?'OK':'TODO'}</span></div>`).join('');
       const templates=(launch.invite_templates||[]).map(item=>`<div class="soft-panel">${esc(item)}</div>`).join('');
-      const calendarRows=calendar.map(item=>({'День':item.day,'Площадка':item.platform,'Ролик':item.title||'—','Start':item.start_parameter||'—','Caption':esc(item.caption||'—')}));
-      const rules=(launch.safe_copy_rules||[]).map(item=>`<div class="kv-row"><span class="kv-key">Rule</span><span class="kv-value">${esc(item)}</span></div>`).join('');
-      $('#launch-ops').innerHTML=`<div class="stack">${metricCards([['Launch mode',launch.enabled?'включен':'выключен',`bot: ${launch.bot_username||'не указан'}`],['Кампаний',String((launch.campaigns||[]).filter(x=>x&&x.enabled!==false).length),'Включенные источники'],['Активная',esc(launch.active_campaign||'—'),'Главная кампания']])}${kvList([['Позиционирование',esc(studio.brand_angle||'—')],['Визуальный стиль',esc(studio.visual_direction||'—')],['Telegram канал',esc((studio.telegram_channel&&studio.telegram_channel.title)||'—')]])}<div class="readiness-list">${checklist||'<div class="muted">Чеклист пуст.</div>'}</div><h4>Контент-план роликов</h4><div class="table-wrap overview-table">${table(['День','Площадка','Ролик','Start','Caption'],calendarRows)}</div><h4>Тексты для посева</h4>${templates||'<div class="muted">Шаблоны не заданы.</div>'}<h4>Правила модерации</h4><div class="kv-list">${rules||'<div class="muted">Правила не заданы.</div>'}</div></div>`;
-      const toRows=segments=>Object.entries(segments||{}).map(([name,item])=>{const stages=item.stages||{},paid=stages.paid||{},offer=stages.offer_shown||{},invoice=stages.invoice_opened||{},conversion=item.conversion||{};return {'Сегмент':name,'Оффер users':offer.users||0,'Инвойс users':invoice.users||0,'Paid users':paid.users||0,'Offer -> invoice':`${conversion.offer_to_invoice_pct||0}%`,'Invoice -> paid':`${conversion.invoice_to_paid_pct||0}%`}});
-      $('#launch-funnel').innerHTML=`<div class="cols"><div><h4>По source</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(bySource.segments))}</div></div><div><h4>По campaign</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(byCampaign.segments))}</div></div></div>`;
+      const calendarRows=calendar.map(item=>({'День':item.day,'Площадка':item.platform,'Ролик':item.title||'—','Старт':item.start_parameter||'—','Подпись':esc(item.caption||'—')}));
+      const rules=(launch.safe_copy_rules||[]).map(item=>`<div class="kv-row"><span class="kv-key">Правило</span><span class="kv-value">${esc(item)}</span></div>`).join('');
+      $('#launch-ops').innerHTML=`<div class="stack">${metricCards([['Режим запуска',launch.enabled?'включен':'выключен',`бот: ${launch.bot_username||'не указан'}`],['Кампаний',String((launch.campaigns||[]).filter(x=>x&&x.enabled!==false).length),'Включенные источники'],['Активная',esc(launch.active_campaign||'—'),'Главная кампания']])}${kvList([['Позиционирование',esc(studio.brand_angle||'—')],['Визуальный стиль',esc(studio.visual_direction||'—')],['Telegram канал',esc((studio.telegram_channel&&studio.telegram_channel.title)||'—')]])}<div class="readiness-list">${checklist||'<div class="muted">Чеклист пуст.</div>'}</div><h4>Контент-план роликов</h4><div class="table-wrap overview-table">${table(['День','Площадка','Ролик','Старт','Подпись'],calendarRows)}</div><h4>Тексты для посева</h4>${templates||'<div class="muted">Шаблоны не заданы.</div>'}<h4>Правила модерации</h4><div class="kv-list">${rules||'<div class="muted">Правила не заданы.</div>'}</div></div>`;
+      const toRows=segments=>Object.entries(segments||{}).map(([name,item])=>{const stages=item.stages||{},paid=stages.paid||{},offer=stages.offer_shown||{},invoice=stages.invoice_opened||{},conversion=item.conversion||{};return {'Сегмент':name,'Оффер users':offer.users||0,'Инвойс users':invoice.users||0,'Оплатившие users':paid.users||0,'Оффер -> инвойс':`${conversion.offer_to_invoice_pct||0}%`,'Инвойс -> оплата':`${conversion.invoice_to_paid_pct||0}%`}});
+      $('#launch-funnel').innerHTML=`<div class="cols"><div><h4>По источнику</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Оплатившие users','Оффер -> инвойс','Инвойс -> оплата'],toRows(bySource.segments))}</div></div><div><h4>По кампании</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Оплатившие users','Оффер -> инвойс','Инвойс -> оплата'],toRows(byCampaign.segments))}</div></div></div>`;
     }
 
     function parseJsonField(selector,fallback,label){
@@ -2575,7 +2575,7 @@ def _dashboard_html() -> str:
     }
 
     function launchPayload(){
-      const contentStudio=parseJsonField('#launch_content_studio_json',{},'Content studio');
+      const contentStudio=parseJsonField('#launch_content_studio_json',{},'Контент-студия');
       const telegramChannel={...(contentStudio.telegram_channel||{})};
       telegramChannel.handle=$('#launch_channel_handle').value.trim();
       telegramChannel.description=$('#launch_channel_description').value;

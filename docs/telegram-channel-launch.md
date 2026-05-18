@@ -1,45 +1,45 @@
-# Telegram Channel Launch
+# Запуск Telegram-канала
 
-Telegram channel creation is a manual owner action. The bot can prepare the launch kit, links, copy, and metrics, but it cannot create a channel for the owner account.
+Создание Telegram-канала остаётся ручным действием владельца. Бот может подготовить пакет запуска, ссылки, тексты и метрики, но не может создать канал от имени аккаунта владельца.
 
-## Setup
+## Настройка
 
-1. Create a public Telegram channel.
-2. Use title from `launch.content_studio.telegram_channel.title`.
-3. Use description from `launch.content_studio.telegram_channel.description`.
-4. Export `assets/launch-card.svg` to PNG and use it as the first visual direction.
-5. Put the bot deep link into the pinned post.
-6. Add the bot as admin only if it needs to publish later.
+1. Создать публичный Telegram-канал.
+2. Взять название из `launch.content_studio.telegram_channel.title`.
+3. Взять описание из `launch.content_studio.telegram_channel.description`.
+4. Экспортировать `assets/launch-card.svg` в PNG и использовать как первый визуальный ориентир.
+5. Вставить deep link бота в закреплённый пост.
+6. Добавлять бота администратором только если позже он должен публиковать посты.
 
-## Generate Kit
+## Сгенерировать пакет канала
 
 ```powershell
 python scripts\generate_telegram_channel_kit.py
 ```
 
-The generated file is written to `logs/telegram_channel_kit.md`.
+Готовый файл сохраняется в `logs/telegram_channel_kit.md`.
 
-## First 5 Posts
+## Первые 5 постов
 
-- Pinned: what the product is and how to start.
-- Memory demo: why saved context matters.
-- Long-task demo: why day pass exists.
-- Build in public: what changed this week.
-- Soft CTA: ask users to send one real task to the bot.
+- Закреп: что это за продукт и как начать.
+- Демо памяти: почему сохранённый контекст важен.
+- Демо длинной задачи: зачем нужен дневной доступ.
+- Разработка в открытую: что изменили на этой неделе.
+- Мягкий CTA: предложить пользователям отправить одну реальную задачу боту.
 
-## Tracking
+## Трекинг
 
-Use a unique Telegram source parameter:
+Для канала использовать уникальный Telegram-параметр:
 
 ```text
 src_telegram__cmp_pilot_day_1__med_channel__cnt_channel_seed_01
 ```
 
-After publishing, watch:
+После публикации смотреть:
 
-- `onboarding_started` by source/campaign
-- `onboarding_completed`
-- `offer_shown`
-- `invoice_opened`
-- `paid`
-- second/third message rate
+- `onboarding_started` по `source/campaign`;
+- `onboarding_completed`;
+- `offer_shown`;
+- `invoice_opened`;
+- `paid`;
+- долю второго и третьего сообщения.

@@ -114,7 +114,7 @@ def _check_config_json() -> CheckResult:
     return CheckResult(
         name="config-json",
         status="passed",
-        detail=f"Validated {len(validated)} JSON files",
+        detail=f"Проверено JSON-файлов: {len(validated)}",
         stdout=", ".join(validated) if validated else None,
     )
 
@@ -294,14 +294,14 @@ def _check_launch_config() -> CheckResult:
         return CheckResult(
             name="launch-config",
             status="failed",
-            detail="Some launch links have empty URLs",
+            detail="У некоторых стартовых ссылок пустой URL",
             stdout="\n".join(empty_urls),
         )
 
     return CheckResult(
         name="launch-config",
         status="passed",
-        detail=f"Generated {len(links)} unique launch links",
+        detail=f"Сгенерировано уникальных стартовых ссылок: {len(links)}",
     )
 
 
@@ -418,16 +418,16 @@ def main() -> int:
     report_path = (REPO_ROOT / args.report_file).resolve()
     _write_report(report_path, results, summary)
 
-    print("Prelaunch summary:")
+    print("Сводка prelaunch:")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     for result in results:
         print(f"[{result.status.upper()}] {result.name}: {result.detail}")
 
     if failed:
-        print(f"Report written to: {report_path}")
+        print(f"Отчёт сохранён: {report_path}")
         return 1
 
-    print(f"Report written to: {report_path}")
+    print(f"Отчёт сохранён: {report_path}")
     return 0
 
 

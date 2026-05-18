@@ -1,53 +1,53 @@
-# Content Production Pipeline
+# Производственный процесс контента
 
-This is the operating loop for Telegram, TikTok, Instagram Reels, and short-form launch experiments.
+Это рабочий цикл для Telegram-канала, TikTok, Instagram Reels и коротких запусковых экспериментов.
 
-## Roles
+## Роли
 
-- Product lead: chooses the weekly hypothesis and success metric.
-- SMM lead: turns the hypothesis into hooks, scripts, captions, and publishing order.
-- Moderator: checks safety, language, claims, and comments before publishing.
-- Analyst: reviews source/campaign funnel and decides what to repeat.
-- Operator: publishes content and updates the registry with URLs and metrics.
+- Продуктовый лидер: выбирает гипотезу недели и главную метрику успеха.
+- SMM-лидер: превращает гипотезу в крючки, сценарии, подписи и порядок публикаций.
+- Модератор: проверяет безопасность, язык, обещания и комментарии перед публикацией.
+- Аналитик: смотрит воронку по источникам и кампаниям, затем решает, что повторять.
+- Оператор: публикует контент и обновляет реестр ссылками и метриками.
 
-## Weekly Loop
+## Еженедельный цикл
 
-1. Pick 3-5 content pillars from `config/content_campaigns.json`.
-2. Generate links with `python scripts/generate_content_calendar.py`.
-3. Validate the pack with `python scripts/validate_content_pipeline.py`.
-4. Export captions with `python scripts/export_caption_pack.py`.
-5. Publish Telegram first, then TikTok/Reels.
-6. Review starts, first messages, paywall views, invoices, and paid conversion by source/campaign.
-7. Keep winners, rewrite weak hooks, pause unsafe or unclear claims.
+1. Выбрать 3-5 контентных направлений из `config/content_campaigns.json`.
+2. Сгенерировать календарь командой `python scripts/generate_content_calendar.py`.
+3. Проверить пакет командой `python scripts/validate_content_pipeline.py`.
+4. Выгрузить подписи командой `python scripts/export_caption_pack.py`.
+5. Сначала опубликовать Telegram-пост, затем TikTok/Reels.
+6. Проверить старты, первые сообщения, показы paywall, открытие инвойса и оплату по `source/campaign`.
+7. Оставить сильные креативы, переписать слабые крючки, остановить небезопасные или неясные обещания.
 
-## Publishing Rules
+## Правила публикации
 
-- Every post must have a unique `start_parameter`.
-- Every caption must have a CTA, but no pressure on loneliness, fear, or anxiety.
-- TikTok/Reels captions should be short; Telegram posts can explain the product more deeply.
-- Do not promise therapy, guaranteed outcomes, or replacement for specialists.
-- Russian campaigns should stay in Russian unless the creative intentionally uses English.
+- У каждого поста должен быть уникальный `start_parameter`.
+- В каждой подписи нужен понятный CTA, но без давления на одиночество, страх или тревогу.
+- Подписи для TikTok/Reels должны быть короткими; Telegram-посты могут объяснять продукт глубже.
+- Нельзя обещать терапевтический эффект, гарантированный результат или замену специалиста.
+- Русские кампании должны оставаться на русском, если английский не является осознанной частью креатива.
 
-## Telegram Channel Setup
+## Настройка Telegram-канала
 
-Create the channel manually in Telegram, because a bot cannot create a channel on behalf of the owner. Recommended structure:
+Канал создаётся вручную в Telegram, потому что бот не может создать канал от имени владельца. Рекомендуемая структура:
 
-- Title: `Нить: AI-собеседник`
-- Description: `AI-собеседник с памятью для разборов, длинных задач и продолжения мысли.`
-- Avatar: use `assets/launch-card.svg` as the visual direction or export it to PNG.
-- Pinned post: use the Telegram item from `config/content_campaigns.json`.
-- First posts: product promise, one memory demo, one long-task demo, one pricing/day-pass explanation.
+- Название: `Нить: AI-собеседник`
+- Описание: `AI-собеседник с памятью для разборов, длинных задач и продолжения мысли.`
+- Аватар: использовать `assets/launch-card.svg` как визуальное направление или экспортировать его в PNG.
+- Закреплённый пост: взять Telegram-пост из `config/content_campaigns.json`.
+- Первые посты: обещание продукта, демо памяти, демо длинной задачи, объяснение дневного доступа.
 
-## Metrics
+## Метрики
 
-Track this every day:
+Смотреть каждый день:
 
-- views
-- profile clicks
-- bot starts
-- first messages
-- second/third message rate
-- paywall views
-- invoice opens
-- paid users
-- source/campaign conversion
+- просмотры;
+- клики в профиль;
+- старты бота;
+- первые сообщения;
+- доля второго и третьего сообщения;
+- показы paywall;
+- открытия инвойса;
+- платные пользователи;
+- конверсия по `source/campaign`.

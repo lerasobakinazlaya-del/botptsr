@@ -12,7 +12,7 @@ from services.content_campaign_service import build_campaign_items  # noqa: E402
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate SMM content calendar from content campaign config.")
+    parser = argparse.ArgumentParser(description="Сгенерировать SMM-календарь из конфига контент-кампаний.")
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "content_campaigns.json"))
     parser.add_argument("--format", choices=("json", "markdown"), default="markdown")
     args = parser.parse_args()
@@ -24,16 +24,16 @@ def main() -> int:
         return 0
 
     for item in items:
-        print(f"## Day {item['day']}: {item.get('title') or item['content']}")
-        print(f"- Platform: {item.get('platform')}")
-        print(f"- Pillar: {item.get('pillar')}")
-        print(f"- Start: {item['start_parameter']}")
-        print(f"- URL: {item['url'] or 'set bot_username first'}")
-        print(f"- Hook: {item.get('hook')}")
-        print("- Shots:")
+        print(f"## День {item['day']}: {item.get('title') or item['content']}")
+        print(f"- Площадка: {item.get('platform')}")
+        print(f"- Рубрика: {item.get('pillar')}")
+        print(f"- Стартовый параметр: {item['start_parameter']}")
+        print(f"- URL: {item['url'] or 'сначала укажи bot_username'}")
+        print(f"- Крючок: {item.get('hook')}")
+        print("- Кадры:")
         for shot in item.get("shot_list") or []:
             print(f"  - {shot}")
-        print(f"- Caption: {item.get('caption')}")
+        print(f"- Подпись: {item.get('caption')}")
         print()
     return 0
 

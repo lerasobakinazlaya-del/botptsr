@@ -209,30 +209,30 @@ For agencies or multiple brands.
 
 Goal: make the product feel like a SaaS control center, not a developer admin page.
 
-### Sprint 1: Product Shell
+### Спринт 1: Оболочка продукта
 
-- Add SaaS positioning docs and README section.
-- Rename user-facing docs from "bot admin" to "control center".
-- Add a setup checklist to dashboard copy.
-- Make Overview show launch readiness:
-  - bot configured
-  - payment mode configured
-  - packages enabled
-  - product eval passed
-  - Redis/DB healthy
+- Добавить документы по SaaS-позиционированию и раздел в README.
+- Переименовать пользовательские документы с “bot admin” на “центр управления”.
+- Добавить чеклист настройки в тексты админки.
+- Сделать так, чтобы Overview показывал готовность к запуску:
+  - бот настроен;
+  - режим оплаты настроен;
+  - пакеты включены;
+  - продуктовая проверка пройдена;
+  - Redis/DB здоровы.
 
-### Sprint 2: Conversation Lab MVP
+### Спринт 2: MVP лаборатории диалога
 
-- Add saved test cases.
-- Add pass/fail notes:
-  - too long
-  - repeated question
-  - safety redirect
-  - generic answer
-  - no concrete next step
-- Add "Run launch eval" button.
+- Добавить сохранённые тест-кейсы.
+- Добавить заметки pass/fail:
+  - слишком длинно;
+  - повторяющийся вопрос;
+  - safety redirect;
+  - общий ответ;
+  - нет конкретного следующего шага.
+- Добавить кнопку “Запустить launch-проверку”.
 
-### Sprint 3: Operator Onboarding
+### Спринт 3: Онбординг оператора
 
 - Add Setup page:
   - bot name
@@ -273,4 +273,3 @@ The SaaS MVP is credible when a new operator can answer these in 10 minutes:
 - What should I fix before launch?
 
 If the dashboard cannot answer those quickly, it is still a technical admin panel, not SaaS.
-
