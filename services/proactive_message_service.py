@@ -379,7 +379,7 @@ class ProactiveMessageService:
             if not content:
                 continue
 
-            role_label = "user" if role == "user" else "lira"
+            role_label = "user" if role == "user" else "nit"
             lines.append(f"{role_label}: {content[:220]}")
 
         return "\n".join(lines)

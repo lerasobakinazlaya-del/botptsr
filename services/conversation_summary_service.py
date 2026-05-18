@@ -174,7 +174,7 @@ class ConversationSummaryService:
             if not content:
                 continue
 
-            role_label = "пользователь" if role == "user" else "лира"
+            role_label = "user" if role == "user" else "nit"
             lines.append(f"{role_label}: {content[:500]}")
 
         return "\n".join(lines[-18:])
