@@ -259,6 +259,24 @@ class ResponseGuardrailsTests(unittest.TestCase):
         self.assertLessEqual(len(result), 520)
         self.assertLessEqual(result.count(".") + result.count("!") + result.count("?"), 5)
 
+    def test_comfort_guardrails_strip_hobby_and_pause_cliches_for_heavy_case(self):
+        result = apply_human_style_guardrails(
+            "Это звучит тяжело. Может быть, стоит рассмотреть возможность взять паузу на работе и сосредоточиться на себе? "
+            "Если у тебя есть время и желание, можно занять себя чем-то полезным, например поиском новой работы или хобби. "
+            "Это может отвлечь и помочь расслабиться.",
+            active_mode="comfort",
+            answer_first=True,
+            allow_follow_up_question=False,
+            user_message="Есть наркотики но нет работы",
+        )
+
+        lowered = result.lower()
+        self.assertNotIn("хобби", lowered)
+        self.assertNotIn("взять паузу", lowered)
+        self.assertNotIn("отвлечь", lowered)
+        self.assertIn("опоры", lowered)
+        self.assertIn("реальный шаг", lowered)
+
 
 if __name__ == "__main__":
     unittest.main()
