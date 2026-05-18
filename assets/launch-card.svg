@@ -1,64 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Nit launch card">
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Нить — живой AI-собеседник">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#09131e"/>
-      <stop offset="0.52" stop-color="#112734"/>
-      <stop offset="1" stop-color="#1b1510"/>
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="0.48" stop-color="#0b302b"/>
+      <stop offset="1" stop-color="#2a1b09"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="22%" r="62%">
-      <stop offset="0" stop-color="#8BE7A0" stop-opacity="0.62"/>
-      <stop offset="0.44" stop-color="#4FC7AE" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#09131e" stop-opacity="0"/>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd58a" stop-opacity="0.95"/>
+      <stop offset="0.58" stop-color="#f59e0b" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
     </radialGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.34"/>
+    <radialGradient id="aura" cx="50%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#6ee7b7" stop-opacity="0.35"/>
+      <stop offset="0.48" stop-color="#14b8a6" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#07111f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff8e7"/>
+      <stop offset="1" stop-color="#e9f7ef"/>
+    </linearGradient>
+    <linearGradient id="thread" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="0.5" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="32" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+    <filter id="smallShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.24"/>
     </filter>
   </defs>
 
   <rect width="1080" height="1350" fill="url(#bg)"/>
-  <rect width="1080" height="1350" fill="url(#glow)"/>
-  <circle cx="920" cy="148" r="210" fill="#F7C971" opacity="0.11"/>
-  <circle cx="132" cy="1140" r="290" fill="#59C9A8" opacity="0.10"/>
-  <path d="M124 232C224 122 348 84 500 106c176 26 264 150 416 120" fill="none" stroke="#8BE7A0" stroke-width="2" opacity="0.32"/>
-  <path d="M146 1112c126-74 240-92 358-48 156 58 262 12 402-76" fill="none" stroke="#F7C971" stroke-width="2" opacity="0.28"/>
+  <rect width="1080" height="1350" fill="url(#aura)"/>
+  <circle cx="890" cy="132" r="280" fill="url(#sun)"/>
+  <circle cx="118" cy="1160" r="360" fill="#14b8a6" opacity="0.13"/>
+  <circle cx="1040" cy="930" r="240" fill="#f59e0b" opacity="0.10"/>
 
-  <g filter="url(#shadow)">
-    <rect x="104" y="170" width="872" height="1002" rx="56" fill="#0D1827" opacity="0.9" stroke="#FFFFFF" stroke-opacity="0.11"/>
-    <rect x="146" y="212" width="788" height="918" rx="40" fill="#101F31" stroke="#FFFFFF" stroke-opacity="0.08"/>
+  <path d="M86 245C206 130 340 104 488 150c190 58 280 24 434-96" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.16"/>
+  <path d="M110 1090c124-78 255-98 397-38 164 70 286 12 448-116" fill="none" stroke="#f8d48a" stroke-width="2" opacity="0.22"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="94" y="122" width="892" height="1106" rx="66" fill="#07111f" opacity="0.82" stroke="#ffffff" stroke-opacity="0.12"/>
+    <rect x="134" y="162" width="812" height="1026" rx="48" fill="#0c1f2b" stroke="#ffffff" stroke-opacity="0.08"/>
   </g>
 
-  <text x="170" y="304" fill="#F7C971" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="6">NIT AI COMPANION</text>
-  <text x="170" y="412" fill="#F4F7FB" font-family="Inter, Arial, sans-serif" font-size="88" font-weight="700">Нить</text>
-  <text x="170" y="500" fill="#F4F7FB" font-family="Inter, Arial, sans-serif" font-size="70" font-weight="700">не обрывает</text>
-  <text x="170" y="584" fill="#8BE7A0" font-family="Inter, Arial, sans-serif" font-size="70" font-weight="700">разговор</text>
-
-  <text x="170" y="668" fill="#A8B7CB" font-family="Inter, Arial, sans-serif" font-size="30">
-    Память контекста, живой диалог, поддержка, разбор и фокус.
-  </text>
-
-  <g transform="translate(170 756)">
-    <rect width="740" height="108" rx="26" fill="#FFFFFF" opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.12"/>
-    <text x="34" y="43" fill="#F4F7FB" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">
-      Пиши как есть: тревога, хаос, рабочая задача или решение.
-    </text>
-    <text x="34" y="79" fill="#A8B7CB" font-family="Inter, Arial, sans-serif" font-size="24">
-      Нить отвечает по-человечески и держит нить мысли дальше.
-    </text>
+  <g transform="translate(170 218)">
+    <rect x="0" y="0" width="208" height="48" rx="24" fill="#f59e0b" opacity="0.16"/>
+    <text x="24" y="33" fill="#ffd58a" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="2">AI COMPANION</text>
   </g>
 
-  <g transform="translate(170 914)">
-    <circle cx="44" cy="44" r="44" fill="#8BE7A0"/>
-    <text x="28" y="58" fill="#09131E" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700">1</text>
-    <text x="112" y="38" fill="#F4F7FB" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Начни с одной фразы</text>
-    <text x="112" y="76" fill="#A8B7CB" font-family="Inter, Arial, sans-serif" font-size="24">Без анкеты, без шаблона, без чувства, что говоришь со стеной.</text>
+  <text x="170" y="382" fill="#fff8e7" font-family="Georgia, 'Times New Roman', serif" font-size="112" font-weight="700">Нить</text>
+  <text x="170" y="466" fill="#e8f7ef" font-family="Segoe UI, Arial, sans-serif" font-size="50" font-weight="650">разговор, который не обрывается</text>
+  <text x="170" y="532" fill="#a8c7c0" font-family="Segoe UI, Arial, sans-serif" font-size="30">Память контекста, живой тон, разбор задач и мягкое возвращение после паузы.</text>
+
+  <g transform="translate(168 612)" filter="url(#smallShadow)">
+    <rect width="744" height="210" rx="40" fill="url(#card)"/>
+    <path d="M70 128C128 44 214 46 266 130S406 214 470 120s142-84 206-10" fill="none" stroke="url(#thread)" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="70" cy="128" r="17" fill="#f59e0b"/>
+    <circle cx="266" cy="130" r="17" fill="#14b8a6"/>
+    <circle cx="470" cy="120" r="17" fill="#0f766e"/>
+    <circle cx="676" cy="110" r="17" fill="#f59e0b"/>
+    <text x="70" y="74" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="29" font-weight="700">Держит мысль, настроение и контекст</text>
+    <text x="70" y="174" fill="#33524d" font-family="Segoe UI, Arial, sans-serif" font-size="24">Не канцелярит. Не сбрасывает тебя в новый чат. Не отвечает “как бот”.</text>
   </g>
 
-  <g transform="translate(170 1036)">
-    <circle cx="44" cy="44" r="44" fill="#F7C971"/>
-    <text x="28" y="58" fill="#09131E" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700">2</text>
-    <text x="112" y="38" fill="#F4F7FB" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Если нужно глубже — открой платный доступ</text>
-    <text x="112" y="76" fill="#A8B7CB" font-family="Inter, Arial, sans-serif" font-size="24">Больше контекста, длиннее ответы, инициатива после паузы.</text>
+  <g transform="translate(170 882)">
+    <rect width="340" height="112" rx="28" fill="#ffffff" opacity="0.07" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="30" y="45" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700">Диалог</text>
+    <text x="30" y="80" fill="#a8c7c0" font-family="Segoe UI, Arial, sans-serif" font-size="22">живой собеседник</text>
+
+    <rect x="388" width="352" height="112" rx="28" fill="#ffffff" opacity="0.07" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="418" y="45" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700">Разбор</text>
+    <text x="418" y="80" fill="#a8c7c0" font-family="Segoe UI, Arial, sans-serif" font-size="22">ясность и следующий шаг</text>
   </g>
 
-  <text x="170" y="1242" fill="#A8B7CB" font-family="Inter, Arial, sans-serif" font-size="26">Telegram bot · Нить</text>
+  <g transform="translate(170 1028)">
+    <rect width="340" height="112" rx="28" fill="#ffffff" opacity="0.07" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="30" y="45" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700">Фокус</text>
+    <text x="30" y="80" fill="#a8c7c0" font-family="Segoe UI, Arial, sans-serif" font-size="22">собраться без шума</text>
+
+    <rect x="388" width="352" height="112" rx="28" fill="#ffffff" opacity="0.07" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="418" y="45" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700">Платный доступ</text>
+    <text x="418" y="80" fill="#a8c7c0" font-family="Segoe UI, Arial, sans-serif" font-size="22">больше памяти и глубины</text>
+  </g>
+
+  <text x="170" y="1248" fill="#ffd58a" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Напиши как есть. Нить подхватит.</text>
+  <text x="170" y="1292" fill="#6f948d" font-family="Segoe UI, Arial, sans-serif" font-size="22">Telegram bot · Нить</text>
 </svg>

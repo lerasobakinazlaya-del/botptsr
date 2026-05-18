@@ -14,12 +14,16 @@ class FakeMessage:
         self.from_user = SimpleNamespace(id=user_id)
         self.answers = []
         self.photos = []
+        self.documents = []
 
     async def answer(self, text: str, reply_markup=None):
         self.answers.append({"text": text, "reply_markup": reply_markup})
 
     async def answer_photo(self, photo, caption: str, reply_markup=None):
         self.photos.append({"photo": photo, "caption": caption, "reply_markup": reply_markup})
+
+    async def answer_document(self, document, caption: str, reply_markup=None):
+        self.documents.append({"document": document, "caption": caption, "reply_markup": reply_markup})
 
 
 class FakeUserService:
@@ -101,6 +105,22 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(message.photos), 1)
         self.assertEqual(message.photos[0]["caption"], "Привет, это тестовое приветствие.")
         self.assertEqual(len(message.answers), 2)
+        self.assertEqual(len(message.documents), 0)
+
+    async def test_start_handler_sends_svg_launch_card_as_document(self):
+        message = FakeMessage()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(),
+            admin_settings_service=FakeAdminSettingsService("assets/launch-card.svg"),
+            referral_service=FakeReferralService(),
+        )
+
+        self.assertEqual(len(message.documents), 1)
+        self.assertEqual(message.documents[0]["caption"], "Привет, это тестовое приветствие.")
+        self.assertEqual(len(message.photos), 0)
+        self.assertEqual(len(message.answers), 2)
 
     async def test_start_handler_falls_back_to_text_when_avatar_missing(self):
         message = FakeMessage()
@@ -115,6 +135,7 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(message.answers), 3)
         self.assertEqual(message.answers[0]["text"], "Привет, это тестовое приветствие.")
         self.assertEqual(len(message.photos), 0)
+        self.assertEqual(len(message.documents), 0)
 
     async def test_start_handler_sends_followup_for_new_user_when_configured(self):
         message = FakeMessage()

@@ -164,6 +164,13 @@ async def start_handler(
 
     async def send_welcome(text: str) -> None:
         if avatar_file and avatar_file.exists():
+            if avatar_file.suffix.lower() == ".svg":
+                await message.answer_document(
+                    document=FSInputFile(avatar_file),
+                    caption=text,
+                    reply_markup=keyboard,
+                )
+                return
             await message.answer_photo(
                 photo=FSInputFile(avatar_file),
                 caption=text,
