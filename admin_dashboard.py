@@ -1227,6 +1227,25 @@ def _dashboard_html() -> str:
           </div>
         </div>
         <div class="panel">
+          <h3>Управление запуском</h3>
+          <p class="muted section-note">Операционная форма для Telegram-канала, TikTok/Reels кампаний и контент-студии. JSON-поля сохраняются в runtime settings.</p>
+          <div class="two">
+            <label class="checkbox"><input id="launch_enabled" type="checkbox">Launch включен</label>
+            <label>Bot username<input id="launch_bot_username" placeholder="my_bot"></label>
+            <label>Активная кампания<input id="launch_active_campaign" placeholder="pilot_day_1"></label>
+            <label>Telegram channel handle<input id="launch_channel_handle" placeholder="channel_handle"></label>
+          </div>
+          <label>Позиционирование<textarea id="launch_brand_angle"></textarea></label>
+          <label>Визуальный стиль<textarea id="launch_visual_direction"></textarea></label>
+          <label>Описание Telegram-канала<textarea id="launch_channel_description"></textarea></label>
+          <label>Pinned post template<textarea id="launch_pinned_post_template"></textarea></label>
+          <label>Кампании JSON<textarea id="launch_campaigns_json"></textarea></label>
+          <label>Content studio JSON<textarea id="launch_content_studio_json"></textarea></label>
+          <label>Invite templates<textarea id="launch_invite_templates"></textarea></label>
+          <label>Safe copy rules<textarea id="launch_safe_copy_rules"></textarea></label>
+          <div class="actions"><button class="primary" id="save-launch">Сохранить запуск</button></div>
+        </div>
+        <div class="panel">
           <h3>Денежная воронка по каналам</h3>
           <div id="launch-funnel"></div>
         </div>
@@ -2525,6 +2544,19 @@ def _dashboard_html() -> str:
     function modesPayload(){const modes={},catalog={},modeModels={};document.querySelectorAll('[data-mode-scale]').forEach(i=>{const [m,k]=i.dataset.modeScale.split('.');if(!modes[m])modes[m]={};modes[m][k]=i.type==='checkbox'?i.checked:Number(i.value)});document.querySelectorAll('[data-catalog]').forEach(i=>{const [m,k]=i.dataset.catalog.split('.');if(!catalog[m])catalog[m]={};catalog[m][k]=i.type==='checkbox'?i.checked:(k==='sort_order'?Number(i.value):i.value)});document.querySelectorAll('[data-mode-model]').forEach(i=>{const mode=String(i.dataset.modeModel||'').trim();if(!mode)return;modeModels[mode]={model:String(i.value||'').trim()}});return {modes,catalog,modeModels}}
     function renderLaunch(){
       const payload=state.launchLinks||{},launch=payload.launch||{},links=payload.items||[],calendar=payload.content_calendar||[],studio=launch.content_studio||{},overview=state.overview||{},monetization=overview.monetization||{},bySource=monetization.by_source_30d||{},byCampaign=monetization.by_campaign_30d||{};
+      const channel=studio.telegram_channel||{};
+      setChecked('#launch_enabled',!!launch.enabled);
+      setValue('#launch_bot_username',launch.bot_username||'');
+      setValue('#launch_active_campaign',launch.active_campaign||'');
+      setValue('#launch_channel_handle',channel.handle||'');
+      setValue('#launch_brand_angle',studio.brand_angle||'');
+      setValue('#launch_visual_direction',studio.visual_direction||'');
+      setValue('#launch_channel_description',channel.description||'');
+      setValue('#launch_pinned_post_template',channel.pinned_post_template||'');
+      setValue('#launch_campaigns_json',JSON.stringify(launch.campaigns||[],null,2));
+      setValue('#launch_content_studio_json',JSON.stringify(studio||{},null,2));
+      setValue('#launch_invite_templates',(launch.invite_templates||[]).join('\\n'));
+      setValue('#launch_safe_copy_rules',(launch.safe_copy_rules||[]).join('\\n'));
       const linkRows=links.map(item=>({'Канал':item.source||'—','Campaign':item.campaign||'—','Medium':item.medium||'—','Content':item.content||'—','Start':item.start_parameter||'—','URL':item.url?`<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.url)}</a>`:'—','Caption':esc(item.caption||'—')}));
       $('#launch-links').innerHTML=linkRows.length?`<div class="table-wrap overview-table">${table(['Канал','Campaign','Medium','Content','Start','URL','Caption'],linkRows)}</div>`:'<div class="muted">Укажи launch.bot_username и кампании в runtime settings.</div>';
       const checklist=(launch.checklist||[]).map(item=>`<div class="readiness-item"><span class="readiness-dot ${item.done?'ok':'warn'}"></span><div><strong>${esc(item.label||item.key)}</strong><div class="muted">${esc(item.detail||'')}</div><div class="muted">${esc(item.action||'')}</div></div><span>${item.done?'OK':'TODO'}</span></div>`).join('');
@@ -2534,6 +2566,32 @@ def _dashboard_html() -> str:
       $('#launch-ops').innerHTML=`<div class="stack">${metricCards([['Launch mode',launch.enabled?'включен':'выключен',`bot: ${launch.bot_username||'не указан'}`],['Кампаний',String((launch.campaigns||[]).filter(x=>x&&x.enabled!==false).length),'Включенные источники'],['Активная',esc(launch.active_campaign||'—'),'Главная кампания']])}${kvList([['Позиционирование',esc(studio.brand_angle||'—')],['Визуальный стиль',esc(studio.visual_direction||'—')],['Telegram канал',esc((studio.telegram_channel&&studio.telegram_channel.title)||'—')]])}<div class="readiness-list">${checklist||'<div class="muted">Чеклист пуст.</div>'}</div><h4>Контент-план роликов</h4><div class="table-wrap overview-table">${table(['День','Площадка','Ролик','Start','Caption'],calendarRows)}</div><h4>Тексты для посева</h4>${templates||'<div class="muted">Шаблоны не заданы.</div>'}<h4>Правила модерации</h4><div class="kv-list">${rules||'<div class="muted">Правила не заданы.</div>'}</div></div>`;
       const toRows=segments=>Object.entries(segments||{}).map(([name,item])=>{const stages=item.stages||{},paid=stages.paid||{},offer=stages.offer_shown||{},invoice=stages.invoice_opened||{},conversion=item.conversion||{};return {'Сегмент':name,'Оффер users':offer.users||0,'Инвойс users':invoice.users||0,'Paid users':paid.users||0,'Offer -> invoice':`${conversion.offer_to_invoice_pct||0}%`,'Invoice -> paid':`${conversion.invoice_to_paid_pct||0}%`}});
       $('#launch-funnel').innerHTML=`<div class="cols"><div><h4>По source</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(bySource.segments))}</div></div><div><h4>По campaign</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Paid users','Offer -> invoice','Invoice -> paid'],toRows(byCampaign.segments))}</div></div></div>`;
+    }
+
+    function parseJsonField(selector,fallback,label){
+      const raw=String($(selector).value||'').trim();
+      if(!raw)return fallback;
+      try{return JSON.parse(raw)}catch(error){throw new Error(`${label}: некорректный JSON`)}
+    }
+
+    function launchPayload(){
+      const contentStudio=parseJsonField('#launch_content_studio_json',{},'Content studio');
+      const telegramChannel={...(contentStudio.telegram_channel||{})};
+      telegramChannel.handle=$('#launch_channel_handle').value.trim();
+      telegramChannel.description=$('#launch_channel_description').value;
+      telegramChannel.pinned_post_template=$('#launch_pinned_post_template').value;
+      contentStudio.telegram_channel=telegramChannel;
+      contentStudio.brand_angle=$('#launch_brand_angle').value;
+      contentStudio.visual_direction=$('#launch_visual_direction').value;
+      return {launch:{
+        enabled:$('#launch_enabled').checked,
+        bot_username:$('#launch_bot_username').value.trim(),
+        active_campaign:$('#launch_active_campaign').value.trim(),
+        campaigns:parseJsonField('#launch_campaigns_json',[],'Кампании'),
+        content_studio:contentStudio,
+        invite_templates:parseTemplateEditorText($('#launch_invite_templates').value||''),
+        safe_copy_rules:parseTemplateEditorText($('#launch_safe_copy_rules').value||'')
+      }}
     }
 
     function paymentsPayload(){
@@ -2654,6 +2712,7 @@ def _dashboard_html() -> str:
     on('#export-json','click',async()=>{try{const rawExport=$('#export-raw-json').checked===true;if(rawExport&&!window.confirm('Raw export will include sensitive settings values and identifiers. Continue?')){notice('Экспорт отменен.','error');return}const data=await api('/api/export');const payload=rawExport?data:redactSensitiveObject(data);const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=rawExport?'bot-admin-export-raw.json':'bot-admin-export-redacted.json';a.click();URL.revokeObjectURL(url);notice(rawExport?'Raw export prepared.':'Экспорт подготовлен с редактированием чувствительных данных.')}catch(e){notice(e.message,'error')}});
     on('#save-runtime','click',()=>save('/api/settings/runtime',runtimePayload(),'Настройки ИИ и интерфейса сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-safety','click',()=>save('/api/settings/runtime',safetyPayload(),'Настройки безопасности сохранены.').catch(e=>notice(e.message,'error')));
+    on('#save-launch','click',()=>save('/api/settings/runtime',launchPayload(),'Настройки запуска сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-prompts','click',()=>save('/api/settings/prompts',promptsPayload(),'Промпты сохранены.').catch(e=>notice(e.message,'error')));
     on('#save-modes','click',async()=>{try{const p=modesPayload();await api('/api/settings/modes',{method:'PUT',body:JSON.stringify(p.modes)});await api('/api/settings/mode-catalog',{method:'PUT',body:JSON.stringify(p.catalog)});await api('/api/settings/runtime',{method:'PUT',body:JSON.stringify({ai:{mode_overrides:p.modeModels}})});await refreshAll();notice('Режимы и GPT-модели сохранены.')}catch(e){notice(e.message,'error')}})
     on('#save-payments','click',()=>save('/api/settings/runtime',paymentsPayload(),'Платежные настройки сохранены.').catch(e=>notice(e.message,'error')));
