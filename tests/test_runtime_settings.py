@@ -21,6 +21,7 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertNotIn("этот режим в premium", ui["mode_locked_text"].lower())
         self.assertIn("платный доступ", payment["premium_menu_description_template"].lower())
         self.assertNotIn("premium даст больше лимита и доступ к закрытым режимам", runtime["limits"]["free_daily_warning_template"].lower())
+        self.assertEqual("assets/launch-card.png", ui["start_avatar_path"])
         self.assertTrue(engagement["reengagement_enabled"])
         self.assertEqual(12, engagement["reengagement_idle_hours"])
         self.assertTrue(runtime["cost_control"]["usage_alerts"]["enabled"])
