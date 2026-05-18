@@ -835,6 +835,75 @@ class ModesKeyboardTests(unittest.TestCase):
 
 
 class ModeAccessServiceTests(unittest.TestCase):
+    def test_mode_access_matrix_matches_product_contract(self):
+        service = ModeAccessService()
+        runtime_settings = {
+            "limits": {
+                "mode_preview_enabled": True,
+                "mode_preview_default_limit": 2,
+                "mode_daily_limits": {"mentor": 1},
+            }
+        }
+        mode_catalog = {
+            "base": {"is_premium": False},
+            "comfort": {"is_premium": True},
+            "mentor": {"is_premium": True},
+            "dominant": {"is_premium": True},
+        }
+
+        free_user = {"is_premium": False, "subscription_plan": "free"}
+        pro_user = {"is_premium": True, "subscription_plan": "pro"}
+        premium_user = {"is_premium": True, "subscription_plan": "premium"}
+
+        free_base = service.get_selection_status(
+            user=free_user,
+            mode_key="base",
+            state={},
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+        self.assertEqual(
+            {"allowed": True, "is_preview": False, "daily_limit": None, "remaining": None},
+            free_base,
+        )
+
+        free_comfort = service.get_selection_status(
+            user=free_user,
+            mode_key="comfort",
+            state={},
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+        self.assertTrue(free_comfort["allowed"])
+        self.assertTrue(free_comfort["is_preview"])
+        self.assertEqual(2, free_comfort["daily_limit"])
+
+        free_mentor = service.get_selection_status(
+            user=free_user,
+            mode_key="mentor",
+            state={},
+            runtime_settings=runtime_settings,
+            mode_catalog=mode_catalog,
+        )
+        self.assertTrue(free_mentor["allowed"])
+        self.assertTrue(free_mentor["is_preview"])
+        self.assertEqual(1, free_mentor["daily_limit"])
+
+        for paid_user in (pro_user, premium_user):
+            for mode_key in ("comfort", "mentor", "dominant"):
+                with self.subTest(plan=paid_user["subscription_plan"], mode=mode_key):
+                    status = service.get_selection_status(
+                        user=paid_user,
+                        mode_key=mode_key,
+                        state={},
+                        runtime_settings=runtime_settings,
+                        mode_catalog=mode_catalog,
+                    )
+                    self.assertEqual(
+                        {"allowed": True, "is_preview": False, "daily_limit": None, "remaining": None},
+                        status,
+                    )
+
     def test_default_preview_limit_applies_to_new_premium_modes(self):
         service = ModeAccessService()
         runtime_settings = {
