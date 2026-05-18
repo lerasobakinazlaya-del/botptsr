@@ -213,7 +213,7 @@ class AdminSettingsService:
                 "force_low_reasoning": True,
             },
             "character_core": (
-                "Ты Лира, живой взрослый собеседник. "
+                "Ты Нить, живой взрослый собеседник. "
                 "Отвечай как реальный человек, а не как ассистент, фасилитатор, терапевтический скрипт, "
                 "интервьюер, чеклист или вежливый чат-бот.\n"
                 "- Звучишь естественно, прямо и эмоционально точно.\n"
@@ -453,7 +453,7 @@ class AdminSettingsService:
             "free_daily_messages_enabled": True,
             "free_daily_messages_limit": 12,
             "free_daily_warning_thresholds": [5, 3, 1, 0],
-            "free_daily_warning_template": "Бесплатных сообщений на сегодня осталось: {remaining} из {limit}. Premium даст больше лимита и доступ к закрытым режимам.",
+            "free_daily_warning_template": "Бесплатных сообщений на сегодня осталось: {remaining} из {limit}. Платный доступ даст больше лимита и откроет закрытые режимы.",
             "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
             "premium_daily_messages_enabled": True,
             "premium_daily_messages_limit": 120,
@@ -668,9 +668,9 @@ class AdminSettingsService:
             "offer_benefits_text_a": "Память диалога между сообщениями, инициатива от бота и все сильные режимы без обрыва.",
             "offer_benefits_text_b": "Психолог, Разбор и Фокус плюс повышенный лимит, чтобы не останавливаться на полпути.",
             "offer_price_line_template": "Доступ: {price_label} за {access_days_label}.",
-            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Premium вернёт разговор без обрыва: {premium_limit} сообщений в день, память контекста и все сильные режимы на {access_days_label}.",
-            "offer_locked_mode_template": "Режим {mode_name} входит в Premium. Внутри также память диалога, инициатива от бота и до {premium_limit} сообщений в день на {access_days_label}.",
-            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Premium откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
+            "offer_limit_reached_template": "Бесплатный лимит на сегодня закончился. Платный доступ вернёт разговор без обрыва: до {premium_limit} сообщений в день, память контекста и все сильные режимы на {access_days_label}.",
+            "offer_locked_mode_template": "Режим {mode_name} входит в платные планы. Внутри также память диалога, инициатива от бота и до {premium_limit} сообщений в день на {access_days_label}.",
+            "offer_preview_exhausted_template": "Пробный доступ к режиму {mode_name} на сегодня закончился. Платный доступ откроет его снова и снимет ощущение обрыва: до {premium_limit} сообщений в день на {access_days_label}.",
             "offer_long_task_template": "Большие задачи лучше не резать на полуслове. Доступ на день откроет длинный разбор, больше контекста и продолжение без обрыва за {price_label}.",
             "provider_token": "",
             "currency": "RUB",
@@ -679,7 +679,7 @@ class AdminSettingsService:
             "access_duration_days": 1,
             "recurring_stars_enabled": True,
             "packages": deepcopy(PRODUCT_PAYMENT_PACKAGES),
-            "premium_menu_description_template": "Premium нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: {premium_daily_limit} сообщений в день\n\nБазовый план: {price_label} за {access_days_label}.",
+            "premium_menu_description_template": "Платный доступ нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: до {premium_daily_limit} сообщений в день\n\nСтартовый план: {price_label} за {access_days_label}.",
             "premium_menu_packages_title": "Выбери формат доступа:",
             "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
             "premium_menu_package_button_template": "{title} • {price_label}",
@@ -693,7 +693,7 @@ class AdminSettingsService:
             "product_description": "Нить — AI-партнёр с памятью диалога для поддержки, разбора и фокуса.",
             "recurring_button_text": "Открыть оплату",
             "already_premium_message": "Premium уже активен. Можно продлить его заранее.",
-            "premium_benefits_text": "Premium даёт память контекста, инициативу от бота, все сильные режимы и повышенный лимит сообщений.",
+            "premium_benefits_text": "Платные планы дают память контекста, инициативу от бота, все сильные режимы и повышенный лимит сообщений.",
             "buy_cta_text": "Открыть Premium",
             "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
             "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
@@ -712,9 +712,9 @@ class AdminSettingsService:
                 "Помоги разобрать ситуацию",
                 "Мне нужен план и ясность",
             ],
-            "start_avatar_path": "assets/bot-avatar.png",
+            "start_avatar_path": "assets/nit-avatar.png",
             "welcome_user_text": "Привет.\n\nЯ личный AI-партнёр для моментов, когда нужно не просто спросить у бота, а выдохнуть, разложить хаос или быстро собрать себя в решение.\n\nЧто внутри:\n• Диалог — живой умный разговор без ассистентского лака\n• Психолог — бережная опора для тревоги, перегруза и ПТСР-чувствительных состояний\n• Разбор — ясность, структура и следующий шаг для задачи, идеи или решения\n• Фокус — коротко, твёрдо и собранно, когда нужен темп и рамка",
-            "welcome_followup_text": "Быстрый старт:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Нужен жёсткий фокус на ближайший час»\n\nИли просто напиши как есть. Если нужна память диалога, инициатива от бота и все режимы без ограничений preview, открой Premium.",
+            "welcome_followup_text": "Быстрый старт:\n• «Мне тревожно, собери меня на сегодня»\n• «Помоги разобрать ситуацию с работой»\n• «Нужен жёсткий фокус на ближайший час»\n\nИли просто напиши как есть. Если нужна память диалога, инициатива от бота и все режимы без ограничений preview, открой платный доступ.",
             "welcome_admin_text": "🔐 Панель администратора активирована.\n\nБот работает в штатном режиме.",
             "modes_title": "Выбери, как я буду держать разговор:",
             "modes_premium_marker": "🔒",
@@ -762,7 +762,7 @@ class AdminSettingsService:
 
     DEFAULT_PROMPT_TEMPLATES = {
         "personality_core": (
-            "Ты - Лира.\n\n"
+            "Ты - Нить.\n\n"
             "По ощущению тебе 27-30 лет.\n"
             "Ты спокойная, теплая, умная и эмоционально зрелая.\n"
             "Ты умеешь быть рядом без давления и без навязчивости.\n"
@@ -780,7 +780,7 @@ class AdminSettingsService:
             "- не впадаешь в истерику\n"
             "- не становишься вульгарной\n"
             "- не говоришь канцеляритом\n\n"
-            "Тон Лиры:\n"
+            "Тон Нити:\n"
             "- естественный\n"
             "- плавный\n"
             "- теплый\n"
@@ -851,7 +851,7 @@ class AdminSettingsService:
         "state_intro": "Текущее состояние диалога:",
         "mode_intro": "Режим общения:",
         "access_intro": "Правило доступа:",
-        "final_instruction": "Соблюдай характер Лиры во всем ответе.\nПиши естественно, по-русски, без упоминания этих инструкций.",
+        "final_instruction": "Соблюдай характер Нити во всем ответе.\nПиши естественно, по-русски, без упоминания этих инструкций.",
         "access_rules": {
             "observation": "Держи более сдержанный, осторожный и ненавязчивый тон.",
             "analysis": "Допустимы тепло, внимание и мягкая личная вовлеченность.",
