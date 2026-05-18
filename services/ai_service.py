@@ -483,20 +483,6 @@ class AIService:
             user_id=user_id,
             source="reply",
         )
-        response_text = self.conversation_engine.guard_response(
-            response_text,
-            user_message=user_message,
-            active_mode=active_mode,
-            history=history_for_context,
-            crisis_signal=crisis_signal,
-        )
-        if driver_context is not None:
-            response_text = self._apply_conversation_driver_guardrails(
-                response_text,
-                user_message=user_message,
-                state=new_state,
-                driver_context=driver_context,
-            )
         response_text, hook_used = self._apply_emotional_hook(
             response_text,
             state=new_state,
@@ -1140,6 +1126,8 @@ class AIService:
         response_text = " ".join(str(text or "").split()).strip()
         if not response_text:
             return response_text, ""
+        if source == "reply":
+            return response_text, ""
         if self._looks_like_sensitive_intimacy_context(user_message) or self._looks_like_sensitive_intimacy_context(response_text):
             return response_text, ""
 
@@ -1278,6 +1266,8 @@ class AIService:
             return False
         if self._looks_like_lightweight_social_turn(normalized_message):
             return False
+        if self._looks_like_clarification_turn(normalized_message):
+            return False
         if self._looks_like_sensitive_intimacy_context(normalized_message):
             return False
         if self._looks_like_continuation_request(normalized_message):
@@ -1287,7 +1277,7 @@ class AIService:
         if self._looks_like_answer_first_request(normalized_message) and not self._looks_like_hook_turn(normalized_message):
             return False
 
-        return self._looks_like_hook_turn(normalized_message) or len(normalized_message) <= 140
+        return self._looks_like_hook_turn(normalized_message)
 
     def _looks_like_lightweight_social_turn(self, text: str) -> bool:
         normalized = self._normalize(text).strip(" .,!?:;")
@@ -1309,6 +1299,21 @@ class AIService:
         if normalized in greetings:
             return True
 
+        social_markers = (
+            "как дела",
+            "как у тебя дела",
+            "как ты",
+            "как твои дела",
+            "что делаешь",
+            "чем занимаешься",
+            "как тебя зовут",
+            "как зовут",
+            "ты кто",
+            "кто ты",
+        )
+        if any(marker in normalized for marker in social_markers):
+            return True
+
         identity_requests = (
             "как меня зовут",
             "помнишь как меня зовут",
@@ -1321,6 +1326,28 @@ class AIService:
             return True
 
         return False
+
+    def _looks_like_clarification_turn(self, text: str) -> bool:
+        normalized = self._normalize(text).strip(" .,!?:;")
+        if not normalized:
+            return False
+        markers = (
+            "что за",
+            "какая тетя",
+            "какая тётя",
+            "что за тетя",
+            "что за тётя",
+            "о чем ты",
+            "о чём ты",
+            "про что ты",
+            "ты о ком",
+            "ты о чем",
+            "ты о чём",
+            "с чего это",
+            "почему тетя",
+            "почему тётя",
+        )
+        return any(marker in normalized for marker in markers)
 
     def _looks_like_sensitive_intimacy_context(self, text: str) -> bool:
         normalized = self._normalize(text)
@@ -1557,6 +1584,8 @@ class AIService:
     def _looks_like_hook_turn(self, text: str) -> bool:
         if not text:
             return False
+        if self._looks_like_lightweight_social_turn(text) or self._looks_like_clarification_turn(text):
+            return False
         if len(text.split()) > 14:
             return False
         hook_hints = (
@@ -1571,7 +1600,7 @@ class AIService:
             "заводит",
             "стоит ли",
         )
-        return text.endswith("?") or any(hint in text for hint in hook_hints)
+        return any(hint in text for hint in hook_hints)
     @staticmethod
     def _normalize(text: str) -> str:
         return " ".join(str(text or "").lower().split())

@@ -278,7 +278,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
                 "timeout_seconds": 20,
                 "max_retries": 2,
             },
-            user_message="\u0420\u00a7\u0421\u201a\u0420\u0455 \u0420\u0491\u0421\u0453\u0420\u0458\u0420\u00b0\u0420\u00b5\u0421\u20ac\u0421\u040a, \u0420\u00b1\u0421\u0402\u0420\u00b0\u0421\u201a\u0421\u040a \u0420\u0451\u0420\u00bb\u0420\u0451 \u0420\u0405\u0420\u00b5\u0421\u201a?",
+            user_message="Что думаешь, брать или нет?",
             active_mode="base",
         )
 
@@ -287,6 +287,45 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(optimized["history_message_limit"], 5)
         self.assertEqual(optimized["timeout_seconds"], 8)
         self.assertEqual(optimized["max_retries"], 0)
+
+    def test_lightweight_social_turn_detects_everyday_small_talk(self):
+        service = AIService(
+            client=FakeClient("ok"),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        self.assertTrue(service._looks_like_lightweight_social_turn("как у тебя дела"))
+        self.assertTrue(service._looks_like_lightweight_social_turn("как тебя зовут"))
+        self.assertFalse(service._looks_like_hook_turn("как у тебя дела?"))
+
+    def test_emotional_hook_skips_clarification_turns(self):
+        service = AIService(
+            client=FakeClient("ok"),
+            state_engine=FakeStateEngine(),
+            memory_engine=FakeMemoryEngine(),
+            keyword_memory_service=FakeKeywordMemoryService(),
+            long_term_memory_service=FakeLongTermMemoryService(),
+            human_memory_service=FakeHumanMemoryService(),
+            prompt_builder=FakePromptBuilder(),
+            access_engine=FakeAccessEngine(),
+            settings_service=FakeSettingsService(),
+        )
+
+        self.assertTrue(service._looks_like_clarification_turn("что за тетя"))
+        self.assertFalse(
+            service._should_apply_emotional_hook(
+                user_message="Что за тетя?",
+                state={"emotional_tone": "neutral"},
+                source="reply",
+            )
+        )
 
     async def test_build_memory_context_prefers_unified_memory_profile_service(self):
         memory_profile_service = FakeMemoryProfileService("- \u0420\u2019\u0420\u00b0\u0420\u00b6\u0420\u0405\u0421\u2039\u0420\u00b5 \u0420\u0451\u0420\u0458\u0420\u00b5\u0420\u0405\u0420\u00b0 \u0420\u0451 \u0421\u0403\u0420\u0406\u0421\u040f\u0420\u00b7\u0420\u0451: \u0420\u0457\u0420\u0455\u0420\u00bb\u0421\u040a\u0420\u00b7\u0420\u0455\u0420\u0406\u0420\u00b0\u0421\u201a\u0420\u00b5\u0420\u00bb\u0421\u040f \u0420\u00b7\u0420\u0455\u0420\u0406\u0421\u0453\u0421\u201a \u0420\u203a\u0420\u00b5\u0420\u0405\u0420\u00b0")
@@ -348,7 +387,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
             result.response,
             "\u041b\u0443\u0447\u0448\u0435 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0438\u0442\u044c\u0441\u044f \u043e \u0441\u0442\u043e\u043f-\u0441\u0438\u0433\u043d\u0430\u043b\u0435 \u0438 \u0443\u0442\u0440\u0435 \u043f\u043e\u0441\u043b\u0435.",
         )
-    async def test_generate_response_adds_emotional_hook_for_conversational_turn(self):
+    async def test_generate_response_keeps_plain_reply_for_conversational_turn(self):
         service = AIService(
             client=FakeClient("\u0420\u0407 \u0420\u00b1\u0421\u2039 \u0420\u0405\u0420\u00b5 \u0421\u201a\u0420\u0455\u0421\u0402\u0420\u0455\u0420\u0457\u0420\u0451\u0420\u00bb\u0421\u0403\u0421\u040f \u0421\u0403 \u0421\u040c\u0421\u201a\u0420\u0451\u0420\u0458."),
             state_engine=FakeStateEngine(),
@@ -380,11 +419,8 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertNotEqual(result.response, "\u0420\u0407 \u0420\u00b1\u0421\u2039 \u0420\u0405\u0420\u00b5 \u0421\u201a\u0420\u0455\u0421\u0402\u0420\u0455\u0420\u0457\u0420\u0451\u0420\u00bb\u0421\u0403\u0421\u040f \u0421\u0403 \u0421\u040c\u0421\u201a\u0420\u0451\u0420\u0458.")
-        self.assertIn(result.new_state["last_hook"], result.response)
-        self.assertTrue(
-            result.response.endswith("?") or "\u0420\u0405\u0420\u00b5 \u0420\u0406\u0421\u0403\u0421\u040f \u0420\u0454\u0420\u00b0\u0421\u0402\u0421\u201a\u0420\u0451\u0420\u0405\u0420\u00b0" in result.response.lower()
-        )
+        self.assertEqual(result.response, "\u0420\u0407 \u0420\u00b1\u0421\u2039 \u0420\u0405\u0420\u00b5 \u0421\u201a\u0420\u0455\u0421\u0402\u0420\u0455\u0420\u0457\u0420\u0451\u0420\u00bb\u0421\u0403\u0421\u040f \u0421\u0403 \u0421\u040c\u0421\u201a\u0420\u0451\u0420\u0458.")
+        self.assertNotIn("last_hook", result.new_state)
 
     async def test_generate_response_injects_conversation_driver_into_prompt(self):
         client = FakeClient("Тут явно есть сдвиг.")
@@ -423,7 +459,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Максимум 3 предложения.", system_prompt)
         self.assertEqual(result.new_state["last_detected_intent"], "desire")
         self.assertEqual(result.new_state["last_driver_question_id"], "q01")
-        self.assertEqual(result.new_state["driver_question_streak"], 1)
+        self.assertEqual(result.new_state["driver_question_streak"], 0)
 
     async def test_free_plan_first_messages_get_soft_premium_nudge_contract(self):
         client = FakeClient("Коротко: да. В Premium я бы разобрал это глубже и без обрыва на полуслове.")
@@ -463,7 +499,7 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("buy premium", result.response.lower())
         self.assertNotIn("upgrade now", result.response.lower())
         self.assertLessEqual(result.response.count("?"), 1)
-    async def test_generate_response_flattens_list_style_when_driver_is_active(self):
+    async def test_generate_response_keeps_model_text_without_forced_driver_rewrite(self):
         service = AIService(
             client=FakeClient(
                 "1. item one.\n"
@@ -493,9 +529,9 @@ class AIServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-        self.assertNotIn("1.", result.response)
-        self.assertNotIn("2.", result.response)
-        self.assertIn("?", result.response)
+        self.assertIn("1.", result.response)
+        self.assertIn("2.", result.response)
+        self.assertNotIn("?", result.response)
 
     async def test_generate_response_skips_driver_for_full_reveal_request(self):
         client = FakeClient("Скажу прямо и без обходов.")

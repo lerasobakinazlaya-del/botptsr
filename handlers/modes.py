@@ -82,13 +82,17 @@ async def open_modes_handler(callback: CallbackQuery, user_service, admin_settin
         await callback.answer(ui_settings["user_not_found_text"], show_alert=True)
         return
 
+    text = build_modes_menu_text(user, runtime_settings, mode_catalog)
+    reply_markup = get_modes_keyboard(user, runtime_settings, mode_catalog)
+    message = callback.message
     try:
-        await callback.message.edit_text(
-            text=build_modes_menu_text(user, runtime_settings, mode_catalog),
-            reply_markup=get_modes_keyboard(user, runtime_settings, mode_catalog),
-        )
+        if message is not None and hasattr(message, "edit_text"):
+            await message.edit_text(text=text, reply_markup=reply_markup)
+        elif message is not None and hasattr(message, "answer"):
+            await message.answer(text=text, reply_markup=reply_markup)
     except TelegramBadRequest:
-        pass
+        if message is not None and hasattr(message, "answer"):
+            await message.answer(text=text, reply_markup=reply_markup)
 
     await callback.answer()
 
@@ -160,12 +164,24 @@ async def change_mode_handler(
         access_status=access_status,
     )
 
+    message = callback.message
+    reply_markup = get_modes_keyboard(user, runtime_settings, mode_catalog)
     try:
-        await callback.message.edit_text(
-            text=text,
-            reply_markup=get_modes_keyboard(user, runtime_settings, mode_catalog),
-        )
+        if message is not None and hasattr(message, "edit_text"):
+            await message.edit_text(
+                text=text,
+                reply_markup=reply_markup,
+            )
+        elif message is not None and hasattr(message, "answer"):
+            await message.answer(
+                text=text,
+                reply_markup=reply_markup,
+            )
     except TelegramBadRequest:
-        pass
+        if message is not None and hasattr(message, "answer"):
+            await message.answer(
+                text=text,
+                reply_markup=reply_markup,
+            )
 
     await callback.answer(ui_settings["mode_saved_toast"])

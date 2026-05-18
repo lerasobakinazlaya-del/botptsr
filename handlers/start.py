@@ -132,6 +132,13 @@ def _build_welcome_followup_text(ui_settings: dict) -> str:
     return str(ui_settings.get("welcome_followup_text") or "").strip()
 
 
+def _build_start_cta_text(ui_settings: dict) -> str:
+    followup_text = _build_welcome_followup_text(ui_settings)
+    if followup_text:
+        return followup_text
+    return "Можно выбрать режим или сразу открыть Premium."
+
+
 @router.message(CommandStart())
 async def start_handler(
     message: Message,
@@ -175,6 +182,18 @@ async def start_handler(
                     "Можно ткнуть в одну из подсказок ниже или сразу написать своими словами.",
                     reply_markup=onboarding_keyboard,
                 )
+
+    async def send_user_welcome_v2(text: str, *, include_onboarding: bool) -> None:
+        await send_welcome(text)
+        await message.answer(
+            _build_start_cta_text(ui_settings),
+            reply_markup=start_cta_keyboard,
+        )
+        if include_onboarding and is_new_user and onboarding_keyboard is not None:
+            await message.answer(
+                "РњРѕР¶РЅРѕ С‚РєРЅСѓС‚СЊ РІ РѕРґРЅСѓ РёР· РїРѕРґСЃРєР°Р·РѕРє РЅРёР¶Рµ РёР»Рё СЃСЂР°Р·Сѓ РЅР°РїРёСЃР°С‚СЊ СЃРІРѕРёРјРё СЃР»РѕРІР°РјРё.",
+                reply_markup=onboarding_keyboard,
+            )
 
     if is_new_user and state_repository is not None:
         state = await state_repository.get(message.from_user.id)
@@ -223,11 +242,11 @@ async def start_handler(
             await message.answer(referral_settings["referred_welcome_message"], reply_markup=keyboard)
 
     if await user_service.is_admin(message.from_user.id):
-        await send_welcome(ui_settings["welcome_admin_text"])
+        await send_user_welcome_v2(ui_settings["welcome_admin_text"], include_onboarding=False)
         return
 
     if referrer_user_id and is_new_user:
-        await send_user_welcome()
+        await send_user_welcome_v2(ui_settings["welcome_user_text"], include_onboarding=True)
         return
 
-    await send_user_welcome()
+    await send_user_welcome_v2(ui_settings["welcome_user_text"], include_onboarding=True)

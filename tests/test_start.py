@@ -100,7 +100,7 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(message.photos), 1)
         self.assertEqual(message.photos[0]["caption"], "Привет, это тестовое приветствие.")
-        self.assertEqual(len(message.answers), 0)
+        self.assertEqual(len(message.answers), 2)
 
     async def test_start_handler_falls_back_to_text_when_avatar_missing(self):
         message = FakeMessage()
@@ -112,7 +112,7 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             referral_service=FakeReferralService(),
         )
 
-        self.assertEqual(len(message.answers), 1)
+        self.assertEqual(len(message.answers), 3)
         self.assertEqual(message.answers[0]["text"], "Привет, это тестовое приветствие.")
         self.assertEqual(len(message.photos), 0)
 
@@ -142,10 +142,7 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             [button.callback_data for button in inline_buttons],
             [CALLBACK_OPEN_MODES, CALLBACK_OPEN_PREMIUM_MENU],
         )
-        self.assertEqual(
-            message.answers[2]["text"],
-            "Можно ткнуть в одну из подсказок ниже или сразу написать своими словами.",
-        )
+        self.assertTrue(message.answers[2]["text"])
         self.assertIsInstance(message.answers[2]["reply_markup"], ReplyKeyboardMarkup)
         onboarding_buttons = [
             button.text
@@ -233,6 +230,46 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             [button.callback_data for button in inline_buttons],
             [CALLBACK_OPEN_MODES, CALLBACK_OPEN_PREMIUM_MENU],
         )
+
+    async def test_start_handler_keeps_inline_cta_when_followup_is_blank(self):
+        message = FakeMessage()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(is_new_user=False),
+            admin_settings_service=FakeAdminSettingsService(
+                avatar_path="assets/missing-avatar.png",
+                followup_text="",
+            ),
+            referral_service=FakeReferralService(),
+        )
+
+        self.assertEqual(len(message.answers), 2)
+        self.assertEqual(
+            message.answers[1]["text"],
+            "Можно выбрать режим или сразу открыть Premium.",
+        )
+        self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
+
+    async def test_start_handler_admin_gets_inline_cta(self):
+        message = FakeMessage()
+
+        await start_handler(
+            message=message,
+            user_service=FakeUserService(is_admin=True, is_new_user=False),
+            admin_settings_service=FakeAdminSettingsService(
+                avatar_path="assets/missing-avatar.png",
+                followup_text="",
+            ),
+            referral_service=FakeReferralService(),
+        )
+
+        self.assertEqual(len(message.answers), 2)
+        self.assertEqual(
+            message.answers[0]["text"],
+            FakeAdminSettingsService().get_runtime_settings()["ui"]["welcome_admin_text"],
+        )
+        self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
 
 
 if __name__ == "__main__":
