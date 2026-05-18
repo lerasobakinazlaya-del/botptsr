@@ -7,7 +7,7 @@
 1. Создать публичный Telegram-канал.
 2. Взять название из `launch.content_studio.telegram_channel.title`.
 3. Взять описание из `launch.content_studio.telegram_channel.description`.
-4. Экспортировать `assets/launch-card.svg` в PNG и использовать как первый визуальный ориентир.
+4. Использовать `assets/launch-card.png` как первый визуальный ориентир; `assets/launch-card.svg` оставить как редактируемый исходник.
 5. Вставить deep link бота в закреплённый пост.
 6. Добавлять бота администратором только если позже он должен публиковать посты.
 
