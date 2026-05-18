@@ -16,6 +16,11 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertIn("Premium", payment["buy_cta_text"])
         self.assertNotIn("????", ui["welcome_followup_text"])
         self.assertNotIn("????", payment["premium_benefits_text"])
+        self.assertIn("платный доступ", ui["welcome_followup_text"].lower())
+        self.assertIn("платных планах", ui["mode_locked_text"].lower())
+        self.assertNotIn("этот режим в premium", ui["mode_locked_text"].lower())
+        self.assertIn("платный доступ", payment["premium_menu_description_template"].lower())
+        self.assertNotIn("premium даст больше лимита и доступ к закрытым режимам", runtime["limits"]["free_daily_warning_template"].lower())
         self.assertTrue(engagement["reengagement_enabled"])
         self.assertEqual(12, engagement["reengagement_idle_hours"])
         self.assertTrue(runtime["cost_control"]["usage_alerts"]["enabled"])
@@ -30,7 +35,7 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertIn("offer_long_task_template", payment)
         self.assertNotIn("????", payment["offer_emotional_engagement_template"])
         self.assertNotIn("????", payment["offer_useful_advice_template"])
-        self.assertIn("Premium", payment["premium_menu_description_template"])
+        self.assertIn("платный доступ", payment["premium_menu_description_template"].lower())
 
     def test_user_facing_config_has_no_mojibake_markers(self):
         markers = ("Рџ", "Рњ", "Р§", "СЏ", "вЂ", "рџ")
