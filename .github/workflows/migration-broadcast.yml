@@ -64,13 +64,14 @@ jobs:
           OFFSET: ${{ github.event.inputs.offset }}
         run: |
           ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- \
-            "${APP_DIR}" "${SEND}" "${LIMIT}" "${OFFSET}" <<'REMOTE'
+            "${APP_DIR}" "${SEND}" "${LIMIT}" "${OFFSET}" "${OLD_BOT_TOKEN}" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="$1"
           SEND="$2"
           LIMIT="$3"
           OFFSET="$4"
+          OLD_BOT_TOKEN="$5"
 
           PYTHON_BIN="${APP_DIR}/venv/bin/python"
           if [ ! -x "$PYTHON_BIN" ]; then
