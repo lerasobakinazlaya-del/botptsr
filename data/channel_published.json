@@ -1,0 +1,18 @@
+{
+  "published": {
+    "2026-05-19-long-task": {
+      "chat_id": "@trynit_ai",
+      "message_id": 14,
+      "published_at": "2026-05-19T19:47:28+00:00",
+      "scheduled_at": "2026-05-19T19:45:00+00:00",
+      "text_file": "docs/channel-posts/long-task.md"
+    },
+    "2026-05-19-pinned-post": {
+      "chat_id": "@trynit_ai",
+      "message_id": 12,
+      "published_at": "2026-05-19T18:00:00+00:00",
+      "scheduled_at": "2026-05-19T18:00:00+00:00",
+      "text_file": "docs/channel-posts/pinned-post.md"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "timezone": "Europe/Moscow",
+  "default_chat_id": "@trynit_ai",
+  "items": [
+    {
+      "id": "2026-05-19-pinned-post",
+      "enabled": true,
+      "publish_at": "2026-05-19T21:00:00+03:00",
+      "text_file": "docs/channel-posts/pinned-post.md",
+      "button_text": "Открыть Нить",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post",
+      "pin": true
+    },
+    {
+      "id": "2026-05-19-long-task",
+      "enabled": true,
+      "publish_at": "2026-05-19T22:45:00+03:00",
+      "text_file": "docs/channel-posts/long-task.md",
+      "button_text": "Проверить на своем тексте",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_long_task",
+      "pin": false
+    },
+    {
+      "id": "2026-05-20-memory",
+      "enabled": true,
+      "publish_at": "2026-05-20T12:30:00+03:00",
+      "text_file": "docs/channel-posts/memory.md",
+      "button_text": "Попробовать диалог",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_memory",
+      "pin": false
+    },
+    {
+      "id": "2026-05-21-payments",
+      "enabled": true,
+      "publish_at": "2026-05-21T12:30:00+03:00",
+      "text_file": "docs/channel-posts/payments.md",
+      "button_text": "Открыть Нить",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_payments",
+      "pin": false
+    },
+    {
+      "id": "2026-05-22-product-update",
+      "enabled": true,
+      "publish_at": "2026-05-22T12:30:00+03:00",
+      "text_file": "docs/channel-posts/product-update.md",
+      "button_text": "Попробовать",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_product_update",
+      "pin": false
+    },
+    {
+      "id": "2026-05-23-prompt-day",
+      "enabled": true,
+      "publish_at": "2026-05-23T12:30:00+03:00",
+      "text_file": "docs/channel-posts/prompt-day.md",
+      "button_text": "Запустить промпт",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_prompt_day",
+      "pin": false
+    },
+    {
+      "id": "2026-05-25-week-summary",
+      "enabled": true,
+      "publish_at": "2026-05-25T12:30:00+03:00",
+      "text_file": "docs/channel-posts/week-summary.md",
+      "button_text": "Попробовать Нить",
+      "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_week_summary",
+      "pin": false
+    }
+  ]
+}
