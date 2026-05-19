@@ -136,6 +136,17 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("function renderInitiative()", source)
         self.assertIn("function renderInitiativeEvents(items,compact)", source)
 
+    def test_dashboard_exposes_channel_calendar_preview_tab(self):
+        source = self._admin_source()
+
+        self.assertIn('data-view="channel-calendar"', source)
+        self.assertIn('id="channel-calendar-summary"', source)
+        self.assertIn('id="channel-calendar-items"', source)
+        self.assertIn("/api/channel/calendar", source)
+        self.assertIn("function renderChannelCalendar()", source)
+        self.assertIn("config/channel_schedule.json", source)
+        self.assertIn("data/channel_published.json", source)
+
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()
 

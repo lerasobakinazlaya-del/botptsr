@@ -3,9 +3,11 @@ import json
 import secrets
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
@@ -171,6 +173,86 @@ def _parse_history(value: Any) -> list[dict[str, str]]:
         if role in {"user", "assistant"} and content:
             history.append({"role": role, "content": content})
     return history
+
+
+def _read_json_file(path: Path, default: dict[str, Any]) -> dict[str, Any]:
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON in {path}: {exc}") from exc
+
+
+def _parse_schedule_time(value: str, timezone_name: str) -> datetime:
+    raw = str(value or "").strip()
+    if not raw:
+        raise ValueError("empty schedule timestamp")
+    parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ZoneInfo(timezone_name))
+    return parsed
+
+
+def _build_channel_calendar_preview() -> dict[str, Any]:
+    schedule_path = Path("config/channel_schedule.json")
+    published_path = Path("data/channel_published.json")
+    schedule = _read_json_file(schedule_path, {"items": []})
+    published = _read_json_file(published_path, {"published": {}}).get("published", {})
+    timezone_name = str(schedule.get("timezone") or "Europe/Moscow")
+    display_tz = ZoneInfo(timezone_name)
+    now = datetime.now(timezone.utc)
+    items: list[dict[str, Any]] = []
+
+    for raw_item in sorted(schedule.get("items", []), key=lambda item: str(item.get("publish_at") or "")):
+        item = dict(raw_item or {})
+        item_id = str(item.get("id") or "").strip()
+        text_file = Path(str(item.get("text_file") or ""))
+        publish_at = _parse_schedule_time(str(item.get("publish_at") or ""), timezone_name)
+        publish_at_utc = publish_at.astimezone(timezone.utc)
+        is_published = item_id in published
+        is_enabled = bool(item.get("enabled", True))
+        status_name = "published" if is_published else "scheduled" if is_enabled else "disabled"
+        try:
+            text = text_file.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            text = ""
+            status_name = "missing_file"
+
+        items.append(
+            {
+                "id": item_id,
+                "status": status_name,
+                "enabled": is_enabled,
+                "is_due": is_enabled and not is_published and publish_at_utc <= now,
+                "publish_at": publish_at.astimezone(display_tz).isoformat(),
+                "publish_at_label": publish_at.astimezone(display_tz).strftime("%Y-%m-%d %H:%M"),
+                "text_file": text_file.as_posix(),
+                "text": text,
+                "excerpt": text[:520].rstrip() + ("..." if len(text) > 520 else ""),
+                "button_text": str(item.get("button_text") or ""),
+                "button_url": str(item.get("button_url") or ""),
+                "pin": bool(item.get("pin", False)),
+                "message_id": (published.get(item_id) or {}).get("message_id"),
+                "published_at": (published.get(item_id) or {}).get("published_at"),
+            }
+        )
+
+    return {
+        "channel": schedule.get("default_chat_id", "@trynit_ai"),
+        "timezone": timezone_name,
+        "schedule_file": schedule_path.as_posix(),
+        "published_log": published_path.as_posix(),
+        "items": items,
+        "summary": {
+            "total": len(items),
+            "published": len([item for item in items if item["status"] == "published"]),
+            "scheduled": len([item for item in items if item["status"] == "scheduled"]),
+            "due": len([item for item in items if item["is_due"]]),
+            "disabled": len([item for item in items if item["status"] == "disabled"]),
+            "missing_file": len([item for item in items if item["status"] == "missing_file"]),
+        },
+    }
 
 
 async def _invalidate_metrics_cache() -> None:
@@ -451,6 +533,11 @@ async def api_launch_links(_: str = Depends(require_auth)):
         "content_calendar": build_content_calendar(runtime.get("launch", {})),
         "launch": runtime.get("launch", {}),
     }
+
+
+@app.get("/api/channel/calendar")
+async def api_channel_calendar(_: str = Depends(require_auth)):
+    return _build_channel_calendar_preview()
 
 
 @app.get("/api/export")
@@ -1019,6 +1106,7 @@ def _dashboard_html() -> str:
           <button class="active" data-view="overview">Обзор</button>
           <button data-view="setup">Настройка</button>
           <button data-view="launch">Запуск</button>
+          <button data-view="channel-calendar">Календарь постов</button>
           <button data-view="users">Пользователи</button>
           <button data-view="conversations">Диалоги</button>
           <button data-view="initiative">Инициатива</button>
@@ -1253,6 +1341,24 @@ def _dashboard_html() -> str:
           <h3>Денежная воронка по каналам</h3>
           <div id="launch-funnel"></div>
         </div>
+      </section>
+
+      <section class="page" data-view="channel-calendar">
+        <div>
+          <h2>Календарь постов</h2>
+          <p class="muted">Предпросмотр заложенных публикаций канала: дата, статус, кнопка, ссылка, закреп и сам текст до автопубликации.</p>
+        </div>
+        <div class="panel">
+          <div class="mode-head">
+            <div>
+              <h3>Очередь автопубликаций</h3>
+              <p class="muted section-note">Данные берутся из <code>config/channel_schedule.json</code>, опубликованные сообщения сверяются с <code>data/channel_published.json</code>.</p>
+            </div>
+            <button id="reload-channel-calendar">Обновить календарь</button>
+          </div>
+          <div id="channel-calendar-summary"></div>
+        </div>
+        <div id="channel-calendar-items" class="stack"></div>
       </section>
 
       <section class="page" data-view="users">
@@ -1976,6 +2082,7 @@ def _dashboard_html() -> str:
       settings:{runtime:{ui:{message_templates:[]},payment:{},limits:{}},mode_catalog:{},modes:{}},
       overview:{},
       launchLinks:{items:[],launch:{}},
+      channelCalendar:{items:[],summary:{}},
       proactiveEvents:{items:[],limit:100},
       health:{db:{},redis:{},ai_runtime:{},chat_runtime:{},config_files:{},modes_count:0,warnings:[]},
       logs:{},
@@ -1994,6 +2101,7 @@ def _dashboard_html() -> str:
       overview:{kicker:'Операционный центр',title:'Обзор продукта',subtitle:'Метрики пользователей, платежей, поддержки и состояние инфраструктуры без переключения между отдельными тулзами.'},
       setup:{kicker:'Готовность к запуску',title:'Настройка и запуск',subtitle:'SaaS-срез для оператора: что настроено, что мешает запуску и где править перед первым трафиком.'},
       launch:{kicker:'Комната роста',title:'Запуск и привлечение',subtitle:'Ссылки, SMM-материалы, чеклист и сквозная воронка от TikTok/Instagram/Telegram до оплаты.'},
+      'channel-calendar':{kicker:'Контент-операции',title:'Календарь постов',subtitle:'Очередь Telegram-публикаций с предпросмотром текста, кнопок, статусов и уже опубликованных message_id.'},
       users:{kicker:'CRM и аудитория',title:'Пользователи и сегменты',subtitle:'Поиск, фильтры, массовые действия и быстрый переход к конкретной карточке без лишнего кликанья.'},
       conversations:{kicker:'Операции с диалогами',title:'Диалоги и память',subtitle:'История сообщений, memory preview, ручные сообщения и редактирование долговременной памяти в одном рабочем окне.'},
       initiative:{kicker:'First initiative',title:'Инициатива бота',subtitle:'Кому бот писал первым, когда это было, что отправил и почему некоторые попытки были заблокированы.'},
@@ -2579,6 +2687,30 @@ def _dashboard_html() -> str:
       $('#launch-funnel').innerHTML=`<div class="cols"><div><h4>По источнику</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Оплатившие users','Оффер -> инвойс','Инвойс -> оплата'],toRows(bySource.segments))}</div></div><div><h4>По кампании</h4><div class="table-wrap overview-table">${table(['Сегмент','Оффер users','Инвойс users','Оплатившие users','Оффер -> инвойс','Инвойс -> оплата'],toRows(byCampaign.segments))}</div></div></div>`;
     }
 
+    function channelPostStatusLabel(status,isDue){
+      if(isDue)return ['warn','Готов к публикации'];
+      return ({
+        published:['ok','Опубликован'],
+        scheduled:['warn','Запланирован'],
+        disabled:['bad','Выключен'],
+        missing_file:['bad','Нет файла']
+      })[status]||['warn',status||'Неизвестно']
+    }
+    function renderChannelCalendar(){
+      const payload=state.channelCalendar||{},summary=payload.summary||{},items=payload.items||[];
+      const summaryEl=$('#channel-calendar-summary');
+      const itemsEl=$('#channel-calendar-items');
+      if(!summaryEl||!itemsEl)return;
+      summaryEl.innerHTML=`<div class="stack">${metricCards([['Всего',String(summary.total||0),`канал: ${payload.channel||'@trynit_ai'}`],['В очереди',String(summary.scheduled||0),`созревших сейчас: ${summary.due||0}`],['Опубликовано',String(summary.published||0),`журнал: ${payload.published_log||'data/channel_published.json'}`],['Проблемы',String((summary.disabled||0)+(summary.missing_file||0)),'выключено или нет файла']])}${kvList([['Часовой пояс',esc(payload.timezone||'Europe/Moscow')],['Файл расписания',esc(payload.schedule_file||'config/channel_schedule.json')]])}</div>`;
+      if(!items.length){itemsEl.innerHTML='<div class="panel muted">Постов в календаре пока нет.</div>';return}
+      itemsEl.innerHTML=items.map(item=>{
+        const status=channelPostStatusLabel(item.status,item.is_due);
+        const button=item.button_text&&item.button_url?`<a href="${esc(item.button_url)}" target="_blank" rel="noreferrer">${esc(item.button_text)}</a>`:'—';
+        const published=item.message_id?`<div class="kv-row"><div class="kv-key">Telegram message_id</div><div class="kv-value">${esc(item.message_id)}</div></div>`:'';
+        return `<div class="panel"><div class="mode-head"><div><h3>${esc(item.publish_at_label||'Дата не указана')}</h3><p class="muted section-note">${esc(item.id||'без id')} • ${esc(item.text_file||'без файла')}</p></div><span class="status-pill ${esc(status[0])}">${esc(status[1])}</span></div><div class="two">${kvList([['Кнопка',button],['Закреп',item.pin?'Да':'Нет'],['Дата ISO',esc(item.publish_at||'—')]])}${kvList([['Статус',esc(item.status||'—')],['Опубликовано',esc(item.published_at||'—')]])}</div>${published}<h4>Предпросмотр</h4><pre>${esc(item.text||item.excerpt||'Текст пустой.')}</pre></div>`
+      }).join('')
+    }
+
     function parseJsonField(selector,fallback,label){
       const raw=String($(selector).value||'').trim();
       if(!raw)return fallback;
@@ -2684,13 +2816,14 @@ def _dashboard_html() -> str:
     async function deleteMemoryEditor(){const memoryId=String($('#memory_editor_id').value||'').trim();if(!memoryId)throw new Error('Выбери memory для удаления');const rawUserId=String($('#conversation_user_id').value||'').trim();await api(`/api/memories/${encodeURIComponent(memoryId)}`,{method:'DELETE'});state.currentMemoryId=null;await loadConversation(rawUserId);notice('Memory удалена.')}
     async function pruneMemoryEditor(){const rawUserId=String($('#conversation_user_id').value||'').trim();if(!rawUserId)throw new Error('Сначала выбери пользователя');const result=await api(`/api/users/${encodeURIComponent(rawUserId)}/memories/prune`,{method:'POST'});state.currentMemoryId=null;await loadConversation(rawUserId);notice(`Память очищена: удалено ${result.deleted_count||0}.`)}
     async function saveCurrentUser(){const rawId=$('#user_user_id').value.trim();if(!rawId)throw new Error('Укажи user_id');const user=await api(`/api/users/${encodeURIComponent(rawId)}`,{method:'PUT',body:JSON.stringify(currentUserPayload())});fillUserForm(user);await refreshAll();notice('Пользователь сохранен.')}
-    function renderAll(){const renderers=[['overview',renderOverview],['initiative',renderInitiative],['setup',renderSetup],['launch',renderLaunch],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
-    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['launchLinks','/api/launch/links','launchLinks'],['proactiveEvents','/api/proactive/events?limit=100','proactiveEvents'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
+    function renderAll(){const renderers=[['overview',renderOverview],['initiative',renderInitiative],['setup',renderSetup],['launch',renderLaunch],['channelCalendar',renderChannelCalendar],['health',renderHealth],['users',renderUsers],['conversations',renderConversation],['runtime',renderRuntime],['safety',renderSafety],['prompts',renderPrompts],['modes',renderModes],['payments',renderPayments],['logs',renderLogs],['testQuality',renderTestQuality]];const errors=[];renderers.forEach(([name,fn])=>{try{fn()}catch(error){console.error(`Render failed: ${name}`,error);errors.push(name)}});try{renderMessageTemplates()}catch(error){console.error('Render failed: message templates',error);errors.push('message templates')}renderChrome();if(errors.length)notice(`Часть блоков не отрисована: ${errors.join(', ')}`,'error')}
+    async function refreshAll(){const requests=[['overview','/api/overview','overview'],['launchLinks','/api/launch/links','launchLinks'],['channelCalendar','/api/channel/calendar','channelCalendar'],['proactiveEvents','/api/proactive/events?limit=100','proactiveEvents'],['health','/api/health','health'],['settings','/api/settings','settings'],['users',`/api/users?query=${encodeURIComponent($('#user-search').value||'')}&limit=100&sort_by=${encodeURIComponent(currentUserSort())}&filter_by=${encodeURIComponent(currentUserFilter())}`,'users'],['logs',`/api/logs?lines=${$('#log-lines').value||200}`,'logs']];const conversationUserId=$('#conversation_user_id').value.trim()||String(state.currentConversation.user.id||'');if(conversationUserId){const limit=Math.max(10,Math.min(200,Number($('#conversation_limit').value||80)));requests.push(['currentConversation',`/api/users/${encodeURIComponent(conversationUserId)}/conversation?limit=${limit}`,'currentConversation'])}const failed=[];for(const [label,path,stateKey] of requests){try{state[stateKey]=await api(path)}catch(error){console.error(`Load failed: ${label}`,error);failed.push(label)}}state.lastSyncedAt=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if($('#user-sort')&&state.users.sort_by){$('#user-sort').value=state.users.sort_by}setUserFilterButtons(state.users.filter_by||currentUserFilter());renderAll();if(failed.length)notice(`Не все данные загрузились: ${failed.join(', ')}`,'error')}
     async function save(path,payload,msg){await api(path,{method:'PUT',body:JSON.stringify(payload)});await refreshAll();notice(msg)}
     async function runTest(path){const data=await api(path,{method:'POST',body:JSON.stringify(testPayload())});state.lastTestResult=data;$('#test-result').textContent=JSON.stringify(data,null,2);renderTestQuality()}
     onAll('.nav button','click',event=>openView(event.currentTarget.dataset.view));
     document.addEventListener('click',event=>{const button=event.target.closest('[data-open-view]');if(!button)return;openView(button.dataset.openView)});
     on('#refresh-all','click',()=>refreshAll().then(()=>notice('Данные обновлены.')).catch(e=>notice(e.message,'error')));
+    on('#reload-channel-calendar','click',()=>api('/api/channel/calendar').then(data=>{state.channelCalendar=data;renderChannelCalendar();notice('Календарь постов обновлен.')}).catch(e=>notice(e.message,'error')));
     on('#load-user','click',()=>loadUser().then(()=>notice('Пользователь загружен.')).catch(e=>notice(e.message,'error')));
     on('#open-user-conversation','click',()=>{setValue('#conversation_user_id',$('#user_user_id').value.trim()||'');openView('conversations');loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error'))});
     on('#load-conversation','click',()=>loadConversation().then(()=>notice('Диалог загружен.')).catch(e=>notice(e.message,'error')));
