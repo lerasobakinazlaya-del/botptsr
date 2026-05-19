@@ -1,0 +1,80 @@
+name: Publish Channel Post
+
+on:
+  workflow_dispatch:
+    inputs:
+      text_file:
+        description: "UTF-8 post file path"
+        required: true
+        default: "docs/channel-posts/pinned-post.md"
+      chat_id:
+        description: "Telegram channel username or chat id"
+        required: false
+        default: "@trynit_ai"
+      button_text:
+        description: "Optional inline button text"
+        required: false
+        default: "Открыть Нить"
+      button_url:
+        description: "Optional inline button URL"
+        required: false
+        default: "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post"
+      pin:
+        description: "Pin message after publishing: true/false"
+        required: false
+        default: "false"
+      disable_web_preview:
+        description: "Disable Telegram link preview: true/false"
+        required: false
+        default: "false"
+      delete_message_id:
+        description: "Optional message id to delete first, 0 skips"
+        required: false
+        default: "0"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install python-dotenv
+
+      - name: Publish post
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TEXT_FILE: ${{ github.event.inputs.text_file }}
+          CHAT_ID: ${{ github.event.inputs.chat_id }}
+          BUTTON_TEXT: ${{ github.event.inputs.button_text }}
+          BUTTON_URL: ${{ github.event.inputs.button_url }}
+          PIN: ${{ github.event.inputs.pin }}
+          DISABLE_WEB_PREVIEW: ${{ github.event.inputs.disable_web_preview }}
+          DELETE_MESSAGE_ID: ${{ github.event.inputs.delete_message_id }}
+        run: |
+          set -euo pipefail
+
+          ARGS=(
+            "--chat-id" "${CHAT_ID}"
+            "--text-file" "${TEXT_FILE}"
+            "--button-text" "${BUTTON_TEXT}"
+            "--button-url" "${BUTTON_URL}"
+            "--delete-message-id" "${DELETE_MESSAGE_ID:-0}"
+          )
+
+          if [ "${PIN}" = "true" ]; then
+            ARGS+=("--pin")
+          fi
+
+          if [ "${DISABLE_WEB_PREVIEW}" = "true" ]; then
+            ARGS+=("--disable-web-preview")
+          fi
+
+          python scripts/publish_telegram_channel_post.py "${ARGS[@]}"
