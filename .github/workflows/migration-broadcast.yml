@@ -19,6 +19,10 @@ on:
         description: "Skip first N recipients"
         required: false
         default: "0"
+      exclude_user_ids:
+        description: "Comma-separated Telegram user IDs to skip"
+        required: false
+        default: ""
 
 jobs:
   migration-broadcast:
@@ -62,9 +66,10 @@ jobs:
           SEND: ${{ github.event.inputs.send }}
           LIMIT: ${{ github.event.inputs.limit }}
           OFFSET: ${{ github.event.inputs.offset }}
+          EXCLUDE_USER_IDS: ${{ github.event.inputs.exclude_user_ids }}
         run: |
           ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- \
-            "${APP_DIR}" "${SEND}" "${LIMIT}" "${OFFSET}" "${OLD_BOT_TOKEN}" <<'REMOTE'
+            "${APP_DIR}" "${SEND}" "${LIMIT}" "${OFFSET}" "${OLD_BOT_TOKEN}" "${EXCLUDE_USER_IDS}" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="$1"
@@ -72,6 +77,7 @@ jobs:
           LIMIT="$3"
           OFFSET="$4"
           OLD_BOT_TOKEN="$5"
+          EXCLUDE_USER_IDS="$6"
 
           PYTHON_BIN="${APP_DIR}/venv/bin/python"
           if [ ! -x "$PYTHON_BIN" ]; then
@@ -83,10 +89,11 @@ jobs:
             "--db-path" "${APP_DIR}/bot.db"
             "--limit" "${LIMIT:-0}"
             "--offset" "${OFFSET:-0}"
+            "--exclude-user-ids" "${EXCLUDE_USER_IDS:-}"
           )
 
           if [ "$SEND" = "true" ]; then
-            ARGS+=("--send")
+            ARGS+=("--send" "--allow-failures")
           fi
 
           cd "$APP_DIR"

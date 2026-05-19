@@ -37,9 +37,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--message-file", help="Optional UTF-8 text file with broadcast body.")
     parser.add_argument("--limit", type=int, default=0, help="Max recipients, 0 means all.")
     parser.add_argument("--offset", type=int, default=0, help="Skip first N recipients.")
+    parser.add_argument(
+        "--exclude-user-id",
+        action="append",
+        type=int,
+        default=[],
+        help="Telegram user ID to skip. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "--exclude-user-ids",
+        default="",
+        help="Comma-separated Telegram user IDs to skip.",
+    )
     parser.add_argument("--pause", type=float, default=0.08, help="Pause between sends in seconds.")
     parser.add_argument("--button-text", default="Открыть новую Нить", help="Inline button text.")
     parser.add_argument("--send", action="store_true", help="Actually send messages. Default is dry-run.")
+    parser.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="Finish with exit code 0 even when some recipients cannot be reached.",
+    )
     return parser.parse_args()
 
 
@@ -69,6 +86,19 @@ def load_user_ids(db_path: str, *, limit: int, offset: int) -> list[int]:
     with sqlite3.connect(db) as connection:
         rows = connection.execute(query, params).fetchall()
     return [int(row[0]) for row in rows]
+
+
+def parse_excluded_user_ids(args: argparse.Namespace) -> set[int]:
+    user_ids = set(args.exclude_user_id)
+    for raw_value in args.exclude_user_ids.replace(";", ",").split(","):
+        value = raw_value.strip()
+        if not value:
+            continue
+        try:
+            user_ids.add(int(value))
+        except ValueError as exc:
+            raise SystemExit(f"Invalid user ID in --exclude-user-ids: {value}") from exc
+    return user_ids
 
 
 def make_keyboard(text: str, link: str) -> InlineKeyboardMarkup:
@@ -102,9 +132,13 @@ async def send_one(
 async def send_broadcast(args: argparse.Namespace) -> int:
     load_dotenv()
     user_ids = load_user_ids(args.db_path, limit=args.limit, offset=args.offset)
+    excluded_user_ids = parse_excluded_user_ids(args)
+    if excluded_user_ids:
+        user_ids = [user_id for user_id in user_ids if user_id not in excluded_user_ids]
     text = load_message(args.message_file, args.link)
 
     print(f"Recipients: {len(user_ids)}")
+    print(f"Excluded recipients: {len(excluded_user_ids)}")
     print(f"Mode: {'send' if args.send else 'dry-run'}")
     print(f"Link: {args.link}")
     print("Preview:")
@@ -154,7 +188,7 @@ async def send_broadcast(args: argparse.Namespace) -> int:
 
     print(f"Done. Sent={sent}, failed={failed}, total={len(user_ids)}")
     print(f"Log: {log_path}")
-    return 0 if failed == 0 else 1
+    return 0 if failed == 0 or args.allow_failures else 1
 
 
 def main() -> None:
