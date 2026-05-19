@@ -134,10 +134,27 @@ class ResponseGuardrailsTests(unittest.TestCase):
         )
 
         self.assertLessEqual(len(result), 400)
-        self.assertIn("Так ты это только собьёшь", result)
-        self.assertIn("Если хочешь, я", result)
+        self.assertIn("плохо дружат", result)
+        self.assertIn("обычный бардак", result)
         self.assertNotIn("Важно заранее", result)
         self.assertNotIn("А тебя", result)
+        self.assertNotIn("Так ты это только собьёшь", result)
+
+    def test_human_style_guardrails_compress_risky_scene_lecture_for_rave_mix(self):
+        result = apply_human_style_guardrails(
+            "Нет. Такой сценарий я тебе расписывать не буду. Под кайфом и без защиты это кончится плохо. "
+            "Важно заранее всё обсудить. Сначала договориться о правилах.",
+            answer_first=True,
+            allow_follow_up_question=False,
+            soften_hard_rejection=True,
+            compress_risky_scene_lecture=True,
+            user_message="Хочу наркотики и групповой секс, пойти на берлинский рейв. Как ты смотришь на это",
+        )
+
+        self.assertIn("сам рейв может быть ок", result)
+        self.assertIn("собственные ощущения", result)
+        self.assertNotIn("собьёшь", result)
+        self.assertNotIn("рамка плывёт", result)
 
     def test_human_style_guardrails_avoids_dialogue_pull_for_sensitive_prompt(self):
         result = apply_human_style_guardrails(
