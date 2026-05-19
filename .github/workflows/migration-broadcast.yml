@@ -1,0 +1,93 @@
+name: Migration Broadcast
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_dir:
+        description: "Server project directory"
+        required: false
+        default: "/opt/bot"
+      send:
+        description: "Actually send messages: true/false"
+        required: false
+        default: "false"
+      limit:
+        description: "Max recipients, 0 means all"
+        required: false
+        default: "0"
+      offset:
+        description: "Skip first N recipients"
+        required: false
+        default: "0"
+
+jobs:
+  migration-broadcast:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Start SSH agent
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "${DEPLOY_SSH_KEY}" | tr -d '\r' | ssh-add -
+          echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "${GITHUB_ENV}"
+          echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "${GITHUB_ENV}"
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload broadcast script
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          scp -P "${DEPLOY_PORT:-22}" \
+            scripts/send_migration_broadcast.py \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/send_migration_broadcast.py"
+
+      - name: Run migration broadcast on server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          APP_DIR: ${{ github.event.inputs.app_dir }}
+          OLD_BOT_TOKEN: ${{ secrets.OLD_BOT_TOKEN }}
+          SEND: ${{ github.event.inputs.send }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          OFFSET: ${{ github.event.inputs.offset }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' -- \
+            "${APP_DIR}" "${SEND}" "${LIMIT}" "${OFFSET}" <<'REMOTE'
+          set -euo pipefail
+
+          APP_DIR="$1"
+          SEND="$2"
+          LIMIT="$3"
+          OFFSET="$4"
+
+          PYTHON_BIN="${APP_DIR}/venv/bin/python"
+          if [ ! -x "$PYTHON_BIN" ]; then
+            PYTHON_BIN="python3"
+          fi
+
+          ARGS=(
+            "/tmp/send_migration_broadcast.py"
+            "--db-path" "${APP_DIR}/bot.db"
+            "--limit" "${LIMIT:-0}"
+            "--offset" "${OFFSET:-0}"
+          )
+
+          if [ "$SEND" = "true" ]; then
+            ARGS+=("--send")
+          fi
+
+          cd "$APP_DIR"
+          OLD_BOT_TOKEN="${OLD_BOT_TOKEN}" "$PYTHON_BIN" "${ARGS[@]}"
+          REMOTE
