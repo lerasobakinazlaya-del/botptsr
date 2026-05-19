@@ -1,4 +1,4 @@
-# Календарь постов канала
+﻿# Календарь постов канала
 
 Канал: `@trynit_ai`
 Часовой пояс: `Europe/Moscow`
@@ -9,7 +9,7 @@
 
 ID: `2026-05-19-pinned-post`
 Файл: `docs/channel-posts/pinned-post.md`
-Картинка: `assets/channel-posts/pinned-post.png`
+Картинка: `assets/stories/pinned-post-story.png`
 Кнопка: `Открыть Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post`
 Закреп: `True`
@@ -33,8 +33,8 @@ Telegram message_id: `12`
 
 ID: `2026-05-19-long-task`
 Файл: `docs/channel-posts/long-task.md`
-Картинка: `assets/channel-posts/long-task.png`
-Кнопка: `Проверить на своем тексте`
+Картинка: `assets/stories/long-task-story.png`
+Кнопка: `Проверить на своём тексте`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_long_task`
 Закреп: `False`
 Telegram message_id: `14`
@@ -55,7 +55,7 @@ Telegram message_id: `14`
 
 ID: `2026-05-20-memory`
 Файл: `docs/channel-posts/memory.md`
-Картинка: `assets/channel-posts/memory.png`
+Картинка: `assets/stories/memory-story.png`
 Кнопка: `Попробовать диалог`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_memory`
 Закреп: `False`
@@ -74,7 +74,7 @@ ID: `2026-05-20-memory`
 
 ID: `2026-05-21-payments`
 Файл: `docs/channel-posts/payments.md`
-Картинка: `assets/channel-posts/payments.png`
+Картинка: `assets/stories/payments-story.png`
 Кнопка: `Открыть Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_payments`
 Закреп: `False`
@@ -93,7 +93,7 @@ Stars удобны, если не хочется вводить карту в о
 
 ID: `2026-05-22-product-update`
 Файл: `docs/channel-posts/product-update.md`
-Картинка: `assets/channel-posts/product-update.png`
+Картинка: `assets/stories/product-update-story.png`
 Кнопка: `Попробовать`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_product_update`
 Закреп: `False`
@@ -119,7 +119,7 @@ ID: `2026-05-22-product-update`
 
 ID: `2026-05-23-prompt-day`
 Файл: `docs/channel-posts/prompt-day.md`
-Картинка: `assets/channel-posts/prompt-day.png`
+Картинка: `assets/stories/prompt-day-story.png`
 Кнопка: `Запустить промпт`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_prompt_day`
 Закреп: `False`
@@ -141,7 +141,7 @@ https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__c
 
 ID: `2026-05-25-week-summary`
 Файл: `docs/channel-posts/week-summary.md`
-Картинка: `assets/channel-posts/week-summary.png`
+Картинка: `assets/stories/week-summary-story.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_week_summary`
 Закреп: `False`

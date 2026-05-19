@@ -76,7 +76,7 @@ def main() -> None:
             lines.append(f"Telegram message_id: `{published[item_id].get('message_id')}`")
         lines.extend(["", "Предпросмотр:", "", "```text", excerpt(text_file, args.excerpt_chars), "```", ""])
 
-    Path(args.output).write_text("\n".join(lines), encoding="utf-8")
+    Path(args.output).write_text("\n".join(lines), encoding="utf-8-sig")
     print(f"Calendar preview written: {args.output}")
 
 
