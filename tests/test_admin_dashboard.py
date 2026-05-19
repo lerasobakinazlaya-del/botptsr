@@ -146,6 +146,8 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("function renderChannelCalendar()", source)
         self.assertIn("config/channel_schedule.json", source)
         self.assertIn("data/channel_published.json", source)
+        self.assertIn("image_data_url", source)
+        self.assertIn("image_file", source)
 
     def test_payments_page_is_reframed_as_plans(self):
         source = self._admin_source()

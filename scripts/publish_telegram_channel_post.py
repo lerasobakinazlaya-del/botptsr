@@ -14,6 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish a UTF-8 Telegram channel post.")
     parser.add_argument("--chat-id", default="@trynit_ai", help="Channel username or chat id.")
     parser.add_argument("--text-file", required=True, help="UTF-8 text file to publish.")
+    parser.add_argument("--image-file", default="", help="Optional image to publish before the text.")
     parser.add_argument("--button-text", default="", help="Optional inline button text.")
     parser.add_argument("--button-url", default="", help="Optional inline button URL.")
     parser.add_argument("--disable-web-preview", action="store_true", help="Disable Telegram link preview.")
@@ -38,6 +39,39 @@ def telegram_call(token: str, method: str, payload: dict) -> dict:
         raise SystemExit(f"Telegram {method} failed: {error_body}") from exc
 
 
+def telegram_multipart_call(token: str, method: str, payload: dict, files: dict[str, Path]) -> dict:
+    boundary = "----nit-telegram-boundary"
+    chunks: list[bytes] = []
+    for key, value in payload.items():
+        chunks.append(f"--{boundary}\r\n".encode("utf-8"))
+        chunks.append(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode("utf-8"))
+        chunks.append(str(value).encode("utf-8"))
+        chunks.append(b"\r\n")
+    for key, path in files.items():
+        data = path.read_bytes()
+        chunks.append(f"--{boundary}\r\n".encode("utf-8"))
+        chunks.append(
+            (
+                f'Content-Disposition: form-data; name="{key}"; filename="{path.name}"\r\n'
+                "Content-Type: image/png\r\n\r\n"
+            ).encode("utf-8")
+        )
+        chunks.append(data)
+        chunks.append(b"\r\n")
+    chunks.append(f"--{boundary}--\r\n".encode("utf-8"))
+    request = Request(
+        f"https://api.telegram.org/bot{token}/{method}",
+        data=b"".join(chunks),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    try:
+        with urlopen(request, timeout=60) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"Telegram {method} failed: {error_body}") from exc
+
+
 def main() -> None:
     args = parse_args()
     load_dotenv(".env")
@@ -56,6 +90,18 @@ def main() -> None:
             {"chat_id": args.chat_id, "message_id": args.delete_message_id},
         )
         print(f"Deleted message_id={args.delete_message_id}")
+
+    if args.image_file:
+        image_path = Path(args.image_file)
+        if not image_path.exists():
+            raise SystemExit(f"Image file not found: {image_path}")
+        photo_result = telegram_multipart_call(
+            token,
+            "sendPhoto",
+            {"chat_id": args.chat_id},
+            {"photo": image_path},
+        )
+        print(f"Posted photo_message_id={int(photo_result['result']['message_id'])}")
 
     payload = {
         "chat_id": args.chat_id,

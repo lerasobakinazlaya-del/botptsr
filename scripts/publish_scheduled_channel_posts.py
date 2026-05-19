@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
-from publish_telegram_channel_post import telegram_call
+from publish_telegram_channel_post import telegram_call, telegram_multipart_call
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,6 +68,22 @@ def build_message_payload(item: dict, schedule: dict) -> dict:
     return payload
 
 
+def publish_image_if_needed(token: str, item: dict, chat_id: str) -> int | None:
+    image_file = str(item.get("image_file") or "").strip()
+    if not image_file:
+        return None
+    image_path = Path(image_file)
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+    result = telegram_multipart_call(
+        token,
+        "sendPhoto",
+        {"chat_id": chat_id},
+        {"photo": image_path},
+    )
+    return int(result["result"]["message_id"])
+
+
 def main() -> None:
     args = parse_args()
     load_dotenv(".env")
@@ -102,7 +118,8 @@ def main() -> None:
     print(f"Now UTC: {now.isoformat()}")
     print(f"Due posts: {len(due_items)}")
     for publish_at, item in due_items:
-        print(f"- {item['id']} at {publish_at.isoformat()} file={item['text_file']}")
+        image_note = f" image={item.get('image_file')}" if item.get("image_file") else ""
+        print(f"- {item['id']} at {publish_at.isoformat()} file={item['text_file']}{image_note}")
 
     if args.dry_run or not due_items:
         return
@@ -113,6 +130,10 @@ def main() -> None:
 
     for publish_at, item in due_items:
         payload = build_message_payload(item, schedule)
+        photo_message_id = publish_image_if_needed(token, item, str(payload["chat_id"]))
+        if photo_message_id:
+            print(f"Posted image for {item['id']} photo_message_id={photo_message_id}")
+
         result = telegram_call(token, "sendMessage", payload)
         message_id = int(result["result"]["message_id"])
         print(f"Posted {item['id']} message_id={message_id}")
@@ -131,9 +152,11 @@ def main() -> None:
 
         published[str(item["id"])] = {
             "message_id": message_id,
+            "photo_message_id": photo_message_id,
             "published_at": datetime.now(timezone.utc).isoformat(),
             "scheduled_at": publish_at.isoformat(),
             "text_file": item["text_file"],
+            "image_file": item.get("image_file", ""),
             "chat_id": payload["chat_id"],
             "github_run_id": os.getenv("GITHUB_RUN_ID", ""),
             "github_sha": os.getenv("GITHUB_SHA", ""),

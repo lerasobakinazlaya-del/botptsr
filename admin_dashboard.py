@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import secrets
 import time
@@ -213,6 +214,11 @@ def _build_channel_calendar_preview() -> dict[str, Any]:
         is_published = item_id in published
         is_enabled = bool(item.get("enabled", True))
         status_name = "published" if is_published else "scheduled" if is_enabled else "disabled"
+        image_file = Path(str(item.get("image_file") or "")) if item.get("image_file") else None
+        image_data_url = ""
+        if image_file and image_file.exists():
+            image_data_url = "data:image/png;base64," + base64.b64encode(image_file.read_bytes()).decode("ascii")
+
         try:
             text = text_file.read_text(encoding="utf-8").strip()
         except FileNotFoundError:
@@ -228,6 +234,8 @@ def _build_channel_calendar_preview() -> dict[str, Any]:
                 "publish_at": publish_at.astimezone(display_tz).isoformat(),
                 "publish_at_label": publish_at.astimezone(display_tz).strftime("%Y-%m-%d %H:%M"),
                 "text_file": text_file.as_posix(),
+                "image_file": image_file.as_posix() if image_file else "",
+                "image_data_url": image_data_url,
                 "text": text,
                 "excerpt": text[:520].rstrip() + ("..." if len(text) > 520 else ""),
                 "button_text": str(item.get("button_text") or ""),
@@ -2707,7 +2715,8 @@ def _dashboard_html() -> str:
         const status=channelPostStatusLabel(item.status,item.is_due);
         const button=item.button_text&&item.button_url?`<a href="${esc(item.button_url)}" target="_blank" rel="noreferrer">${esc(item.button_text)}</a>`:'—';
         const published=item.message_id?`<div class="kv-row"><div class="kv-key">Telegram message_id</div><div class="kv-value">${esc(item.message_id)}</div></div>`:'';
-        return `<div class="panel"><div class="mode-head"><div><h3>${esc(item.publish_at_label||'Дата не указана')}</h3><p class="muted section-note">${esc(item.id||'без id')} • ${esc(item.text_file||'без файла')}</p></div><span class="status-pill ${esc(status[0])}">${esc(status[1])}</span></div><div class="two">${kvList([['Кнопка',button],['Закреп',item.pin?'Да':'Нет'],['Дата ISO',esc(item.publish_at||'—')]])}${kvList([['Статус',esc(item.status||'—')],['Опубликовано',esc(item.published_at||'—')]])}</div>${published}<h4>Предпросмотр</h4><pre>${esc(item.text||item.excerpt||'Текст пустой.')}</pre></div>`
+        const image=item.image_data_url?`<img src="${item.image_data_url}" alt="${esc(item.id||'post image')}" style="width:100%;max-width:520px;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);margin:8px 0 14px">`:'<div class="muted">Картинка не задана или файл не найден.</div>';
+        return `<div class="panel"><div class="mode-head"><div><h3>${esc(item.publish_at_label||'Дата не указана')}</h3><p class="muted section-note">${esc(item.id||'без id')} • ${esc(item.text_file||'без файла')}</p></div><span class="status-pill ${esc(status[0])}">${esc(status[1])}</span></div>${image}<div class="two">${kvList([['Кнопка',button],['Закреп',item.pin?'Да':'Нет'],['Дата ISO',esc(item.publish_at||'—')],['Картинка',esc(item.image_file||'—')]])}${kvList([['Статус',esc(item.status||'—')],['Опубликовано',esc(item.published_at||'—')]])}</div>${published}<h4>Предпросмотр</h4><pre>${esc(item.text||item.excerpt||'Текст пустой.')}</pre></div>`
       }).join('')
     }
 
