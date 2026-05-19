@@ -8,8 +8,10 @@
 
 • опубликован первый стартовый пост;
 • первый вариант `message_id=8` удален из-за битой кодировки в канале;
-• пост переотправлен и закреплен;
-• актуальный Telegram message_id: `10`;
+• пост переотправлен и закреплен как `message_id=10`;
+• `message_id=10` удален, потому что при срочной переотправке был отключен link preview;
+• актуальный пост отправлен с включенным preview и кнопкой;
+• актуальный Telegram message_id: `12`;
 • CTA-ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post`.
 
 Следующий шаг:

@@ -16,6 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text-file", required=True, help="UTF-8 text file to publish.")
     parser.add_argument("--button-text", default="", help="Optional inline button text.")
     parser.add_argument("--button-url", default="", help="Optional inline button URL.")
+    parser.add_argument("--disable-web-preview", action="store_true", help="Disable Telegram link preview.")
     parser.add_argument("--pin", action="store_true", help="Pin the published message.")
     parser.add_argument("--delete-message-id", type=int, default=0, help="Delete a previous message first.")
     parser.add_argument("--token-env", default="BOT_TOKEN", help="Environment variable with bot token.")
@@ -59,7 +60,7 @@ def main() -> None:
     payload = {
         "chat_id": args.chat_id,
         "text": text,
-        "disable_web_page_preview": True,
+        "disable_web_page_preview": bool(args.disable_web_preview),
     }
     if args.button_text and args.button_url:
         payload["reply_markup"] = {
