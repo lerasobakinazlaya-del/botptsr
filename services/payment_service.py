@@ -9,6 +9,8 @@ from services.payment_formatting import format_access_days_label, format_package
 
 
 class PaymentService:
+    PAYMENT_METHOD_STARS = "stars"
+    PAYMENT_METHOD_YOOKASSA = "yookassa"
     RECURRING_STARS_PERIOD_SECONDS = 30 * 24 * 60 * 60
     DEFAULT_PACKAGE_CATALOG = {
         "day_pass": {
@@ -16,6 +18,7 @@ class PaymentService:
             "title": "Pro на 1 день",
             "description": "Короткий доступ для большого разбора, перевода допустимых фрагментов и проверки платного формата.",
             "price_minor_units": 9900,
+            "stars_price_units": 49,
             "access_duration_days": 1,
             "sort_order": 5,
             "badge": "На день",
@@ -27,6 +30,7 @@ class PaymentService:
             "title": "Pro на 30 дней",
             "description": "Базовый платный план: больше сообщений, все режимы и память контекста.",
             "price_minor_units": 44900,
+            "stars_price_units": 199,
             "access_duration_days": 30,
             "sort_order": 10,
             "badge": "Старт",
@@ -38,6 +42,7 @@ class PaymentService:
             "title": "Pro на 365 дней",
             "description": "Годовой доступ к плану Pro по выгодной цене.",
             "price_minor_units": 399000,
+            "stars_price_units": 1990,
             "access_duration_days": 365,
             "sort_order": 20,
             "badge": "Выгодно",
@@ -49,6 +54,7 @@ class PaymentService:
             "title": "Premium на 30 дней",
             "description": "Максимальный план: длиннее ответы, глубокие разборы и приоритетный доступ.",
             "price_minor_units": 99000,
+            "stars_price_units": 399,
             "access_duration_days": 30,
             "sort_order": 30,
             "badge": "Глубже",
@@ -60,6 +66,7 @@ class PaymentService:
             "title": "Premium на 365 дней",
             "description": "Годовой доступ к плану Premium по лучшей цене.",
             "price_minor_units": 899000,
+            "stars_price_units": 3990,
             "access_duration_days": 365,
             "sort_order": 40,
             "badge": "Выгодно",
@@ -123,6 +130,18 @@ class PaymentService:
         payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
         return str(payment.get("mode") or "telegram").strip().lower() == "virtual"
 
+    def get_available_payment_methods(self, payment_settings: dict | None = None) -> list[str]:
+        payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
+        if self.uses_virtual_payments(payment):
+            return ["virtual"]
+
+        methods: list[str] = []
+        if bool(payment.get("stars_enabled", True)):
+            methods.append(self.PAYMENT_METHOD_STARS)
+        if bool(payment.get("yookassa_enabled", True)) and str(payment.get("provider_token") or "").strip():
+            methods.append(self.PAYMENT_METHOD_YOOKASSA)
+        return methods
+
     def get_default_package_key(self, payment_settings: dict | None = None) -> str:
         payment = self._normalize_payment_settings(payment_settings or self.get_payment_settings())
         default_key = str(payment.get("default_package_key") or "").strip().lower()
@@ -156,12 +175,18 @@ class PaymentService:
             return False
         if self.uses_virtual_payments(payment):
             return True
-        if payment["currency"].upper() == "XTR":
-            return any(int(package.get("price_minor_units", 0)) > 0 for package in self.get_enabled_packages(payment))
-        return bool(str(payment.get("provider_token") or "").strip())
+        return bool(self.get_available_payment_methods(payment))
 
-    def build_invoice_payload(self, user_id: int, package_key: str | None = None) -> str:
+    def build_invoice_payload(
+        self,
+        user_id: int,
+        package_key: str | None = None,
+        payment_method: str | None = None,
+    ) -> str:
         safe_package_key = str(package_key or self.get_default_package_key()).strip().lower()
+        safe_payment_method = self._normalize_payment_method(payment_method)
+        if safe_payment_method:
+            return f"subscription:{user_id}:{safe_package_key}:{safe_payment_method}"
         return f"subscription:{user_id}:{safe_package_key}"
 
     def validate_invoice_payload(self, payload: str, user_id: int) -> bool:
@@ -216,37 +241,52 @@ class PaymentService:
             except ValueError:
                 return None
 
-        if len(parts) != 3:
+        if len(parts) not in {3, 4}:
             return None
 
         try:
             return {
                 "user_id": int(parts[1]),
                 "package_key": str(parts[2]).strip().lower(),
+                "payment_method": self._normalize_payment_method(parts[3]) if len(parts) == 4 else None,
             }
         except ValueError:
             return None
 
-    def build_prices(self, package_key: str | None = None) -> list[LabeledPrice]:
+    def build_prices(
+        self,
+        package_key: str | None = None,
+        payment_method: str | None = None,
+    ) -> list[LabeledPrice]:
         payment = self.get_payment_settings()
         package = self.get_package(package_key, payment)
         if package is None:
             return []
+        amount = (
+            int(package["stars_price_units"])
+            if self._normalize_payment_method(payment_method) == self.PAYMENT_METHOD_STARS
+            else int(package["price_minor_units"])
+        )
         return [
             LabeledPrice(
                 label=str(package.get("title") or payment["product_title"]).strip(),
-                amount=int(package["price_minor_units"]),
+                amount=amount,
             )
         ]
 
-    def uses_recurring_stars_subscription(self, package_key: str | None = None) -> bool:
+    def uses_recurring_stars_subscription(
+        self,
+        package_key: str | None = None,
+        payment_method: str | None = None,
+    ) -> bool:
         payment = self.get_payment_settings()
         package = self.get_package(package_key, payment)
         if package is None:
             return False
         return (
-            bool(package.get("recurring_stars_enabled"))
-            and payment["currency"].upper() == "XTR"
+            self._normalize_payment_method(payment_method) == self.PAYMENT_METHOD_STARS
+            and bool(payment.get("stars_enabled", True))
+            and bool(package.get("recurring_stars_enabled"))
             and int(package.get("access_duration_days", 30)) == 30
         )
 
@@ -272,48 +312,65 @@ class PaymentService:
             return f"{status_text}\nДоступ активен до {expires_text}."
         return f"Доступ активен до {expires_text}."
 
-    async def send_premium_invoice(self, message: Message, package_key: str | None = None) -> bool:
+    async def send_premium_invoice(
+        self,
+        message: Message,
+        package_key: str | None = None,
+        payment_method: str | None = None,
+    ) -> bool:
         payment = self.get_payment_settings()
         package = self.get_package(package_key, payment)
         if not self.is_enabled() or package is None:
             return False
+        method = self._normalize_payment_method(payment_method) or self.PAYMENT_METHOD_STARS
 
         title = str(package.get("title") or payment["product_title"]).strip()
         description = str(package.get("description") or payment["product_description"]).strip()
-        payload = self.build_invoice_payload(message.from_user.id, package["key"])
-        prices = self.build_prices(package["key"])
+        payload = self.build_invoice_payload(message.from_user.id, package["key"], method)
+        prices = self.build_prices(package["key"], method)
         if not prices:
             return False
 
-        if self.uses_recurring_stars_subscription(package["key"]):
-            invoice_link = await message.bot.create_invoice_link(
+        if method == self.PAYMENT_METHOD_STARS:
+            if not bool(payment.get("stars_enabled", True)):
+                return False
+            if self.uses_recurring_stars_subscription(package["key"], method):
+                invoice_link = await message.bot.create_invoice_link(
+                    title=title,
+                    description=description,
+                    payload=payload,
+                    provider_token="",
+                    currency="XTR",
+                    prices=prices,
+                    subscription_period=self.RECURRING_STARS_PERIOD_SECONDS,
+                )
+                await message.answer(
+                    "РћРїР»Р°С‚Р° РѕС‚РєСЂРѕРµС‚СЃСЏ РїРѕ РєРЅРѕРїРєРµ РЅРёР¶Рµ.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text=str(payment.get("recurring_button_text") or "РћС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ").strip(),
+                                    url=invoice_link,
+                                )
+                            ]
+                        ]
+                    ),
+                )
+                return True
+
+            await message.answer_invoice(
                 title=title,
                 description=description,
                 payload=payload,
                 provider_token="",
                 currency="XTR",
                 prices=prices,
-                subscription_period=self.RECURRING_STARS_PERIOD_SECONDS,
-            )
-            await message.answer(
-                "Оплата откроется по кнопке ниже.",
-                reply_markup=InlineKeyboardMarkup(
-                    inline_keyboard=[
-                        [
-                            InlineKeyboardButton(
-                                text=str(payment.get("recurring_button_text") or "Открыть оплату").strip(),
-                                url=invoice_link,
-                            )
-                        ]
-                    ]
-                ),
             )
             return True
 
         provider_token = str(payment.get("provider_token") or "").strip()
-        if payment["currency"].upper() == "XTR":
-            provider_token = ""
-        if payment["currency"].upper() != "XTR" and not provider_token:
+        if not provider_token:
             return False
 
         await message.answer_invoice(
@@ -494,6 +551,9 @@ class PaymentService:
         package = self.get_package(payload["package_key"])
         if package is None:
             raise ValueError("Unknown premium package")
+        payment_method = payload.get("payment_method") or (
+            self.PAYMENT_METHOD_STARS if payment.currency.upper() == "XTR" else self.PAYMENT_METHOD_YOOKASSA
+        )
 
         amount = self._to_major_units(payment.total_amount, payment.currency)
         premium_expires_at = await self._calculate_premium_expires_at(
@@ -534,6 +594,7 @@ class PaymentService:
                 "is_first_recurring": bool(payment.is_first_recurring),
                 "package_key": package["key"],
                 "package_title": package["title"],
+                "payment_method": payment_method,
                 "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
             }
 
@@ -558,6 +619,7 @@ class PaymentService:
             "is_first_recurring": bool(payment.is_first_recurring),
             "package_key": package["key"],
             "package_title": package["title"],
+            "payment_method": payment_method,
             "plan_key": str(package.get("plan_key") or "premium").strip().lower() or "premium",
         }
 
@@ -634,6 +696,14 @@ class PaymentService:
             return float(total_amount)
         return float(total_amount) / 100.0
 
+    def _normalize_payment_method(self, value: str | None) -> str | None:
+        method = str(value or "").strip().lower()
+        if method in {"star", "stars", "xtr", "telegram_stars"}:
+            return self.PAYMENT_METHOD_STARS
+        if method in {"yookassa", "card", "rub", "provider", "telegram"}:
+            return self.PAYMENT_METHOD_YOOKASSA
+        return None
+
     async def _track_successful_payment_event(
         self,
         *,
@@ -650,6 +720,7 @@ class PaymentService:
         metadata = {
             "currency": payment.currency,
             "total_amount": payment.total_amount,
+            "payment_method": self.PAYMENT_METHOD_STARS if payment.currency.upper() == "XTR" else self.PAYMENT_METHOD_YOOKASSA,
             "is_recurring": bool(getattr(payment, "is_recurring", False)),
             "is_first_payment": bool(payment_info.get("is_first_payment")),
             "package_key": package["key"],
@@ -692,6 +763,8 @@ class PaymentService:
         payment["currency"] = str(payment.get("currency") or "RUB").strip().upper() or "RUB"
         payment["product_title"] = str(payment.get("product_title") or "Premium").strip() or "Premium"
         payment["product_description"] = str(payment.get("product_description") or "").strip()
+        payment["stars_enabled"] = bool(payment.get("stars_enabled", True))
+        payment["yookassa_enabled"] = bool(payment.get("yookassa_enabled", True))
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
 
         normalized_packages: dict[str, dict] = {}
@@ -711,6 +784,7 @@ class PaymentService:
             package["title"] = str(package.get("title") or defaults["title"]).strip() or defaults["title"]
             package["description"] = str(package.get("description") or "").strip()
             package["price_minor_units"] = max(1, int(package.get("price_minor_units", defaults["price_minor_units"])))
+            package["stars_price_units"] = max(1, int(package.get("stars_price_units", defaults.get("stars_price_units", 1))))
             package["access_duration_days"] = max(
                 1,
                 int(package.get("access_duration_days", defaults["access_duration_days"])),

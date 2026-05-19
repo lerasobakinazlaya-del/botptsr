@@ -91,6 +91,7 @@ class FakePaymentServiceForOffer:
         self.virtual_mode = virtual_mode
         self.invoice_calls = 0
         self.invoice_package_keys = []
+        self.invoice_payment_methods = []
         self.offer_events = []
         self.invoice_events = []
         self.virtual_payment_calls = []
@@ -142,6 +143,9 @@ class FakePaymentServiceForOffer:
     def uses_virtual_payments(self, payment_settings=None):
         return self.virtual_mode
 
+    def get_available_payment_methods(self, payment_settings=None):
+        return ["stars", "yookassa"]
+
     def get_enabled_packages(self, payment_settings=None):
         payment = payment_settings or self.get_payment_settings()
         return sorted(
@@ -170,9 +174,10 @@ class FakePaymentServiceForOffer:
     async def track_invoice_opened(self, **kwargs):
         self.invoice_events.append(kwargs)
 
-    async def send_premium_invoice(self, message, package_key=None):
+    async def send_premium_invoice(self, message, package_key=None, payment_method=None):
         self.invoice_calls += 1
         self.invoice_package_keys.append(package_key or self.get_default_package_key())
+        self.invoice_payment_methods.append(payment_method or "stars")
         return self.invoice_result
 
     def build_virtual_checkout_text(self, package_key=None):
@@ -400,6 +405,29 @@ class FakeMonetizationRepository:
         return dict(self.latest_acquisition_context)
 
 
+class FakeInvoiceBot:
+    def __init__(self):
+        self.invoice_links = []
+
+    async def create_invoice_link(self, **kwargs):
+        self.invoice_links.append(kwargs)
+        return "https://t.me/invoice-link"
+
+
+class FakeInvoiceMessage:
+    def __init__(self, user_id: int = 42):
+        self.from_user = SimpleNamespace(id=user_id)
+        self.bot = FakeInvoiceBot()
+        self.answers = []
+        self.invoices = []
+
+    async def answer(self, text: str, reply_markup=None):
+        self.answers.append({"text": text, "reply_markup": reply_markup})
+
+    async def answer_invoice(self, **kwargs):
+        self.invoices.append(kwargs)
+
+
 class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
     async def test_payment_service_enriches_offer_and_invoice_with_acquisition_context(self):
         monetization_repository = FakeMonetizationRepository()
@@ -453,11 +481,11 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         keyboard = message.answers[0]["reply_markup"]
         self.assertEqual(
             keyboard.inline_keyboard[0][0].callback_data,
-            f"{CALLBACK_BUY_PREMIUM}:pro_month:{OFFER_TRIGGER_MODE_LOCKED}",
+            f"{CALLBACK_BUY_PREMIUM}:pro_month:{OFFER_TRIGGER_MODE_LOCKED}:stars",
         )
         self.assertEqual(
             keyboard.inline_keyboard[2][0].callback_data,
-            f"{CALLBACK_BUY_PREMIUM}:premium_month:{OFFER_TRIGGER_MODE_LOCKED}",
+            f"{CALLBACK_BUY_PREMIUM}:premium_month:{OFFER_TRIGGER_MODE_LOCKED}:stars",
         )
         self.assertEqual(payment_service.offer_events[0]["trigger"], OFFER_TRIGGER_MODE_LOCKED)
 
@@ -482,7 +510,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         keyboard = message.answers[0]["reply_markup"]
         self.assertEqual(
             keyboard.inline_keyboard[0][0].callback_data,
-            f"{CALLBACK_BUY_PREMIUM}:pro_month:{OFFER_TRIGGER_PREVIEW_EXHAUSTED}",
+            f"{CALLBACK_BUY_PREMIUM}:pro_month:{OFFER_TRIGGER_PREVIEW_EXHAUSTED}:stars",
         )
 
     async def test_show_premium_menu_includes_active_subscription_status(self):
@@ -558,6 +586,58 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             f"{CALLBACK_CONFIRM_VIRTUAL_PAYMENT}:pro_year",
         )
         self.assertEqual(payment_service.invoice_events[0]["metadata"]["payment_mode"], "virtual")
+
+    async def test_send_premium_invoice_uses_stars_without_provider_token(self):
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="provider-token",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium",
+                premium_product_description="Unlock premium modes.",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+        )
+        message = FakeInvoiceMessage()
+
+        sent = await service.send_premium_invoice(message, "day_pass", "stars")
+
+        self.assertTrue(sent)
+        self.assertEqual(len(message.invoices), 1)
+        invoice = message.invoices[0]
+        self.assertEqual(invoice["currency"], "XTR")
+        self.assertEqual(invoice["provider_token"], "")
+        self.assertEqual(invoice["prices"][0].amount, 49)
+        self.assertEqual(invoice["payload"], "subscription:42:day_pass:stars")
+
+    async def test_send_premium_invoice_keeps_yookassa_provider_flow(self):
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="provider-token",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium",
+                premium_product_description="Unlock premium modes.",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+        )
+        message = FakeInvoiceMessage()
+
+        sent = await service.send_premium_invoice(message, "day_pass", "yookassa")
+
+        self.assertTrue(sent)
+        self.assertEqual(len(message.invoices), 1)
+        invoice = message.invoices[0]
+        self.assertEqual(invoice["currency"], "RUB")
+        self.assertEqual(invoice["provider_token"], "provider-token")
+        self.assertEqual(invoice["prices"][0].amount, 9900)
+        self.assertEqual(invoice["payload"], "subscription:42:day_pass:yookassa")
 
     async def test_handle_successful_payment_saves_payment_and_grants_subscription_days(self):
         payment_repository = FakePaymentRepository()

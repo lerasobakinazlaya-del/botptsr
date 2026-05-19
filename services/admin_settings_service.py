@@ -69,6 +69,7 @@ class AdminSettingsService:
             "title": "Pro на 1 день",
             "description": "Короткий доступ для большого разбора, решения задач, перевода допустимых фрагментов и проверки платного формата.",
             "price_minor_units": 9900,
+            "stars_price_units": 49,
             "access_duration_days": 1,
             "sort_order": 5,
             "badge": "На день",
@@ -80,6 +81,7 @@ class AdminSettingsService:
             "title": "Pro РЅР° 30 РґРЅРµР№",
             "description": "Р‘Р°Р·РѕРІС‹Р№ РїР»Р°С‚РЅС‹Р№ РїР»Р°РЅ: Р±РѕР»СЊС€Рµ СЃРѕРѕР±С‰РµРЅРёР№, РІСЃРµ СЂРµР¶РёРјС‹ Рё РїР°РјСЏС‚СЊ РєРѕРЅС‚РµРєСЃС‚Р°.",
             "price_minor_units": 44900,
+            "stars_price_units": 199,
             "access_duration_days": 30,
             "sort_order": 10,
             "badge": "РЎС‚Р°СЂС‚",
@@ -91,6 +93,7 @@ class AdminSettingsService:
             "title": "Pro РЅР° 365 РґРЅРµР№",
             "description": "Р“РѕРґРѕРІРѕР№ РґРѕСЃС‚СѓРї Рє РїР»Р°РЅСѓ Pro РїРѕ РІС‹РіРѕРґРЅРѕР№ С†РµРЅРµ.",
             "price_minor_units": 399000,
+            "stars_price_units": 1990,
             "access_duration_days": 365,
             "sort_order": 20,
             "badge": "Р’С‹РіРѕРґРЅРѕ",
@@ -102,6 +105,7 @@ class AdminSettingsService:
             "title": "Premium РЅР° 30 РґРЅРµР№",
             "description": "РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РїР»Р°РЅ: РґР»РёРЅРЅРµРµ РѕС‚РІРµС‚С‹, РіР»СѓР±РѕРєРёРµ СЂР°Р·Р±РѕСЂС‹ Рё РїСЂРёРѕСЂРёС‚РµС‚РЅС‹Р№ РґРѕСЃС‚СѓРї.",
             "price_minor_units": 99000,
+            "stars_price_units": 399,
             "access_duration_days": 30,
             "sort_order": 30,
             "badge": "Р“Р»СѓР±Р¶Рµ",
@@ -113,6 +117,7 @@ class AdminSettingsService:
             "title": "Premium РЅР° 365 РґРЅРµР№",
             "description": "Р“РѕРґРѕРІРѕР№ РґРѕСЃС‚СѓРї Рє РїР»Р°РЅСѓ Premium РїРѕ Р»СѓС‡С€РµР№ С†РµРЅРµ.",
             "price_minor_units": 899000,
+            "stars_price_units": 3990,
             "access_duration_days": 365,
             "sort_order": 40,
             "badge": "Р’С‹РіРѕРґРЅРѕ",
@@ -677,6 +682,8 @@ class AdminSettingsService:
             "default_package_key": "day_pass",
             "price_minor_units": 9900,
             "access_duration_days": 1,
+            "stars_enabled": True,
+            "yookassa_enabled": True,
             "recurring_stars_enabled": True,
             "packages": deepcopy(PRODUCT_PAYMENT_PACKAGES),
             "premium_menu_description_template": "Платный доступ нужен, когда тебе важен не разовый ответ, а нормальный контакт.\n\n• память диалога между сообщениями\n• инициатива от бота после паузы\n• все сильные режимы: {premium_modes_list}\n• лимит: до {premium_daily_limit} сообщений в день\n\nСтартовый план: {price_label} за {access_days_label}.",
@@ -1298,6 +1305,8 @@ class AdminSettingsService:
         if payment["mode"] not in {"telegram", "virtual"}:
             payment["mode"] = "telegram"
         payment["currency"] = str(payment["currency"]).strip().upper() or "RUB"
+        payment["stars_enabled"] = bool(payment.get("stars_enabled", True))
+        payment["yookassa_enabled"] = bool(payment.get("yookassa_enabled", True))
         payment["recurring_stars_enabled"] = bool(payment.get("recurring_stars_enabled", True))
         payment["default_package_key"] = str(payment.get("default_package_key") or "day_pass").strip().lower() or "day_pass"
         payment["packages"] = self._normalize_payment_packages(payment)
@@ -1407,6 +1416,7 @@ class AdminSettingsService:
             package["title"] = self._normalize_text(package.get("title") or package_key)
             package["description"] = self._normalize_text(package.get("description") or "", multiline=True)
             package["price_minor_units"] = max(1, int(package.get("price_minor_units", 100)))
+            package["stars_price_units"] = max(1, int(package.get("stars_price_units", 1)))
             package["access_duration_days"] = max(1, int(package.get("access_duration_days", 30)))
             package["sort_order"] = int(package.get("sort_order", 0))
             package["badge"] = self._normalize_text(package.get("badge") or "")

@@ -5,7 +5,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, PreCheckoutQuery
 
-from services.payment_formatting import format_access_days_label, format_package_price_label
+from services.payment_formatting import format_access_days_label, format_minor_price_label, format_package_price_label
 
 
 router = Router(name="payments-router")
@@ -155,11 +155,16 @@ def _build_offer_intro(
     return [part for part in ordered_parts if part]
 
 
-def _build_buy_premium_callback_data(package_key: str, trigger: str) -> str:
+def _build_buy_premium_callback_data(package_key: str, trigger: str, payment_method: str | None = None) -> str:
     normalized_trigger = _normalize_offer_trigger(trigger)
     safe_package_key = str(package_key or "month").strip().lower() or "month"
+    safe_payment_method = str(payment_method or "").strip().lower()
     if normalized_trigger == OFFER_TRIGGER_DEFAULT:
+        if safe_payment_method:
+            return f"{CALLBACK_BUY_PREMIUM}:{safe_package_key}:default:{safe_payment_method}"
         return f"{CALLBACK_BUY_PREMIUM}:{safe_package_key}"
+    if safe_payment_method:
+        return f"{CALLBACK_BUY_PREMIUM}:{safe_package_key}:{normalized_trigger}:{safe_payment_method}"
     return f"{CALLBACK_BUY_PREMIUM}:{safe_package_key}:{normalized_trigger}"
 
 
@@ -184,11 +189,11 @@ def _parse_buy_premium_callback_data(data: str | None, payment_service) -> dict[
     raw = str(data or "").strip()
     default_package_key = payment_service.get_default_package_key()
     if raw == CALLBACK_BUY_PREMIUM:
-        return {"package_key": default_package_key, "trigger": OFFER_TRIGGER_DEFAULT}
+        return {"package_key": default_package_key, "trigger": OFFER_TRIGGER_DEFAULT, "payment_method": "stars"}
 
     prefix = f"{CALLBACK_BUY_PREMIUM}:"
     if not raw.startswith(prefix):
-        return {"package_key": default_package_key, "trigger": OFFER_TRIGGER_DEFAULT}
+        return {"package_key": default_package_key, "trigger": OFFER_TRIGGER_DEFAULT, "payment_method": "stars"}
 
     parts = raw[len(prefix):].split(":")
     package_key = str(parts[0] or "").strip().lower() or default_package_key
@@ -196,9 +201,12 @@ def _parse_buy_premium_callback_data(data: str | None, payment_service) -> dict[
         package_key = default_package_key
 
     trigger = OFFER_TRIGGER_DEFAULT
+    payment_method = "stars"
     if len(parts) > 1:
         trigger = _normalize_offer_trigger(parts[1])
-    return {"package_key": package_key, "trigger": trigger}
+    if len(parts) > 2:
+        payment_method = str(parts[2] or "stars").strip().lower() or "stars"
+    return {"package_key": package_key, "trigger": trigger, "payment_method": payment_method}
 
 
 def _render_package_button_text(payment_settings: dict, package: dict) -> str:
@@ -233,16 +241,48 @@ def _render_package_button_text(payment_settings: dict, package: dict) -> str:
     return " • ".join(part for part in parts if part)
 
 
+def _render_payment_method_button_text(payment_settings: dict, package: dict, payment_method: str) -> str:
+    title = str(package.get("title") or "Premium").strip()
+    if payment_method == "stars":
+        price_label = format_minor_price_label(package.get("stars_price_units", 0), "XTR")
+        return f"⭐ {title} • {price_label}"
+    price_label = format_package_price_label(package, payment_settings)
+    return f"💳 {title} • {price_label}"
+
+
 def _build_premium_menu_keyboard(payment_service, payment_settings: dict, *, trigger: str) -> InlineKeyboardMarkup:
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text=_render_package_button_text(payment_settings, package),
-                callback_data=_build_buy_premium_callback_data(package["key"], trigger),
-            )
-        ]
-        for package in payment_service.get_enabled_packages(payment_settings)
+    payment_methods = [
+        method for method in payment_service.get_available_payment_methods(payment_settings)
+        if method in {"stars", "yookassa"}
     ]
+    if not payment_methods:
+        payment_methods = ["stars"]
+
+    buttons = []
+    for package in payment_service.get_enabled_packages(payment_settings):
+        if len(payment_methods) == 1:
+            method = payment_methods[0]
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=_render_payment_method_button_text(payment_settings, package, method),
+                        callback_data=_build_buy_premium_callback_data(package["key"], trigger, method),
+                    )
+                ]
+            )
+            continue
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=_render_payment_method_button_text(payment_settings, package, "stars"),
+                    callback_data=_build_buy_premium_callback_data(package["key"], trigger, "stars"),
+                ),
+                InlineKeyboardButton(
+                    text=_render_payment_method_button_text(payment_settings, package, "yookassa"),
+                    callback_data=_build_buy_premium_callback_data(package["key"], trigger, "yookassa"),
+                ),
+            ]
+        )
     back_text = str(payment_settings.get("premium_menu_back_button_text") or "← К режимам").strip() or "← К режимам"
     buttons.append([InlineKeyboardButton(text=back_text, callback_data=CALLBACK_PREMIUM_BACK_TO_MODES)])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -503,6 +543,7 @@ async def send_premium_offer(
     mode_name: str | None = None,
     premium_limit: int | None = None,
     package_key: str | None = None,
+    payment_method: str | None = None,
 ) -> bool:
     payment_settings = payment_service.get_payment_settings()
     package = payment_service.get_package(package_key, payment_settings)
@@ -529,7 +570,7 @@ async def send_premium_offer(
         )
         return True
 
-    sent = await payment_service.send_premium_invoice(message, package["key"])
+    sent = await payment_service.send_premium_invoice(message, package["key"], payment_method)
     if not sent:
         await message.answer(
             payment_settings["invoice_error_message"],
@@ -546,7 +587,7 @@ async def send_premium_offer(
             "premium_limit": premium_limit,
             "package_key": package["key"],
             "package_title": package["title"],
-            "payment_mode": "telegram",
+            "payment_mode": payment_method or "stars",
         },
     )
     return True
@@ -590,6 +631,7 @@ async def buy_premium_callback(callback: CallbackQuery, payment_service, user_se
         user_service,
         trigger=parsed["trigger"],
         package_key=parsed["package_key"],
+        payment_method=parsed["payment_method"],
     )
 
 
