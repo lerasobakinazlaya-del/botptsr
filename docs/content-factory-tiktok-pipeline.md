@@ -43,7 +43,6 @@ python render_short.py night_001
 content-factory/renders/night_001.mp4
 content-factory/exports/tiktok/night_001.mp4
 content-factory/exports/tiktok/night_001.txt
-content-factory/exports/tiktok/night_001-cover.jpg
 content-factory/exports/shorts/night_001.mp4
 content-factory/exports/reels/night_001.mp4
 ```

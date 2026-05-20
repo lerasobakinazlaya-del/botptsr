@@ -275,11 +275,8 @@ def write_platform_exports(message: dict[str, Any], master_mp4: Path, base_frame
         video_path = export_dir / f"{message['id']}.mp4"
         caption_path = export_dir / f"{message['id']}.txt"
         meta_path = export_dir / f"{message['id']}.json"
-        cover_path = export_dir / f"{message['id']}-cover.jpg"
         shutil.copyfile(master_mp4, video_path)
         caption_path.write_text(caption, encoding="utf-8")
-        cover_frame = base_frame.copy()
-        cover_frame.save(cover_path, quality=94)
         meta_path.write_text(
             json.dumps(
                 {
@@ -287,7 +284,6 @@ def write_platform_exports(message: dict[str, Any], master_mp4: Path, base_frame
                     "platform": platform,
                     "video_file": str(video_path.relative_to(PROJECT_ROOT)).replace("\\", "/"),
                     "caption_file": str(caption_path.relative_to(PROJECT_ROOT)).replace("\\", "/"),
-                    "cover_file": str(cover_path.relative_to(PROJECT_ROOT)).replace("\\", "/"),
                     "duration": message["duration"],
                     "hook": message["hook"],
                     "ending": message["ending"],

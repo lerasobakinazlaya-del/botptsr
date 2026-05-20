@@ -16,6 +16,15 @@ env/
 logs/
 *.log
 
+# Generated content-factory images are reproducible from configs/scripts.
+assets/stories/daily/*.png
+assets/stories/daily/**/*.png
+assets/social-videos/**/*.jpg
+assets/social-videos/week-01/tiktok/*.mp4
+assets/social-videos/week-01/reels/*.mp4
+assets/social-videos/week-01/shorts/*.mp4
+content-factory/exports/**/*-cover.jpg
+
 .idea/
 .vscode/
 

@@ -5,236 +5,278 @@
 ## Как использовать
 
 1. Запустить `python scripts/generate_message_card_pack.py`.
-2. Запустить `python scripts/generate_social_videos.py`.
-3. Проверить MP4 и обложки в `assets/social-videos/week-01`.
-4. Выложить вручную или подключить API конкретной платформы.
+2. Запустить `python scripts/generate_social_videos.py --day 1` для одного дня или без `--day` для всей недели.
+3. Проверить MP4 в `assets/social-videos/week-01/shared`.
+4. Один MP4 можно загрузить в TikTok, Reels и Shorts; в таблице остаются отдельные строки для аналитики каждой платформы.
 
 ## Ролики
 
-### День 1 · TikTok · day01_memory-tiktok
+### День 1 · TikTok · day01_night_pov-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day01_memory-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day01_memory-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d01_memory`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_pov`
 
 ```text
-Проверь простой тест: помнит ли AI, с чего вы начали разговор? Ссылка на бота в
-профиле.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 1 · Instagram Reels · day01_memory-reels
+### День 1 · Instagram Reels · day01_night_pov-reels
 
-Видео: `assets/social-videos/week-01/reels/day01_memory-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day01_memory-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d01_memory`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_pov`
 
 ```text
-Проверь простой тест: помнит ли AI, с чего вы начали разговор? Попробуй Нить в
-Telegram.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 1 · YouTube Shorts · day01_memory-shorts
+### День 1 · YouTube Shorts · day01_night_pov-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day01_memory-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day01_memory-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d01_memory`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_pov`
 
 ```text
-Проверь простой тест: помнит ли AI, с чего вы начали разговор? Открой Нить по
-ссылке в описании.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 2 · TikTok · day02_long_task-tiktok
+### День 1 · TikTok · day01_night_dialog-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day02_long_task-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day02_long_task-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d02_long_task`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_dlg`
 
 ```text
-Для короткого вопроса хватит free. Для глубокого разбора нужен нормальный
-контекст. Ссылка на бота в профиле.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 2 · Instagram Reels · day02_long_task-reels
+### День 1 · Instagram Reels · day01_night_dialog-reels
 
-Видео: `assets/social-videos/week-01/reels/day02_long_task-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day02_long_task-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d02_long_task`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_dlg`
 
 ```text
-Для короткого вопроса хватит free. Для глубокого разбора нужен нормальный
-контекст. Попробуй Нить в Telegram.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 2 · YouTube Shorts · day02_long_task-shorts
+### День 1 · YouTube Shorts · day01_night_dialog-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day02_long_task-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day02_long_task-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d02_long_task`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_dlg`
 
 ```text
-Для короткого вопроса хватит free. Для глубокого разбора нужен нормальный
-контекст. Открой Нить по ссылке в описании.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 3 · TikTok · day03_continue-tiktok
+### День 1 · TikTok · day01_night_challenge-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day03_continue-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day03_continue-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d03_continue`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_ch`
 
 ```text
-Меньше повторов. Больше движения вперед. Ссылка на бота в профиле.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 3 · Instagram Reels · day03_continue-reels
+### День 1 · Instagram Reels · day01_night_challenge-reels
 
-Видео: `assets/social-videos/week-01/reels/day03_continue-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day03_continue-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d03_continue`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_ch`
 
 ```text
-Меньше повторов. Больше движения вперед. Попробуй Нить в Telegram.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 3 · YouTube Shorts · day03_continue-shorts
+### День 1 · YouTube Shorts · day01_night_challenge-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day03_continue-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day03_continue-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d03_continue`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_ch`
 
 ```text
-Меньше повторов. Больше движения вперед. Открой Нить по ссылке в описании.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 4 · TikTok · day04_day_access-tiktok
+### День 1 · TikTok · day01_night_comment-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day04_day_access-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day04_day_access-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d04_d_access`
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_cm`
 
 ```text
-Дневной доступ нужен не для галочки, а чтобы пройти большую задачу без обрыва.
-Ссылка на бота в профиле.
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Ссылка на бота в профиле.
 ```
 
-### День 4 · Instagram Reels · day04_day_access-reels
+### День 1 · Instagram Reels · day01_night_comment-reels
 
-Видео: `assets/social-videos/week-01/reels/day04_day_access-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day04_day_access-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d04_d_access`
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_cm`
 
 ```text
-Дневной доступ нужен не для галочки, а чтобы пройти большую задачу без обрыва.
-Попробуй Нить в Telegram.
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 4 · YouTube Shorts · day04_day_access-shorts
+### День 1 · YouTube Shorts · day01_night_comment-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day04_day_access-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day04_day_access-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d04_d_access`
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_cm`
 
 ```text
-Дневной доступ нужен не для галочки, а чтобы пройти большую задачу без обрыва.
-Открой Нить по ссылке в описании.
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 5 · TikTok · day05_pro_context-tiktok
+### День 1 · TikTok · day01_night_night-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day05_pro_context-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day05_pro_context-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d05_pro_context`
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_night`
 
 ```text
-Когда тема тянется неделю, память начинает экономить силы. Ссылка на бота в
-профиле.
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 5 · Instagram Reels · day05_pro_context-reels
+### День 1 · Instagram Reels · day01_night_night-reels
 
-Видео: `assets/social-videos/week-01/reels/day05_pro_context-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day05_pro_context-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d05_pro_context`
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_night`
 
 ```text
-Когда тема тянется неделю, память начинает экономить силы. Попробуй Нить в
-Telegram.
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 5 · YouTube Shorts · day05_pro_context-shorts
+### День 1 · YouTube Shorts · day01_night_night-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day05_pro_context-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day05_pro_context-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d05_pro_context`
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_night`
 
 ```text
-Когда тема тянется неделю, память начинает экономить силы. Открой Нить по ссылке в
-описании.
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 6 · TikTok · day06_raw_thought-tiktok
+### День 1 · TikTok · day01_night_before-send-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day06_raw_thought-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day06_raw_thought-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d06_raw_thought`
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_bs`
 
 ```text
-Нить помогает превратить сырую фразу в план, текст или решение. Ссылка на бота в
-профиле.
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 6 · Instagram Reels · day06_raw_thought-reels
+### День 1 · Instagram Reels · day01_night_before-send-reels
 
-Видео: `assets/social-videos/week-01/reels/day06_raw_thought-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day06_raw_thought-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d06_raw_thought`
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_bs`
 
 ```text
-Нить помогает превратить сырую фразу в план, текст или решение. Попробуй Нить в
-Telegram.
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 6 · YouTube Shorts · day06_raw_thought-shorts
+### День 1 · YouTube Shorts · day01_night_before-send-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day06_raw_thought-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day06_raw_thought-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d06_raw_thought`
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_bs`
 
 ```text
-Нить помогает превратить сырую фразу в план, текст или решение. Открой Нить по
-ссылке в описании.
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 7 · TikTok · day07_week_thread-tiktok
+### День 1 · TikTok · day01_night_free-vs-paid-tiktok
 
-Видео: `assets/social-videos/week-01/tiktok/day07_week_thread-tiktok.mp4`
-Обложка: `assets/social-videos/week-01/tiktok/day07_week_thread-tiktok-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_sw1__med_short__cnt_d07_week_thread`
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_fvp`
 
 ```text
-Подпишись на канал и открой Нить, если хочешь вести мысли в одном месте. Ссылка на
-бота в профиле.
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 7 · Instagram Reels · day07_week_thread-reels
+### День 1 · Instagram Reels · day01_night_free-vs-paid-reels
 
-Видео: `assets/social-videos/week-01/reels/day07_week_thread-reels.mp4`
-Обложка: `assets/social-videos/week-01/reels/day07_week_thread-reels-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_sw1__med_reels__cnt_d07_week_thread`
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_fvp`
 
 ```text
-Подпишись на канал и открой Нить, если хочешь вести мысли в одном месте. Попробуй
-Нить в Telegram.
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 7 · YouTube Shorts · day07_week_thread-shorts
+### День 1 · YouTube Shorts · day01_night_free-vs-paid-shorts
 
-Видео: `assets/social-videos/week-01/shorts/day07_week_thread-shorts.mp4`
-Обложка: `assets/social-videos/week-01/shorts/day07_week_thread-shorts-cover.jpg`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_sw1__med_shorts__cnt_d07_week_thread`
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_fvp`
 
 ```text
-Подпишись на канал и открой Нить, если хочешь вести мысли в одном месте. Открой
-Нить по ссылке в описании.
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_one-question-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_one-question-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_one-question-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_serial-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_serial-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_serial-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```

@@ -22,8 +22,7 @@ python scripts\generate_social_videos.py
 - `assets/social-videos/week-01/tiktok/*.mp4`
 - `assets/social-videos/week-01/reels/*.mp4`
 - `assets/social-videos/week-01/shorts/*.mp4`
-- `assets/social-videos/week-01/*/*-cover.jpg`
-- `docs/social-video-board.csv`
+- `docs/social-video-board-current.csv`
 - `docs/social-video-preview.md`
 
 ## Роль Midjourney

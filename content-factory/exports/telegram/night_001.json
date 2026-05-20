@@ -3,7 +3,6 @@
   "platform": "telegram",
   "video_file": "content-factory/exports/telegram/night_001.mp4",
   "caption_file": "content-factory/exports/telegram/night_001.txt",
-  "cover_file": "content-factory/exports/telegram/night_001-cover.jpg",
   "duration": 8,
   "hook": "ты опять не спишь?",
   "ending": "@trynit_ai",

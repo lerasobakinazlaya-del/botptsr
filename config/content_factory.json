@@ -1,69 +1,89 @@
 {
-  "factory_name": "Content Factory",
+  "factory_name": "Nit Content Factory",
   "default_language": "ru",
   "default_canvas": {
     "width": 1080,
     "height": 1920,
     "format": "vertical_9_16"
   },
+  "daily_targets": {
+    "telegram_channel_posts": 2,
+    "telegram_story_videos": 3,
+    "unique_short_videos": 9,
+    "tiktok_publications": 9,
+    "instagram_reels_publications": 9,
+    "youtube_shorts_publications": 9
+  },
   "projects": [
     {
       "id": "nit",
       "name": "Нить",
       "type": "telegram_ai_companion",
+      "channel": "@trynit_ai",
+      "bot": "@asknitai_bot",
       "schedule_file": "config/social_video_schedule.json",
       "status": "active"
     }
   ],
-  "roles": [
+  "crew": [
     {
-      "role": "producer",
-      "responsibility": "держит календарь, выбирает темы, решает что выпускать сегодня"
+      "role": "showrunner",
+      "name": "Сюжетный редактор",
+      "responsibility": "держит сериал на 7 дней, выбирает тему дня, конфликт, эмоциональный крючок и продолжение"
     },
     {
       "role": "copywriter",
-      "responsibility": "пишет хуки, подписи, CTA и варианты для A/B теста"
-    },
-    {
-      "role": "designer",
-      "responsibility": "собирает карточки, обложки, визуальную систему и safe zones"
+      "name": "Копирайтер хуков",
+      "responsibility": "пишет короткие первые фразы, подписи, CTA и варианты для A/B тестов"
     },
     {
       "role": "video_editor",
-      "responsibility": "собирает MP4, версии под платформы, обложки и финальные файлы"
+      "name": "Видеоредактор",
+      "responsibility": "собирает вертикальные MP4 из карточек, следит за safe zones, темпом и читаемостью"
     },
     {
-      "role": "smm",
-      "responsibility": "публикует, пишет закрепы, ведет комментарии и фиксирует метрики"
+      "role": "sound_designer",
+      "name": "Саунд-дизайнер",
+      "responsibility": "подкладывает тихий royalty-free ambient loop и контролирует громкость"
+    },
+    {
+      "role": "publisher",
+      "name": "Паблишер",
+      "responsibility": "готовит очередь Telegram, TikTok, Reels и Shorts, фиксирует ссылки и статусы публикаций"
     },
     {
       "role": "analyst",
-      "responsibility": "сравнивает ролики по воронке и предлагает что масштабировать"
+      "name": "Аналитик роста",
+      "responsibility": "сравнивает удержание, сохранения, переходы, старты бота и оплаты, затем предлагает победителей для масштабирования"
     }
   ],
   "pipeline": [
-    "project_profile",
-    "content_calendar",
-    "source_visuals",
-    "cards",
-    "platform_videos",
-    "covers",
-    "captions",
-    "publication_board",
-    "metrics",
-    "weekly_iteration"
+    "showrunner_series_plan",
+    "copywriter_hooks_and_captions",
+    "story_assets",
+    "message_cards",
+    "short_video_render",
+    "music_mix",
+    "upload_queue",
+    "telegram_delivery",
+    "social_metrics",
+    "next_day_iteration"
   ],
   "platforms": [
-    "telegram",
+    "telegram_channel",
+    "telegram_stories_manual_delivery",
     "tiktok",
     "instagram_reels",
     "youtube_shorts"
   ],
   "rules": [
-    "Текст на русском накладывается локальным рендером, а не генератором картинок.",
-    "Каждый ролик получает отдельный tracking start_parameter или UTM.",
-    "Один проект не должен быть зашит в код генератора.",
-    "Сначала готовим ассеты и ручную публикацию, потом подключаем API-постинг.",
-    "Победитель определяется по переходам и действиям в продукте, а не только по просмотрам."
+    "Один ролик тестирует одну эмоцию или одну боль.",
+    "Первые две секунды должны быть ситуацией, а не описанием продукта.",
+    "CTA всегда конкретный: какую фразу написать боту прямо сейчас.",
+    "Русский текст накладывается локальным рендером, а не генератором картинок.",
+    "Победитель определяется по переходам и действиям в продукте, а не только по просмотрам.",
+    "Автозалив в соцсети включается только после токенов, OAuth и platform review; до этого работает очередь загрузки."
+    ,
+    "Один MP4 можно публиковать на TikTok, Reels и Shorts; отдельными остаются подписи, ссылки, статусы и аналитика."
   ]
 }

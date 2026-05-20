@@ -61,7 +61,6 @@ def build_publish_queue(platforms_config: dict[str, Any]) -> list[dict[str, Any]
                 "missing_env": missing,
                 "video_file": meta["video_file"],
                 "caption_file": meta["caption_file"],
-                "cover_file": meta["cover_file"],
                 "hook": meta["hook"],
                 "mode": platform_config.get("mode", "manual"),
                 "notes": platform_config.get("notes", ""),
@@ -72,7 +71,7 @@ def build_publish_queue(platforms_config: dict[str, Any]) -> list[dict[str, Any]
 
 def write_queue_csv(queue: list[dict[str, Any]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["id", "platform", "status", "missing_env", "video_file", "caption_file", "cover_file", "hook", "mode", "notes"]
+    fields = ["id", "platform", "status", "missing_env", "video_file", "caption_file", "hook", "mode", "notes"]
     with path.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()

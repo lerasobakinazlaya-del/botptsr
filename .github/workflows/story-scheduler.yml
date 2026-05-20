@@ -16,7 +16,7 @@ on:
       limit:
         description: "Max stories per run"
         required: true
-        default: "1"
+        default: "3"
 
 concurrency:
   group: story-scheduler
@@ -34,7 +34,7 @@ jobs:
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       STORY_DELIVERY_CHAT_ID: ${{ secrets.STORY_DELIVERY_CHAT_ID }}
-      LIMIT: ${{ github.event.inputs.limit || '1' }}
+      LIMIT: ${{ github.event.inputs.limit || '3' }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
 
     steps:

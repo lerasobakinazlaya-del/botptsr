@@ -1,0 +1,78 @@
+name: Content factory crew
+
+on:
+  schedule:
+    - cron: "10 2 * * *"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Campaign start date YYYY-MM-DD"
+        required: false
+        default: ""
+      day:
+        description: "Campaign day to render"
+        required: true
+        default: "1"
+      skip_render:
+        description: "Only rebuild plans and queues"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+concurrency:
+  group: content-factory-crew
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install pillow python-dotenv
+
+      - name: Run content factory crew
+        run: |
+          START_DATE="${{ github.event.inputs.start_date }}"
+          DAY="${{ github.event.inputs.day || '1' }}"
+          SKIP_RENDER="${{ github.event.inputs.skip_render || 'false' }}"
+          if [ -z "$START_DATE" ]; then
+            START_DATE="$(TZ=Europe/Moscow date +%F)"
+          fi
+          if [ "$SKIP_RENDER" = "true" ]; then
+            python scripts/run_content_factory_crew.py --start-date "$START_DATE" --day "$DAY" --skip-render
+          else
+            python scripts/run_content_factory_crew.py --start-date "$START_DATE" --day "$DAY"
+          fi
+
+      - name: Commit content factory crew output
+        run: |
+          if [ -z "$(git status --short config/channel_schedule.json config/story_schedule.json config/social_video_schedule.json docs/channel-posts docs/channel-calendar-preview.md docs/social-video-board-current.csv docs/social-video-preview.md docs/social-upload-queue.md docs/social-metrics-report.md docs/growth-content-operating-model.md docs/message-card-pack-preview.md docs/story-calendar-preview.md assets/message-cards/week-01 assets/stories/daily assets/social-videos/week-01 content-factory/analytics/social_metrics_report.json content-factory/analytics/social_upload_queue.json)" ]; then
+            echo "No content factory changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add config/channel_schedule.json config/story_schedule.json config/social_video_schedule.json docs/channel-posts docs/channel-calendar-preview.md docs/social-video-board-current.csv docs/social-video-preview.md docs/social-upload-queue.md docs/social-metrics-report.md docs/growth-content-operating-model.md docs/message-card-pack-preview.md docs/story-calendar-preview.md assets/message-cards/week-01 assets/stories/daily assets/social-videos/week-01 content-factory/analytics/social_metrics_report.json content-factory/analytics/social_upload_queue.json
+          git commit -m "Run content factory crew"
+          git push

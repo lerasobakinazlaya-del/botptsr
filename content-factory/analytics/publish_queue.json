@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-20T15:57:34.646877+00:00",
+  "updated_at": "2026-05-20T16:07:15.073737+00:00",
   "items": [
     {
       "id": "night_001",
@@ -12,7 +12,6 @@
       ],
       "video_file": "content-factory/exports/reels/night_001.mp4",
       "caption_file": "content-factory/exports/reels/night_001.txt",
-      "cover_file": "content-factory/exports/reels/night_001-cover.jpg",
       "hook": "ты опять не спишь?",
       "mode": "api_or_manual",
       "notes": "Instagram Reels publishing требует Professional account, Graph API token и публичный URL видео."
@@ -27,7 +26,6 @@
       ],
       "video_file": "content-factory/exports/shorts/night_001.mp4",
       "caption_file": "content-factory/exports/shorts/night_001.txt",
-      "cover_file": "content-factory/exports/shorts/night_001-cover.jpg",
       "hook": "ты опять не спишь?",
       "mode": "api_or_manual",
       "notes": "YouTube Data API videos.insert работает через OAuth; новые непроверенные проекты могут грузить только private."
@@ -41,7 +39,6 @@
       ],
       "video_file": "content-factory/exports/telegram/night_001.mp4",
       "caption_file": "content-factory/exports/telegram/night_001.txt",
-      "cover_file": "content-factory/exports/telegram/night_001-cover.jpg",
       "hook": "ты опять не спишь?",
       "mode": "api",
       "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo. По умолчанию используется @trynit_ai."
@@ -55,7 +52,6 @@
       ],
       "video_file": "content-factory/exports/tiktok/night_001.mp4",
       "caption_file": "content-factory/exports/tiktok/night_001.txt",
-      "cover_file": "content-factory/exports/tiktok/night_001-cover.jpg",
       "hook": "ты опять не спишь?",
       "mode": "api_or_manual",
       "notes": "Direct Post требует approved video.publish scope и audit. До этого используем ready-to-upload exports."
