@@ -7,7 +7,6 @@
       "enabled": true,
       "publish_at": "2026-05-19T21:00:00+03:00",
       "text_file": "docs/channel-posts/pinned-post.md",
-      "image_file": "assets/stories/pinned-post-story.png",
       "button_text": "Открыть Нить",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post",
       "pin": true
@@ -17,7 +16,6 @@
       "enabled": true,
       "publish_at": "2026-05-19T22:45:00+03:00",
       "text_file": "docs/channel-posts/long-task.md",
-      "image_file": "assets/stories/long-task-story.png",
       "button_text": "Проверить на своём тексте",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_long_task",
       "pin": false
@@ -27,7 +25,6 @@
       "enabled": true,
       "publish_at": "2026-05-20T12:30:00+03:00",
       "text_file": "docs/channel-posts/memory.md",
-      "image_file": "assets/stories/memory-story.png",
       "button_text": "Попробовать диалог",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_memory",
       "pin": false
@@ -37,7 +34,6 @@
       "enabled": true,
       "publish_at": "2026-05-21T12:30:00+03:00",
       "text_file": "docs/channel-posts/payments.md",
-      "image_file": "assets/stories/payments-story.png",
       "button_text": "Открыть Нить",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_payments",
       "pin": false
@@ -47,7 +43,6 @@
       "enabled": true,
       "publish_at": "2026-05-22T12:30:00+03:00",
       "text_file": "docs/channel-posts/product-update.md",
-      "image_file": "assets/stories/product-update-story.png",
       "button_text": "Попробовать",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_product_update",
       "pin": false
@@ -57,7 +52,6 @@
       "enabled": true,
       "publish_at": "2026-05-23T12:30:00+03:00",
       "text_file": "docs/channel-posts/prompt-day.md",
-      "image_file": "assets/stories/prompt-day-story.png",
       "button_text": "Запустить промпт",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_prompt_day",
       "pin": false
@@ -67,7 +61,6 @@
       "enabled": true,
       "publish_at": "2026-05-25T12:30:00+03:00",
       "text_file": "docs/channel-posts/week-summary.md",
-      "image_file": "assets/stories/week-summary-story.png",
       "button_text": "Попробовать Нить",
       "button_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_week_summary",
       "pin": false

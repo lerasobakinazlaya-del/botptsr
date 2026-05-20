@@ -60,13 +60,14 @@ def main() -> None:
         status = "published" if is_published else "scheduled" if is_enabled else "disabled"
         text_file = Path(str(item.get("text_file") or ""))
         image_file = Path(str(item.get("image_file") or "")) if item.get("image_file") else None
+        image_note = image_file.as_posix() if image_file else "без картинки"
         lines.extend(
             [
                 f"## {format_dt(str(item.get('publish_at')), timezone_name)} · `{status}`",
                 "",
                 f"ID: `{item_id}`",
                 f"Файл: `{text_file.as_posix()}`",
-                f"Картинка: `{image_file.as_posix() if image_file else ''}`",
+                f"Картинка: `{image_note}`",
                 f"Кнопка: `{item.get('button_text', '')}`",
                 f"Ссылка: `{item.get('button_url', '')}`",
                 f"Закреп: `{bool(item.get('pin', False))}`",
