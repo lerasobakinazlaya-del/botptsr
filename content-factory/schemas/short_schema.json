@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Content factory short video",
+  "type": "object",
+  "required": ["id", "platform", "duration", "scene", "hook", "ending"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_\\-]+$"
+    },
+    "platform": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["tiktok", "shorts", "reels", "telegram"]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["tiktok", "shorts", "reels", "telegram"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 4,
+      "maximum": 60
+    },
+    "scene": {
+      "type": "string"
+    },
+    "hook": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "beats": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 100
+      }
+    },
+    "ending": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "caption": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-zА-Яа-яЁё0-9_]+$"
+      },
+      "maxItems": 8
+    },
+    "cta": {
+      "type": "string",
+      "maxLength": 80
+    }
+  }
+}

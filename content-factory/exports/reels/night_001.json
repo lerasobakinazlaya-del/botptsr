@@ -1,0 +1,10 @@
+{
+  "id": "night_001",
+  "platform": "reels",
+  "video_file": "content-factory/exports/reels/night_001.mp4",
+  "caption_file": "content-factory/exports/reels/night_001.txt",
+  "cover_file": "content-factory/exports/reels/night_001-cover.jpg",
+  "duration": 8,
+  "hook": "ты опять не спишь?",
+  "ending": "@trynit_ai"
+}
