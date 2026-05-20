@@ -1,0 +1,134 @@
+{
+  "campaign": "sw1",
+  "product": {
+    "brand_name": "Нить",
+    "public_handle": "@asknitai_bot",
+    "link_label": "Попробовать: @asknitai_bot",
+    "primary_url_template": "https://t.me/{username}?start={start_parameter}",
+    "source_cards_dir": "assets/message-cards/week-01"
+  },
+  "bot_username": "asknitai_bot",
+  "timezone": "Europe/Moscow",
+  "output_root": "assets/social-videos/week-01",
+  "share_render_across_platforms": true,
+  "safe_zones": {
+    "top": 210,
+    "bottom": 360
+  },
+  "platforms": {
+    "tiktok": {
+      "label": "TikTok",
+      "source": "tt",
+      "medium": "short",
+      "daily_target": 1,
+      "caption_suffix": "Ссылка на бота в профиле."
+    },
+    "reels": {
+      "label": "Instagram Reels",
+      "source": "ig",
+      "medium": "reels",
+      "daily_target": 1,
+      "caption_suffix": "Попробуй Нить в Telegram."
+    },
+    "shorts": {
+      "label": "YouTube Shorts",
+      "source": "yt",
+      "medium": "shorts",
+      "daily_target": 1,
+      "caption_suffix": "Открой Нить по ссылке в описании."
+    }
+  },
+  "items": [
+    {
+      "id": "day01_memory",
+      "day": 1,
+      "status": "ready",
+      "pillar": "memory",
+      "publish_time": "11:30",
+      "title": "AI, который не начинает с нуля",
+      "hook": "Если бот не помнит контекст, это не диалог.",
+      "card_range": [1, 7],
+      "duration_sec": 12,
+      "caption": "Проверь простой тест: помнит ли AI, с чего вы начали разговор?",
+      "cta": "Напиши Нити: продолжим"
+    },
+    {
+      "id": "day02_long_task",
+      "day": 2,
+      "status": "ready",
+      "pillar": "long_task",
+      "publish_time": "12:10",
+      "title": "Большую задачу нельзя резать на куски",
+      "hook": "Длинный текст должен получать длинный разбор, а не первый абзац.",
+      "card_range": [8, 14],
+      "duration_sec": 12,
+      "caption": "Для короткого вопроса хватит free. Для глубокого разбора нужен нормальный контекст.",
+      "cta": "Скинь Нити одну сложную задачу"
+    },
+    {
+      "id": "day03_continue",
+      "day": 3,
+      "status": "ready",
+      "pillar": "dialogue",
+      "publish_time": "18:40",
+      "title": "Можно просто написать: продолжим",
+      "hook": "Хороший AI не заставляет пересказывать всю историю.",
+      "card_range": [15, 21],
+      "duration_sec": 12,
+      "caption": "Меньше повторов. Больше движения вперед.",
+      "cta": "Проверь память диалога"
+    },
+    {
+      "id": "day04_day_access",
+      "day": 4,
+      "status": "ready",
+      "pillar": "premium",
+      "publish_time": "11:50",
+      "title": "Один день, чтобы разобрать завал",
+      "hook": "Оплата должна включаться там, где появляется реальная глубина.",
+      "card_range": [22, 28],
+      "duration_sec": 12,
+      "caption": "Дневной доступ нужен не для галочки, а чтобы пройти большую задачу без обрыва.",
+      "cta": "Открой дневной доступ"
+    },
+    {
+      "id": "day05_pro_context",
+      "day": 5,
+      "status": "ready",
+      "pillar": "pro",
+      "publish_time": "17:20",
+      "title": "Pro нужен для глубины",
+      "hook": "Больше контекста значит меньше случайных ответов.",
+      "card_range": [29, 35],
+      "duration_sec": 12,
+      "caption": "Когда тема тянется неделю, память начинает экономить силы.",
+      "cta": "Попробуй Pro"
+    },
+    {
+      "id": "day06_raw_thought",
+      "day": 6,
+      "status": "ready",
+      "pillar": "thinking",
+      "publish_time": "13:30",
+      "title": "Не пиши идеально. Пиши как есть",
+      "hook": "Иногда мысль сначала выглядит как хаос.",
+      "card_range": [36, 42],
+      "duration_sec": 12,
+      "caption": "Нить помогает превратить сырую фразу в план, текст или решение.",
+      "cta": "Отправь одну недодуманную мысль"
+    },
+    {
+      "id": "day07_week_thread",
+      "day": 7,
+      "status": "ready",
+      "pillar": "weekly",
+      "publish_time": "19:10",
+      "title": "За неделю получается рабочая нить",
+      "hook": "Идеи, решения, задачи и следующий шаг в одном месте.",
+      "card_range": [43, 49],
+      "duration_sec": 12,
+      "caption": "Подпишись на канал и открой Нить, если хочешь вести мысли в одном месте.",
+      "cta": "Открой Нить в Telegram"
+    }
+  ]
+}

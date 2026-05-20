@@ -1,0 +1,53 @@
+name: Social video builder
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "12 6 * * 1"
+
+concurrency:
+  group: social-video-builder
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install pillow
+
+      - name: Generate source cards
+        run: python scripts/generate_message_card_pack.py
+
+      - name: Generate social videos
+        run: python scripts/generate_social_videos.py
+
+      - name: Commit generated videos
+        run: |
+          if [ -z "$(git status --short assets/social-videos docs/social-video-board.csv docs/social-video-preview.md docs/message-card-pack-preview.md assets/message-cards/week-01)" ]; then
+            echo "No generated social video changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/social-videos docs/social-video-board.csv docs/social-video-preview.md docs/message-card-pack-preview.md assets/message-cards/week-01
+          git commit -m "Update social video assets"
+          git push
