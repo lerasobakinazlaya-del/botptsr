@@ -127,22 +127,20 @@ def decorate_frame(
     overlay = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay, "RGBA")
     draw.rectangle((0, 0, CANVAS[0], 330), fill=(0, 0, 0, 118))
-    draw.rectangle((0, 1470, CANVAS[0], CANVAS[1]), fill=(0, 0, 0, 128))
+    draw.rectangle((0, 1470, CANVAS[0], CANVAS[1]), fill=(0, 0, 0, 92))
     draw.rectangle((0, 0, CANVAS[0], CANVAS[1]), outline=(45, 217, 184, 34), width=4)
 
     title_font = load_font(50, bold=True)
     hook_font = load_font(34)
     meta_font = load_font(25)
-    cta_font = load_font(36, bold=True)
     soft = (222, 245, 241, 244)
     teal = (62, 224, 188, 255)
     muted = (166, 186, 185, 230)
 
     brand_name = str(product.get("brand_name") or "Project")
-    link_label = str(product.get("link_label") or product.get("public_handle") or brand_name)
 
     draw.text((70, 56), brand_name, font=meta_font, fill=teal)
-    draw.text((70, 94), platform_label, font=meta_font, fill=muted)
+    draw.text((70, 94), "живой AI-собеседник", font=meta_font, fill=muted)
 
     y = 148
     for line in wrap_text(draw, str(item["title"]), title_font, 880)[:2]:
@@ -153,10 +151,6 @@ def decorate_frame(
     for line in wrap_text(draw, str(item["hook"]), hook_font, 850)[:3]:
         draw.text((70, hook_y), line, font=hook_font, fill=soft)
         hook_y += 45
-
-    draw.rounded_rectangle((70, 1712, 1010, 1808), radius=34, fill=(12, 37, 39, 214))
-    draw.text((104, 1740), str(item["cta"]), font=cta_font, fill=teal)
-    draw.text((70, 1834), link_label, font=meta_font, fill=muted)
 
     return Image.alpha_composite(frame, overlay).convert("RGB")
 
