@@ -6,5 +6,7 @@
   "cover_file": "content-factory/exports/reels/night_001-cover.jpg",
   "duration": 8,
   "hook": "ты опять не спишь?",
-  "ending": "@trynit_ai"
+  "ending": "@trynit_ai",
+  "button_text": "Попробовать в Telegram",
+  "button_url": "https://t.me/asknitai_bot?start=src_tg__cmp_content_factory__med_video__cnt_night_001"
 }

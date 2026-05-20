@@ -73,9 +73,17 @@ def send_telegram_video(meta: dict[str, Any]) -> dict[str, Any]:
     caption_path = PROJECT_ROOT / meta["caption_file"]
     caption = read_text(caption_path)
     url = f"https://api.telegram.org/bot{token}/sendVideo"
+    fields = {"chat_id": chat_id, "caption": caption}
+    button_text = str(meta.get("button_text") or platform_config("telegram").get("default_button_text") or "").strip()
+    button_url = str(meta.get("button_url") or platform_config("telegram").get("default_button_url") or "").strip()
+    if button_text and button_url:
+        fields["reply_markup"] = json.dumps(
+            {"inline_keyboard": [[{"text": button_text, "url": button_url}]]},
+            ensure_ascii=False,
+        )
     request = multipart_request(
         url,
-        fields={"chat_id": chat_id, "caption": caption},
+        fields=fields,
         files={"video": video_path},
     )
     with urllib.request.urlopen(request, timeout=60) as response:

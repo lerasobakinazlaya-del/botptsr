@@ -3,6 +3,8 @@
     "enabled": true,
     "mode": "api",
     "default_chat_id": "@trynit_ai",
+    "default_button_text": "Попробовать в Telegram",
+    "default_button_url": "https://t.me/asknitai_bot?start=src_tg__cmp_content_factory__med_video",
     "required_env": ["BOT_TOKEN"],
     "optional_env": ["CONTENT_FACTORY_TELEGRAM_CHAT_ID"],
     "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo. По умолчанию используется @trynit_ai."

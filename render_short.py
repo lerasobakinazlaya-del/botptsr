@@ -115,6 +115,9 @@ def zoomed(image: Image.Image, progress: float) -> Image.Image:
 
 
 def render_base_frame(background: Image.Image, scene: dict[str, Any], message: dict[str, Any]) -> Image.Image:
+    if scene.get("layout") == "chat_story":
+        return render_chat_story_frame(background, scene, message)
+
     base = cover_resize(background.convert("RGB"))
     base = ImageEnhance.Brightness(base).enhance(0.68)
     base = ImageEnhance.Contrast(base).enhance(1.08)
@@ -157,6 +160,66 @@ def render_base_frame(background: Image.Image, scene: dict[str, Any], message: d
     draw.rounded_rectangle((74, 1646, 1006, 1762), radius=40, fill=(11, 35, 38, 220))
     draw.text((116, 1683), str(message.get("cta") or "Попробовать"), font=ending_font, fill=accent)
     draw.text((74, 1816), str(message["ending"]), font=ending_font, fill=text_color)
+    return frame.convert("RGB")
+
+
+def render_chat_story_frame(background: Image.Image, scene: dict[str, Any], message: dict[str, Any]) -> Image.Image:
+    base = cover_resize(background.convert("RGB"))
+    base = ImageEnhance.Brightness(base).enhance(0.82)
+    base = ImageEnhance.Contrast(base).enhance(1.06)
+    frame = base.convert("RGBA")
+
+    palette = scene.get("palette") or {}
+    accent = tuple(palette.get("accent") or [64, 226, 190, 255])
+    text_color = tuple(palette.get("text") or [238, 250, 248, 255])
+    muted = tuple(palette.get("muted") or [156, 181, 180, 230])
+
+    overlay = Image.new("RGBA", CANVAS, (0, 8, 12, 58))
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    draw.rectangle((0, 0, CANVAS[0], 230), fill=(0, 0, 0, 86))
+    draw.rectangle((0, 1390, CANVAS[0], CANVAS[1]), fill=(0, 0, 0, 72))
+    frame = Image.alpha_composite(frame, overlay)
+    draw = ImageDraw.Draw(frame, "RGBA")
+
+    name_font = load_font(34, bold=True)
+    status_font = load_font(27)
+    bubble_name_font = load_font(25)
+    bubble_font = load_font(42)
+    time_font = load_font(26)
+
+    avatar_x, avatar_y, avatar_size = 58, 76, 72
+    draw.ellipse((avatar_x, avatar_y, avatar_x + avatar_size, avatar_y + avatar_size), outline=accent, width=3, fill=(4, 22, 24, 210))
+    draw.arc((avatar_x + 18, avatar_y + 20, avatar_x + 56, avatar_y + 52), 205, 565, fill=accent, width=3)
+    draw.text((150, 78), str(message.get("sender") or "Нить"), font=name_font, fill=text_color)
+    draw.text((150, 120), "онлайн", font=status_font, fill=muted)
+
+    text = str(message.get("message_bubble") or message.get("hook") or "").strip()
+    bubble_w = 760
+    bubble_x = 252
+    bubble_y = 1270
+    max_text_w = bubble_w - 76
+    lines = wrap_text(draw, text, bubble_font, max_text_w)[:3]
+    bubble_h = max(184, 96 + len(lines) * 56)
+    bubble_fill = (17, 38, 42, 220)
+    draw.rounded_rectangle((bubble_x, bubble_y, bubble_x + bubble_w, bubble_y + bubble_h), radius=36, fill=bubble_fill)
+    draw.polygon(
+        [
+            (bubble_x + 42, bubble_y + bubble_h - 46),
+            (bubble_x - 24, bubble_y + bubble_h - 12),
+            (bubble_x + 56, bubble_y + bubble_h - 14),
+        ],
+        fill=bubble_fill,
+    )
+    draw.text((bubble_x + 38, bubble_y + 24), str(message.get("sender") or "Нить"), font=bubble_name_font, fill=accent)
+
+    text_y = bubble_y + 70
+    for line in lines:
+        draw.text((bubble_x + 38, text_y), line, font=bubble_font, fill=text_color)
+        text_y += 56
+
+    time_text = str(message.get("timecode") or "00:41")
+    time_w = text_width(draw, time_text, time_font)
+    draw.text((bubble_x + bubble_w - time_w - 34, bubble_y + bubble_h - 44), time_text, font=time_font, fill=muted)
     return frame.convert("RGB")
 
 
@@ -216,7 +279,6 @@ def write_platform_exports(message: dict[str, Any], master_mp4: Path, base_frame
         shutil.copyfile(master_mp4, video_path)
         caption_path.write_text(caption, encoding="utf-8")
         cover_frame = base_frame.copy()
-        ImageDraw.Draw(cover_frame, "RGBA").text((74, 142), PLATFORM_LABELS.get(platform, platform), font=load_font(30), fill=(156, 181, 180, 230))
         cover_frame.save(cover_path, quality=94)
         meta_path.write_text(
             json.dumps(
@@ -229,6 +291,8 @@ def write_platform_exports(message: dict[str, Any], master_mp4: Path, base_frame
                     "duration": message["duration"],
                     "hook": message["hook"],
                     "ending": message["ending"],
+                    "button_text": message.get("button_text", ""),
+                    "button_url": message.get("button_url", ""),
                 },
                 ensure_ascii=False,
                 indent=2,

@@ -1,7 +1,8 @@
 {
   "id": "night_room",
   "title": "Ночная комната",
-  "background": "../../assets/message-cards/week-01/card-01.png",
+  "background": "../../assets/story-backgrounds/story-bg-01.png",
+  "layout": "chat_story",
   "mood": "quiet_night",
   "palette": {
     "overlay": [0, 10, 14, 135],
