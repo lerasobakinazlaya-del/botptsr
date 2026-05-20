@@ -9,6 +9,8 @@ Telegram Bot API не даёт боту публиковать stories от им
 3. Админ вручную публикует сторис от аккаунта, у которого есть право публиковать stories канала.
 4. Workflow записывает доставку в `data/story_delivered.json`, чтобы не присылать дубль.
 
+Сейчас формат такой: 7 дней, в каждом дне по 7 отдельных PNG-картинок. Дневной MP4 собирается из этих 7 картинок с мягкими переходами и лёгким движением.
+
 ## Где лежит расписание
 
 ```text
@@ -22,7 +24,15 @@ config/story_schedule.json
 - `image_file` — куда сохранить PNG-кадр;
 - `video_file` — куда сохранить MP4 для публикации;
 - `bubble_text` — текст на самой картинке;
+- `frames` — 7 текстовых кадров для дневного видео;
 - `caption` — текст/ссылка для ручной публикации.
+
+Генератор создаёт:
+
+- обложку дня: `assets/stories/daily/<id>.png`;
+- 7 кадров дня: `assets/stories/daily/<id>/frame-01.png` ... `frame-07.png`;
+- дневное видео: `assets/stories/daily/<id>.mp4`;
+- недельный промо-ролик: `assets/stories/daily/nit-week-1-reel.mp4`.
 
 ## Как проверить локально
 
@@ -30,6 +40,8 @@ config/story_schedule.json
 python scripts\generate_story_assets.py
 python scripts\deliver_scheduled_stories.py --dry-run --now 2026-05-20T11:00:00+03:00
 ```
+
+Чтобы добавить новую неделю, достаточно дописать элементы в `config/story_schedule.json`: дата, фон, `image_file`, `video_file`, `bubble_text`, `caption` и 7 строк в `frames`. После этого `Story scheduler` сам пересоберёт картинки и видео.
 
 ## Как включить доставку в GitHub
 
@@ -51,7 +63,7 @@ Actions → Story scheduler → Run workflow → dry_run=false → limit=1
 
 - MP4-видео сторис;
 - текст на картинке;
-- caption и ссылку для публикации;
+- короткую инструкцию для публикации;
 - ID сторис из расписания.
 
 ## Что делать админу
@@ -59,7 +71,7 @@ Actions → Story scheduler → Run workflow → dry_run=false → limit=1
 1. Скачать/открыть MP4 из сообщения бота.
 2. Открыть канал `@trynit_ai`.
 3. Создать story канала вручную.
-4. Вставить caption/ссылку из сообщения бота.
+4. Добавить стикер-ссылку или упоминание `@asknitai_bot`.
 5. Опубликовать.
 
 Это безопаснее, чем userbot: не нужны пользовательские сессии, нет риска блокировки аккаунта за неофициальную автоматизацию, и весь контент всё равно готовится автоматически.

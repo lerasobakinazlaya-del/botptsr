@@ -4,6 +4,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import tempfile
 import textwrap
 from pathlib import Path
 from typing import Any
@@ -71,9 +72,8 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, m
     return lines
 
 
-def render_story(item: dict[str, Any], index: int) -> Path:
+def render_story_card(item: dict[str, Any], output_path: Path, bubble_text: str) -> Path:
     background_path = PROJECT_ROOT / str(item["background_file"])
-    output_path = PROJECT_ROOT / str(item["image_file"])
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with Image.open(background_path).convert("RGB") as source:
@@ -92,7 +92,6 @@ def render_story(item: dict[str, Any], index: int) -> Path:
     white = (245, 255, 255, 245)
     teal = (58, 214, 178, 255)
 
-    bubble_text = str(item.get("bubble_text") or "").strip()
     bubble_x = 170 if len(bubble_text) > 66 else 300
     bubble_w = 750 if len(bubble_text) > 66 else 610
     max_text_w = bubble_w - 68
@@ -122,38 +121,114 @@ def render_story(item: dict[str, Any], index: int) -> Path:
     return output_path
 
 
-def render_story_video(item: dict[str, Any]) -> Path | None:
-    image_path = PROJECT_ROOT / str(item.get("image_file") or "")
+def story_frame_texts(item: dict[str, Any]) -> list[str]:
+    frames = item.get("frames")
+    if isinstance(frames, list):
+        texts = [str(frame.get("bubble_text") if isinstance(frame, dict) else frame).strip() for frame in frames]
+        texts = [text for text in texts if text]
+        if texts:
+            return texts
+    return [str(item.get("bubble_text") or "").strip()]
+
+
+def render_story(item: dict[str, Any], index: int) -> Path:
+    del index
+    return render_story_card(
+        item,
+        PROJECT_ROOT / str(item["image_file"]),
+        story_frame_texts(item)[0],
+    )
+
+
+def render_story_frames(item: dict[str, Any], index: int) -> list[Path]:
+    del index
+    base_path = PROJECT_ROOT / str(item["image_file"])
+    frames_dir = base_path.with_suffix("")
+    frame_paths: list[Path] = []
+    for frame_index, text in enumerate(story_frame_texts(item), start=1):
+        frame_paths.append(render_story_card(item, frames_dir / f"frame-{frame_index:02d}.png", text))
+    return frame_paths
+
+
+def render_image_sequence_video(image_paths: list[Path], video_path: Path, *, hold_frames: int = 30) -> Path | None:
+    image_paths = [path for path in image_paths if path.exists()]
+    if not image_paths:
+        print("No images found for sequence video render")
+        return None
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("ffmpeg not found, skipping sequence video render")
+        return None
+
+    video_path.parent.mkdir(parents=True, exist_ok=True)
+    fps = 24
+    transition_frames = 8
+
+    def zoomed(source: Image.Image, progress: float) -> Image.Image:
+        zoom = 1.0 + 0.035 * progress
+        size = (int(CANVAS[0] * zoom), int(CANVAS[1] * zoom))
+        resized = source.resize(size, Image.Resampling.LANCZOS)
+        left = int((resized.width - CANVAS[0]) / 2)
+        top = int((resized.height - CANVAS[1]) / 2)
+        return resized.crop((left, top, left + CANVAS[0], top + CANVAS[1]))
+
+    with tempfile.TemporaryDirectory(prefix="nit_story_video_") as temp_dir:
+        temp_path = Path(temp_dir)
+        images = [Image.open(path).convert("RGB") for path in image_paths]
+        frame_index = 0
+        previous: Image.Image | None = None
+
+        for image in images:
+            if previous is not None:
+                previous_end = zoomed(previous, 1.0)
+                for step in range(transition_frames):
+                    alpha = (step + 1) / (transition_frames + 1)
+                    current_start = zoomed(image, alpha * 0.2)
+                    frame = Image.blend(previous_end, current_start, alpha)
+                    frame.save(temp_path / f"frame_{frame_index:04d}.jpg", quality=92)
+                    frame_index += 1
+
+            for step in range(hold_frames):
+                progress = step / max(hold_frames - 1, 1)
+                frame = zoomed(image, progress)
+                frame.save(temp_path / f"frame_{frame_index:04d}.jpg", quality=92)
+                frame_index += 1
+            previous = image
+
+        subprocess.run(
+            [
+                ffmpeg,
+                "-y",
+                "-framerate",
+                str(fps),
+                "-i",
+                str(temp_path / "frame_%04d.jpg"),
+                "-vf",
+                "format=yuv420p",
+                "-r",
+                str(fps),
+                "-movflags",
+                "+faststart",
+                str(video_path),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        for image in images:
+            image.close()
+    return video_path
+
+
+def render_story_video(item: dict[str, Any], frame_paths: list[Path]) -> Path | None:
     video_value = str(item.get("video_file") or "").strip()
     if not video_value:
         return None
-    video_path = PROJECT_ROOT / video_value
-    video_path.parent.mkdir(parents=True, exist_ok=True)
-    ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        print("ffmpeg not found, skipping story video render")
-        return None
-    subprocess.run(
-        [
-            ffmpeg,
-            "-y",
-            "-loop",
-            "1",
-            "-t",
-            "8",
-            "-i",
-            str(image_path),
-            "-vf",
-            "fps=30,format=yuv420p",
-            "-movflags",
-            "+faststart",
-            str(video_path),
-        ],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return video_path
+    if not frame_paths:
+        frame_paths = [PROJECT_ROOT / str(item.get("image_file") or "")]
+    return render_image_sequence_video(frame_paths, PROJECT_ROOT / video_value)
 
 
 def render_story_reel(schedule: dict[str, Any]) -> Path | None:
@@ -178,29 +253,54 @@ def render_story_reel(schedule: dict[str, Any]) -> Path | None:
 
     reel_path = PROJECT_ROOT / reel_value
     reel_path.parent.mkdir(parents=True, exist_ok=True)
-    concat_path = reel_path.with_suffix(".concat.txt")
-    concat_lines: list[str] = []
-    for image_path in image_paths:
-        safe_path = image_path.as_posix().replace("'", "'\\''")
-        concat_lines.append(f"file '{safe_path}'")
-        concat_lines.append("duration 1.35")
-    safe_last = image_paths[-1].as_posix().replace("'", "'\\''")
-    concat_lines.append(f"file '{safe_last}'")
-    concat_path.write_text("\n".join(concat_lines) + "\n", encoding="utf-8")
 
-    try:
+    fps = 24
+    hold_frames = 30
+    transition_frames = 8
+
+    def zoomed(source: Image.Image, progress: float) -> Image.Image:
+        zoom = 1.0 + 0.035 * progress
+        size = (int(CANVAS[0] * zoom), int(CANVAS[1] * zoom))
+        resized = source.resize(size, Image.Resampling.LANCZOS)
+        left = int((resized.width - CANVAS[0]) / 2)
+        top = int((resized.height - CANVAS[1]) / 2)
+        return resized.crop((left, top, left + CANVAS[0], top + CANVAS[1]))
+
+    with tempfile.TemporaryDirectory(prefix="nit_story_reel_") as temp_dir:
+        temp_path = Path(temp_dir)
+        images = [Image.open(path).convert("RGB") for path in image_paths]
+        frame_index = 0
+        previous: Image.Image | None = None
+
+        for image in images:
+            if previous is not None:
+                previous_end = zoomed(previous, 1.0)
+                for step in range(transition_frames):
+                    alpha = (step + 1) / (transition_frames + 1)
+                    current_start = zoomed(image, alpha * 0.2)
+                    frame = Image.blend(previous_end, current_start, alpha)
+                    frame.save(temp_path / f"frame_{frame_index:04d}.jpg", quality=92)
+                    frame_index += 1
+
+            for step in range(hold_frames):
+                progress = step / max(hold_frames - 1, 1)
+                frame = zoomed(image, progress)
+                frame.save(temp_path / f"frame_{frame_index:04d}.jpg", quality=92)
+                frame_index += 1
+            previous = image
+
         subprocess.run(
             [
                 ffmpeg,
                 "-y",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
+                "-framerate",
+                str(fps),
                 "-i",
-                str(concat_path),
+                str(temp_path / "frame_%04d.jpg"),
                 "-vf",
-                "fps=30,format=yuv420p",
+                "format=yuv420p",
+                "-r",
+                str(fps),
                 "-movflags",
                 "+faststart",
                 str(reel_path),
@@ -209,8 +309,9 @@ def render_story_reel(schedule: dict[str, Any]) -> Path | None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-    finally:
-        concat_path.unlink(missing_ok=True)
+
+        for image in images:
+            image.close()
     return reel_path
 
 
@@ -232,11 +333,18 @@ def generate_preview(schedule: dict[str, Any], output: Path) -> None:
                 f"ID: `{item.get('id')}`",
                 f"Картинка: `{item.get('image_file')}`",
                 f"Видео: `{item.get('video_file', '')}`",
+                f"Кадров в дневном видео: `{len(story_frame_texts(item))}`",
                 "",
                 "Текст сторис:",
                 "",
                 "```text",
                 textwrap.fill(str(item.get("bubble_text") or ""), width=70),
+                "```",
+                "",
+                "Кадры видео:",
+                "",
+                "```text",
+                "\n\n".join(f"{number}. {text}" for number, text in enumerate(story_frame_texts(item), start=1)),
                 "```",
                 "",
                 "Caption:",
@@ -263,7 +371,9 @@ def main() -> int:
             continue
         output = render_story(item, index)
         print(f"Rendered {output.relative_to(PROJECT_ROOT).as_posix()}")
-        video = render_story_video(item)
+        frame_paths = render_story_frames(item, index)
+        print(f"Rendered {len(frame_paths)} frame(s) for {item.get('id')}")
+        video = render_story_video(item, frame_paths)
         if video:
             print(f"Rendered {video.relative_to(PROJECT_ROOT).as_posix()}")
     reel = render_story_reel(schedule)
