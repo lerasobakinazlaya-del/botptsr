@@ -25,6 +25,23 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def platform_config(platform: str) -> dict[str, Any]:
+    config_path = FACTORY_ROOT / "config" / "platforms.json"
+    if not config_path.exists():
+        return {}
+    return (read_json(config_path).get(platform) or {})
+
+
+def telegram_chat_id() -> str:
+    configured = os.getenv("CONTENT_FACTORY_TELEGRAM_CHAT_ID", "").strip()
+    if configured:
+        return configured
+    fallback = str(platform_config("telegram").get("default_chat_id") or "").strip()
+    if fallback:
+        return fallback
+    return "@trynit_ai"
+
+
 def multipart_request(url: str, fields: dict[str, str], files: dict[str, Path]) -> urllib.request.Request:
     boundary = f"----NitFactory{uuid.uuid4().hex}"
     body = bytearray()
@@ -51,7 +68,7 @@ def multipart_request(url: str, fields: dict[str, str], files: dict[str, Path]) 
 
 def send_telegram_video(meta: dict[str, Any]) -> dict[str, Any]:
     token = os.environ["BOT_TOKEN"]
-    chat_id = os.environ["CONTENT_FACTORY_TELEGRAM_CHAT_ID"]
+    chat_id = telegram_chat_id()
     video_path = PROJECT_ROOT / meta["video_file"]
     caption_path = PROJECT_ROOT / meta["caption_file"]
     caption = read_text(caption_path)
@@ -82,7 +99,7 @@ def publish_or_report(meta_path: Path, live: bool) -> dict[str, Any]:
             "video_file": meta["video_file"],
             "caption_file": meta["caption_file"],
         }
-    missing = [name for name in ("BOT_TOKEN", "CONTENT_FACTORY_TELEGRAM_CHAT_ID") if not os.getenv(name)]
+    missing = [name for name in ("BOT_TOKEN",) if not os.getenv(name)]
     if missing:
         return {
             "id": meta["id"],

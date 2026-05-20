@@ -2,8 +2,10 @@
   "telegram": {
     "enabled": true,
     "mode": "api",
-    "required_env": ["BOT_TOKEN", "CONTENT_FACTORY_TELEGRAM_CHAT_ID"],
-    "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo."
+    "default_chat_id": "@trynit_ai",
+    "required_env": ["BOT_TOKEN"],
+    "optional_env": ["CONTENT_FACTORY_TELEGRAM_CHAT_ID"],
+    "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo. По умолчанию используется @trynit_ai."
   },
   "tiktok": {
     "enabled": true,

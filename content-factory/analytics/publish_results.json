@@ -21,7 +21,7 @@
       "platform": "telegram",
       "status": "needs_credentials",
       "missing_env": [
-        "CONTENT_FACTORY_TELEGRAM_CHAT_ID"
+        "BOT_TOKEN"
       ],
       "video_file": "content-factory/exports/telegram/night_001.mp4"
     },

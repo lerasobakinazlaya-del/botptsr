@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-20T15:39:13.615821+00:00",
+  "updated_at": "2026-05-20T15:41:04.483789+00:00",
   "items": [
     {
       "id": "night_001",
@@ -37,14 +37,14 @@
       "platform": "telegram",
       "status": "needs_credentials",
       "missing_env": [
-        "CONTENT_FACTORY_TELEGRAM_CHAT_ID"
+        "BOT_TOKEN"
       ],
       "video_file": "content-factory/exports/telegram/night_001.mp4",
       "caption_file": "content-factory/exports/telegram/night_001.txt",
       "cover_file": "content-factory/exports/telegram/night_001-cover.jpg",
       "hook": "ты опять не спишь?",
       "mode": "api",
-      "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo."
+      "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo. По умолчанию используется @trynit_ai."
     },
     {
       "id": "night_001",
