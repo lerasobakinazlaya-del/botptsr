@@ -156,8 +156,10 @@ def main() -> None:
     if not token:
         raise SystemExit(f"{args.token_env} is not set.")
     if not business_connection_id:
-        print(f"{business_env} is not set. Stories were generated but not published.")
-        return
+        raise SystemExit(
+            f"{business_env} is not set. Stories were generated, but Telegram postStory "
+            "requires a Business connection with can_manage_stories."
+        )
 
     active_period = int(schedule.get("active_period") or 86400)
     post_to_chat_page = bool(schedule.get("post_to_chat_page", True))
