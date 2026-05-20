@@ -19,7 +19,73 @@
     {
       "id": "night_001",
       "platform": "telegram",
-      "status": "dry_run_ready_api",
+      "status": "published",
+      "response": {
+        "ok": true,
+        "result": {
+          "message_id": 19,
+          "sender_chat": {
+            "id": -1003938796950,
+            "title": "Нить | AI-собеседник",
+            "username": "trynit_ai",
+            "type": "channel"
+          },
+          "chat": {
+            "id": -1003938796950,
+            "title": "Нить | AI-собеседник",
+            "username": "trynit_ai",
+            "type": "channel"
+          },
+          "date": 1779291977,
+          "video": {
+            "duration": 8,
+            "width": 1080,
+            "height": 1920,
+            "file_name": "night_001.mp4",
+            "mime_type": "video/mp4",
+            "thumbnail": {
+              "file_id": "AAMCAgADIQYABOrFRZYAAxNqDddJs-1e7qdxh46jk8Bhxyo-6QACgJYAAjgLcUj9dR53IZq9vQEAB20AAzsE",
+              "file_unique_id": "AQADgJYAAjgLcUhy",
+              "file_size": 8838,
+              "width": 180,
+              "height": 320
+            },
+            "thumb": {
+              "file_id": "AAMCAgADIQYABOrFRZYAAxNqDddJs-1e7qdxh46jk8Bhxyo-6QACgJYAAjgLcUj9dR53IZq9vQEAB20AAzsE",
+              "file_unique_id": "AQADgJYAAjgLcUhy",
+              "file_size": 8838,
+              "width": 180,
+              "height": 320
+            },
+            "file_id": "BAACAgIAAyEGAATqxUWWAAMTag3XSbPtXu6ncYeOo5PAYccqPukAAoCWAAI4C3FI_XUedyGavb07BA",
+            "file_unique_id": "AgADgJYAAjgLcUg",
+            "file_size": 1112553
+          },
+          "caption": "Он снова написал первым.\n\n#нить #переписка #ночь #telegram",
+          "caption_entities": [
+            {
+              "offset": 26,
+              "length": 5,
+              "type": "hashtag"
+            },
+            {
+              "offset": 32,
+              "length": 10,
+              "type": "hashtag"
+            },
+            {
+              "offset": 43,
+              "length": 5,
+              "type": "hashtag"
+            },
+            {
+              "offset": 49,
+              "length": 9,
+              "type": "hashtag"
+            }
+          ]
+        }
+      },
       "video_file": "content-factory/exports/telegram/night_001.mp4"
     },
     {
