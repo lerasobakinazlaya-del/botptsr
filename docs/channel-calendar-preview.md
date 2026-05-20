@@ -14,7 +14,7 @@ ID: `2026-05-19-pinned-post`
 Кнопка: `Открыть Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_pinned_post`
 Закреп: `True`
-Telegram message_id: `12`
+Telegram message_id: `15`
 
 Предпросмотр:
 
@@ -40,7 +40,7 @@ ID: `2026-05-19-long-task`
 Кнопка: `Проверить на своём тексте`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_long_task`
 Закреп: `False`
-Telegram message_id: `14`
+Telegram message_id: `17`
 
 Предпросмотр:
 
@@ -57,7 +57,7 @@ Telegram message_id: `14`
 • прод...
 ```
 
-## 2026-05-20 12:30 MSK · `scheduled`
+## 2026-05-20 12:30 MSK · `published`
 
 ID: `2026-05-20-memory`
 Файл: `docs/channel-posts/memory.md`
@@ -66,6 +66,7 @@ ID: `2026-05-20-memory`
 Кнопка: `Попробовать диалог`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_memory`
 Закреп: `False`
+Telegram message_id: `18`
 
 Предпросмотр:
 

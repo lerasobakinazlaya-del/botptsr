@@ -19,6 +19,17 @@
       "reposted_at": "2026-05-20T11:15:27.446488+00:00",
       "scheduled_at": "2026-05-19T18:00:00+00:00",
       "text_file": "docs/channel-posts/pinned-post.md"
+    },
+    "2026-05-20-memory": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26161246343",
+      "github_sha": "5f57491a4c47456af69065fbc239580637f6cb80",
+      "image_file": "assets/message-cards/week-01/card-21.png",
+      "message_id": 18,
+      "photo_message_id": 18,
+      "published_at": "2026-05-20T12:03:07.892319+00:00",
+      "scheduled_at": "2026-05-20T09:30:00+00:00",
+      "text_file": "docs/channel-posts/memory.md"
     }
   }
 }
