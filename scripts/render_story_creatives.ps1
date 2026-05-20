@@ -27,25 +27,11 @@ function New-RoundedRectanglePath {
     return $path
 }
 
-function New-TrianglePath {
-    param([float]$X, [float]$Y, [float]$Size)
-
-    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-    [System.Drawing.PointF[]]$points = @(
-        (New-Object System.Drawing.PointF -ArgumentList $X, $Y),
-        (New-Object System.Drawing.PointF -ArgumentList $X, ($Y + $Size)),
-        (New-Object System.Drawing.PointF -ArgumentList ($X + ($Size * 0.82)), ($Y + ($Size / 2)))
-    )
-    $path.AddPolygon($points)
-    return $path
-}
-
 function Draw-StoryFrame {
     param(
         [string]$BackgroundPath,
         [string]$OutputPath,
         [string]$BubbleText,
-        [string]$Timestamp = "00:41",
         [int]$ActiveSegment = 0
     )
 
@@ -81,7 +67,7 @@ function Draw-StoryFrame {
 
         $graphics.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(78, 0, 7, 10))), 0, 0, $width, $height)
         $graphics.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(42, 0, 0, 0))), 0, 0, $width, 260)
-        $graphics.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(62, 0, 0, 0))), 0, 1510, $width, 410)
+        $graphics.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(38, 0, 0, 0))), 0, 1510, $width, 410)
 
         $white = [System.Drawing.Color]::FromArgb(245, 255, 255, 255)
         $muted = [System.Drawing.Color]::FromArgb(178, 255, 255, 255)
@@ -114,7 +100,6 @@ function Draw-StoryFrame {
         $statusFont = New-Object System.Drawing.Font("Segoe UI", 23, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
         $bubbleNameFont = New-Object System.Drawing.Font("Segoe UI", 24, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
         $bubbleFont = New-Object System.Drawing.Font("Segoe UI", 34, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
-        $smallFont = New-Object System.Drawing.Font("Segoe UI", 24, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
 
         $graphics.DrawString("Нить", $titleFont, (New-Object System.Drawing.SolidBrush($white)), 155, 92)
         $graphics.DrawString("онлайн", $statusFont, (New-Object System.Drawing.SolidBrush($muted)), 155, 128)
@@ -148,35 +133,11 @@ function Draw-StoryFrame {
         $tail.Dispose()
 
         $graphics.DrawString("Нить", $bubbleNameFont, (New-Object System.Drawing.SolidBrush($teal)), $bubbleX + 34, $bubbleY + 22)
-        $textRect = New-Object System.Drawing.RectangleF -ArgumentList ($bubbleX + 34), ($bubbleY + 64), ($bubbleW - 118), ($bubbleH - 82)
+        $textRect = New-Object System.Drawing.RectangleF -ArgumentList ($bubbleX + 34), ($bubbleY + 64), ($bubbleW - 68), ($bubbleH - 82)
         $format = New-Object System.Drawing.StringFormat
         $format.LineAlignment = [System.Drawing.StringAlignment]::Near
         $format.Alignment = [System.Drawing.StringAlignment]::Near
         $graphics.DrawString($BubbleText, $bubbleFont, (New-Object System.Drawing.SolidBrush($white)), $textRect, $format)
-        $timeSize = $graphics.MeasureString($Timestamp, $smallFont)
-        $timestampX = $bubbleX + $bubbleW - $timeSize.Width - 28
-        $timestampY = $bubbleY + $bubbleH - 52
-        $graphics.DrawString($Timestamp, $smallFont, (New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(150, 255, 255, 255))), $timestampX, $timestampY)
-
-        $play = New-TrianglePath 84 1742 46
-        $graphics.FillPath((New-Object System.Drawing.SolidBrush($white)), $play)
-        $play.Dispose()
-        $graphics.DrawString("0:02", $smallFont, (New-Object System.Drawing.SolidBrush($white)), 156, 1748)
-        $progressY = 1772
-        $graphics.DrawLine((New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(95, 255, 255, 255), 7)), 250, $progressY, 788, $progressY)
-        $graphics.DrawLine((New-Object System.Drawing.Pen($white, 7)), 250, $progressY, 440, $progressY)
-        $graphics.FillEllipse((New-Object System.Drawing.SolidBrush($white)), 428, $progressY - 14, 28, 28)
-        $graphics.DrawString("0:08", $smallFont, (New-Object System.Drawing.SolidBrush($white)), 820, 1748)
-
-        $cornerPen = New-Object System.Drawing.Pen($white, 4)
-        $graphics.DrawLine($cornerPen, 946, 1742, 946, 1762)
-        $graphics.DrawLine($cornerPen, 946, 1742, 966, 1742)
-        $graphics.DrawLine($cornerPen, 1006, 1742, 986, 1742)
-        $graphics.DrawLine($cornerPen, 1006, 1742, 1006, 1762)
-        $graphics.DrawLine($cornerPen, 946, 1802, 946, 1782)
-        $graphics.DrawLine($cornerPen, 946, 1802, 966, 1802)
-        $graphics.DrawLine($cornerPen, 1006, 1802, 986, 1802)
-        $graphics.DrawLine($cornerPen, 1006, 1802, 1006, 1782)
 
         $bitmap.Save((Join-Path (Get-Location) $OutputPath), [System.Drawing.Imaging.ImageFormat]::Png)
 
@@ -184,8 +145,6 @@ function Draw-StoryFrame {
         $statusFont.Dispose()
         $bubbleNameFont.Dispose()
         $bubbleFont.Dispose()
-        $smallFont.Dispose()
-        $cornerPen.Dispose()
     } finally {
         $background.Dispose()
         $graphics.Dispose()
