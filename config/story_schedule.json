@@ -2,6 +2,7 @@
   "timezone": "Europe/Moscow",
   "delivery_chat_env": "STORY_DELIVERY_CHAT_ID",
   "delivery_fallback": "OWNER_ID",
+  "reel_file": "assets/stories/daily/nit-week-1-reel.mp4",
   "items": [
     {
       "id": "2026-05-20-memory-continue",

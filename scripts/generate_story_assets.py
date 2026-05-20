@@ -71,14 +71,6 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, m
     return lines
 
 
-def draw_avatar(draw: ImageDraw.ImageDraw) -> None:
-    x, y, size = 54, 90, 76
-    teal = (58, 214, 178, 255)
-    draw.ellipse((x, y, x + size, y + size), fill=(0, 15, 18, 150), outline=teal, width=3)
-    draw.ellipse((x + 18, y + 24, x + 60, y + 48), outline=(72, 255, 221, 210), width=2)
-    draw.arc((x + 18, y + 17, x + 62, y + 61), start=205, end=455, fill=(82, 245, 218, 225), width=3)
-
-
 def render_story(item: dict[str, Any], index: int) -> Path:
     background_path = PROJECT_ROOT / str(item["background_file"])
     output_path = PROJECT_ROOT / str(item["image_file"])
@@ -91,20 +83,15 @@ def render_story(item: dict[str, Any], index: int) -> Path:
     image.alpha_composite(overlay)
     draw = ImageDraw.Draw(image, "RGBA")
 
-    draw.rectangle((0, 0, CANVAS[0], 260), fill=(0, 0, 0, 42))
+    # Keep the top clean: Telegram overlays channel avatar/name on stories.
+    draw.rectangle((0, 0, CANVAS[0], 260), fill=(0, 0, 0, 18))
     draw.rectangle((0, 1510, CANVAS[0], CANVAS[1]), fill=(0, 0, 0, 38))
-    draw_avatar(draw)
 
-    title_font = load_font(30)
-    status_font = load_font(23)
     name_font = load_font(24)
     bubble_font = load_font(34)
     white = (245, 255, 255, 245)
-    muted = (245, 255, 255, 178)
     teal = (58, 214, 178, 255)
 
-    draw.text((155, 92), "Нить", font=title_font, fill=white)
-    draw.text((155, 128), "онлайн", font=status_font, fill=muted)
     bubble_text = str(item.get("bubble_text") or "").strip()
     bubble_x = 170 if len(bubble_text) > 66 else 300
     bubble_w = 750 if len(bubble_text) > 66 else 610
@@ -169,12 +156,71 @@ def render_story_video(item: dict[str, Any]) -> Path | None:
     return video_path
 
 
+def render_story_reel(schedule: dict[str, Any]) -> Path | None:
+    reel_value = str(schedule.get("reel_file") or "").strip()
+    if not reel_value:
+        return None
+
+    image_paths = [
+        PROJECT_ROOT / str(item.get("image_file") or "")
+        for item in schedule.get("items") or []
+        if item.get("enabled", True) and item.get("image_file")
+    ]
+    image_paths = [path for path in image_paths if path.exists()]
+    if len(image_paths) < 2:
+        print("Not enough story images for reel render")
+        return None
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("ffmpeg not found, skipping story reel render")
+        return None
+
+    reel_path = PROJECT_ROOT / reel_value
+    reel_path.parent.mkdir(parents=True, exist_ok=True)
+    concat_path = reel_path.with_suffix(".concat.txt")
+    concat_lines: list[str] = []
+    for image_path in image_paths:
+        safe_path = image_path.as_posix().replace("'", "'\\''")
+        concat_lines.append(f"file '{safe_path}'")
+        concat_lines.append("duration 1.35")
+    safe_last = image_paths[-1].as_posix().replace("'", "'\\''")
+    concat_lines.append(f"file '{safe_last}'")
+    concat_path.write_text("\n".join(concat_lines) + "\n", encoding="utf-8")
+
+    try:
+        subprocess.run(
+            [
+                ffmpeg,
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_path),
+                "-vf",
+                "fps=30,format=yuv420p",
+                "-movflags",
+                "+faststart",
+                str(reel_path),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    finally:
+        concat_path.unlink(missing_ok=True)
+    return reel_path
+
+
 def generate_preview(schedule: dict[str, Any], output: Path) -> None:
     lines = [
         "# Календарь Telegram Stories",
         "",
         f"Часовой пояс: `{schedule.get('timezone', 'Europe/Moscow')}`",
         f"Доставка админу: `{schedule.get('delivery_chat_env', 'STORY_DELIVERY_CHAT_ID')}`",
+        f"Рекламный ролик недели: `{schedule.get('reel_file', '')}`",
         "",
     ]
     for item in schedule.get("items") or []:
@@ -185,6 +231,7 @@ def generate_preview(schedule: dict[str, Any], output: Path) -> None:
                 "",
                 f"ID: `{item.get('id')}`",
                 f"Картинка: `{item.get('image_file')}`",
+                f"Видео: `{item.get('video_file', '')}`",
                 "",
                 "Текст сторис:",
                 "",
@@ -219,6 +266,9 @@ def main() -> int:
         video = render_story_video(item)
         if video:
             print(f"Rendered {video.relative_to(PROJECT_ROOT).as_posix()}")
+    reel = render_story_reel(schedule)
+    if reel:
+        print(f"Rendered {reel.relative_to(PROJECT_ROOT).as_posix()}")
     generate_preview(schedule, Path(args.preview_file))
     print(f"Story preview written: {args.preview_file}")
     return 0

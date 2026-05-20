@@ -52,15 +52,16 @@ def resolve_delivery_chat_ids(schedule: dict, chat_env: str) -> list[str]:
 
 
 def build_caption(item: dict) -> str:
-    story_caption = str(item.get("caption") or "").strip()
     bubble_text = str(item.get("bubble_text") or "").strip()
     return (
         "Готовое видео-сторис для канала.\n\n"
         f"ID: {item.get('id')}\n\n"
         "Текст на видео:\n"
         f"{bubble_text}\n\n"
-        "Caption/ссылка для публикации:\n"
-        f"{story_caption}"
+        "Как публиковать:\n"
+        "1. Выложи это видео в сторис канала.\n"
+        "2. Добавь стикер-ссылку или упоминание @asknitai_bot.\n"
+        "3. Короткий CTA: «Попробовать Нить»."
     )[:1024]
 
 
