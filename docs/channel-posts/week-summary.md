@@ -11,5 +11,4 @@
 
 Если да, продукт живой. Если нет, чиним не рекламу, а первый ответ.
 
-Попробовать:
-https://t.me/asknitai_bot?start=src_telegram__cmp_channel_launch__med_channel__cnt_week_summary
+Попробовать Нить можно по кнопке ниже.
