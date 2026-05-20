@@ -1,0 +1,200 @@
+{
+  "campaign": "sw1",
+  "bot_username": "asknitai_bot",
+  "production_root": "assets/videos",
+  "brand": {
+    "name": "Нить",
+    "promise": "AI-собеседник в Telegram, который держит контекст и помогает довести мысль до следующего шага",
+    "language": "ru"
+  },
+  "platforms": {
+    "tiktok": {
+      "daily_target": 2,
+      "profile_url": "https://t.me/asknitai_bot?start=src_tiktok__cmp_profile__med_bio__cnt_main"
+    },
+    "instagram": {
+      "daily_target": 1,
+      "profile_url": "https://t.me/asknitai_bot?start=src_instagram__cmp_profile__med_bio__cnt_main"
+    },
+    "youtube": {
+      "daily_target": 1,
+      "profile_url": "https://t.me/asknitai_bot?start=src_youtube__cmp_profile__med_bio__cnt_main"
+    },
+    "telegram": {
+      "daily_target": 1,
+      "profile_url": "https://t.me/asknitai_bot?start=src_telegram__cmp_channel__med_post__cnt_main"
+    }
+  },
+  "items": [
+    {
+      "id": "vgw1_memory_name",
+      "day": 1,
+      "status": "ready_for_edit",
+      "platform": "tiktok",
+      "pillar": "memory",
+      "source": "tt",
+      "medium": "sv",
+      "campaign": "sw1",
+      "content": "mem",
+      "hook": "Спроси AI: как меня зовут? Если он не помнит, диалог уже сломан.",
+      "title": "Бот, который не начинает с нуля",
+      "duration_sec": 18,
+      "asset_plan": "screen_recording_plus_story_card",
+      "source_assets": [
+        "assets/stories/memory-story.png"
+      ],
+      "scenes": [
+        "0-2с: крупный текст «Как меня зовут?»",
+        "2-5с: обычный бот отвечает «я не знаю»",
+        "5-11с: Нить достаёт имя из профиля/памяти",
+        "11-16с: объяснить, что память нужна для продолжения, а не для фокуса",
+        "16-18с: CTA «проверь на себе в Telegram»"
+      ],
+      "caption": "Если бот забывает контекст, разговор каждый раз начинается заново. Проверь Нить: {url}",
+      "cta": "Проверь в Telegram",
+      "safety_notes": "Не обещать терапию или абсолютную память.",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "vgw1_long_text_paywall",
+      "day": 1,
+      "status": "ready_for_edit",
+      "platform": "instagram",
+      "pillar": "long_task",
+      "source": "ig",
+      "medium": "reels",
+      "campaign": "sw1",
+      "content": "long",
+      "hook": "Большой текст не должен умирать на первой строке ответа.",
+      "title": "Длинная задача без обрыва",
+      "duration_sec": 22,
+      "asset_plan": "story_card_plus_chat_mock",
+      "source_assets": [
+        "assets/stories/long-task-story.png"
+      ],
+      "scenes": [
+        "0-3с: показать длинный текст и просьбу «переведи целиком»",
+        "3-7с: плохой ответ обрывается после первых строк",
+        "7-13с: Нить даёт полезное начало и честно предлагает день доступа",
+        "13-19с: показать Stars/YooKassa как два способа оплаты",
+        "19-22с: CTA «не режь задачу на куски»"
+      ],
+      "caption": "Для короткого вопроса хватит free. Для большого разбора нужен день доступа: {url}",
+      "cta": "Проверить на своём тексте",
+      "safety_notes": "Не использовать защищённые тексты целиком в публичном ролике.",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "vgw1_second_message",
+      "day": 2,
+      "status": "ready_for_script",
+      "platform": "tiktok",
+      "pillar": "dialogue",
+      "source": "tt",
+      "medium": "sv",
+      "campaign": "sw1",
+      "content": "second",
+      "hook": "Главный тест AI-бота: хочется ли ответить ему вторым сообщением?",
+      "title": "Не справочник, а собеседник",
+      "duration_sec": 16,
+      "asset_plan": "split_screen_bad_good_answer",
+      "source_assets": [
+        "assets/stories/week-summary-story.png"
+      ],
+      "scenes": [
+        "0-2с: текст «тест: второе сообщение»",
+        "2-6с: шаблонный ответ обычного бота",
+        "6-12с: Нить отвечает с живым продолжением",
+        "12-16с: CTA «напиши одну честную фразу»"
+      ],
+      "caption": "Мы меряем не лайки, а желание продолжить разговор. Попробуй: {url}",
+      "cta": "Напиши одну фразу",
+      "safety_notes": "Не изображать эмоциональную зависимость от бота.",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "vgw1_night_thought",
+      "day": 2,
+      "status": "ready_for_edit",
+      "platform": "telegram",
+      "pillar": "night_thought",
+      "source": "tg",
+      "medium": "story",
+      "campaign": "sw1",
+      "content": "night",
+      "hook": "Ты тогда так и не рассказал, чем всё закончилось.",
+      "title": "Сторис-подводка к диалогу",
+      "duration_sec": 10,
+      "asset_plan": "existing_story_mp4",
+      "source_assets": [
+        "assets/stories/nit-story-launch.mp4",
+        "assets/stories/pinned-post-story.png"
+      ],
+      "scenes": [
+        "0-10с: использовать готовый MP4 без дополнительных таймеров",
+        "caption: «Иногда продолжить проще с одной фразы»",
+        "CTA: ссылка на бота"
+      ],
+      "caption": "Иногда продолжить проще с одной фразы: {url}",
+      "cta": "Продолжить диалог",
+      "safety_notes": "Не давить на одиночество.",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "vgw1_payment_meaning",
+      "day": 3,
+      "status": "draft",
+      "platform": "tiktok",
+      "pillar": "premium",
+      "source": "tt",
+      "medium": "sv",
+      "campaign": "sw1",
+      "content": "pay",
+      "hook": "Платить за AI стоит только когда он реально продолжает мысль.",
+      "title": "За что платить в Нити",
+      "duration_sec": 20,
+      "asset_plan": "pricing_overlay_plus_chat",
+      "source_assets": [
+        "assets/stories/payments-story.png"
+      ],
+      "scenes": [
+        "0-3с: Free — попробовать стиль",
+        "3-8с: Pro — больше контекста и режимы",
+        "8-14с: Premium — глубокие разборы и память",
+        "14-20с: CTA «сначала попробуй бесплатно»"
+      ],
+      "caption": "Free нужен для первого контакта. Платный доступ — для глубины и контекста: {url}",
+      "cta": "Сначала попробуй бесплатно",
+      "safety_notes": "Не обещать гарантированный результат после оплаты.",
+      "safe_copy_checked": true
+    },
+    {
+      "id": "vgw1_build_public",
+      "day": 3,
+      "status": "draft",
+      "platform": "instagram",
+      "pillar": "build_in_public",
+      "source": "ig",
+      "medium": "reels",
+      "campaign": "sw1",
+      "content": "build",
+      "hook": "Мы не делаем магию. Мы каждый день убираем тупые ответы бота.",
+      "title": "Build in public",
+      "duration_sec": 18,
+      "asset_plan": "before_after_admin_screen",
+      "source_assets": [
+        "assets/stories/product-update-story.png"
+      ],
+      "scenes": [
+        "0-3с: показать плохой ответ с англо-русской смесью",
+        "3-8с: показать правило русификации и проверку промптов",
+        "8-14с: показать новый ответ/картинку/пост",
+        "14-18с: CTA «следи за каналом и тестируй»"
+      ],
+      "caption": "Показываем, как Нить становится менее роботской и более полезной: {url}",
+      "cta": "Следить за разработкой",
+      "safety_notes": "Не раскрывать приватные данные пользователей.",
+      "safe_copy_checked": true
+    }
+  ]
+}

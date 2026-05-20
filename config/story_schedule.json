@@ -1,0 +1,78 @@
+{
+  "timezone": "Europe/Moscow",
+  "business_connection_env": "TELEGRAM_BUSINESS_CONNECTION_ID",
+  "active_period": 86400,
+  "post_to_chat_page": true,
+  "items": [
+    {
+      "id": "2026-05-20-memory-continue",
+      "enabled": true,
+      "publish_at": "2026-05-20T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-03.png",
+      "image_file": "assets/stories/daily/2026-05-20-memory-continue.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Помню, что мы вчера разбирали твой проект. Продолжим с плана или сначала соберём идеи?",
+      "caption": "Проверь, как Нить продолжает диалог: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_mem"
+    },
+    {
+      "id": "2026-05-21-long-task",
+      "enabled": true,
+      "publish_at": "2026-05-21T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-02.png",
+      "image_file": "assets/stories/daily/2026-05-21-long-task.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Ты не обязан формулировать идеально. Напиши как есть, а я помогу разложить это по шагам.",
+      "caption": "Дай Нити одну длинную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_long"
+    },
+    {
+      "id": "2026-05-22-no-repeat",
+      "enabled": true,
+      "publish_at": "2026-05-22T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-01.png",
+      "image_file": "assets/stories/daily/2026-05-22-no-repeat.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Мы уже решили: цель, сроки и первый шаг. Сейчас могу помочь дописать следующий блок.",
+      "caption": "Не объясняй всё заново: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_repeat"
+    },
+    {
+      "id": "2026-05-23-day-access",
+      "enabled": true,
+      "publish_at": "2026-05-23T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-04.png",
+      "image_file": "assets/stories/daily/2026-05-23-day-access.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Если нужно быстро разобрать завал, давай возьмём один день и пройдёмся по задачам без лишнего шума.",
+      "caption": "Открой день доступа, когда нужен глубокий разбор: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_day"
+    },
+    {
+      "id": "2026-05-24-pro-context",
+      "enabled": true,
+      "publish_at": "2026-05-24T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-03.png",
+      "image_file": "assets/stories/daily/2026-05-24-pro-context.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Вижу, ты часто возвращаешься к этой теме. Могу держать контекст глубже и помогать вести её дальше.",
+      "caption": "Pro и Premium нужны, когда разговор не должен обнуляться: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_pro"
+    },
+    {
+      "id": "2026-05-25-raw-thought",
+      "enabled": true,
+      "publish_at": "2026-05-25T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-02.png",
+      "image_file": "assets/stories/daily/2026-05-25-raw-thought.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "Начнём с сырой мысли. Я задам пару вопросов, соберу структуру и помогу довести до понятного плана.",
+      "caption": "Начни с одной мысли: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_raw"
+    },
+    {
+      "id": "2026-05-26-week-thread",
+      "enabled": true,
+      "publish_at": "2026-05-26T10:30:00+03:00",
+      "background_file": "assets/story-backgrounds/story-bg-01.png",
+      "image_file": "assets/stories/daily/2026-05-26-week-thread.png",
+      "headline": "Нить онлайн",
+      "bubble_text": "За неделю у нас может получиться не просто чат, а рабочая нить: идеи, решения, задачи и следующий шаг.",
+      "caption": "Подпишись на канал и открой бота: https://t.me/asknitai_bot?start=src_tg__cmp_sw1__med_story__cnt_week"
+    }
+  ]
+}
