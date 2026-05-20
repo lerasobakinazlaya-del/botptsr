@@ -155,7 +155,7 @@ def generate_preview(schedule: dict[str, Any], output: Path) -> None:
         "# Календарь Telegram Stories",
         "",
         f"Часовой пояс: `{schedule.get('timezone', 'Europe/Moscow')}`",
-        f"Business env: `{schedule.get('business_connection_env', 'TELEGRAM_BUSINESS_CONNECTION_ID')}`",
+        f"Доставка админу: `{schedule.get('delivery_chat_env', 'STORY_DELIVERY_CHAT_ID')}`",
         "",
     ]
     for item in schedule.get("items") or []:

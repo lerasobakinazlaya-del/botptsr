@@ -1,7 +1,7 @@
 ﻿# Календарь Telegram Stories
 
 Часовой пояс: `Europe/Moscow`
-Business env: `TELEGRAM_BUSINESS_CONNECTION_ID`
+Доставка админу: `STORY_DELIVERY_CHAT_ID`
 
 ## 2026-05-20T10:30:00+03:00 · `enabled`
 

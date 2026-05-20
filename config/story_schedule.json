@@ -1,8 +1,7 @@
 {
   "timezone": "Europe/Moscow",
-  "business_connection_env": "TELEGRAM_BUSINESS_CONNECTION_ID",
-  "active_period": 86400,
-  "post_to_chat_page": true,
+  "delivery_chat_env": "STORY_DELIVERY_CHAT_ID",
+  "delivery_fallback": "OWNER_ID",
   "items": [
     {
       "id": "2026-05-20-memory-continue",
