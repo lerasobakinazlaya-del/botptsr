@@ -84,6 +84,26 @@ def publish_image_if_needed(token: str, item: dict, chat_id: str) -> int | None:
     return int(result["result"]["message_id"])
 
 
+def publish_photo_with_caption_if_possible(token: str, item: dict, payload: dict) -> int | None:
+    image_file = str(item.get("image_file") or "").strip()
+    if not image_file:
+        return None
+    text = str(payload.get("text") or "")
+    if len(text) > 1024:
+        return None
+    image_path = Path(image_file)
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+    photo_payload = {
+        "chat_id": payload["chat_id"],
+        "caption": text,
+    }
+    if payload.get("reply_markup"):
+        photo_payload["reply_markup"] = payload["reply_markup"]
+    result = telegram_multipart_call(token, "sendPhoto", photo_payload, {"photo": image_path})
+    return int(result["result"]["message_id"])
+
+
 def main() -> None:
     args = parse_args()
     load_dotenv(".env")
@@ -130,13 +150,18 @@ def main() -> None:
 
     for publish_at, item in due_items:
         payload = build_message_payload(item, schedule)
-        photo_message_id = publish_image_if_needed(token, item, str(payload["chat_id"]))
+        photo_message_id = publish_photo_with_caption_if_possible(token, item, payload)
         if photo_message_id:
-            print(f"Posted image for {item['id']} photo_message_id={photo_message_id}")
+            message_id = photo_message_id
+            print(f"Posted {item['id']} as photo post message_id={message_id}")
+        else:
+            photo_message_id = publish_image_if_needed(token, item, str(payload["chat_id"]))
+            if photo_message_id:
+                print(f"Posted image for {item['id']} photo_message_id={photo_message_id}")
 
-        result = telegram_call(token, "sendMessage", payload)
-        message_id = int(result["result"]["message_id"])
-        print(f"Posted {item['id']} message_id={message_id}")
+            result = telegram_call(token, "sendMessage", payload)
+            message_id = int(result["result"]["message_id"])
+            print(f"Posted {item['id']} message_id={message_id}")
 
         if bool(item.get("pin", False)):
             telegram_call(

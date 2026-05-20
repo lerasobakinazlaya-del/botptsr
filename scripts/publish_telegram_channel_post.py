@@ -45,6 +45,8 @@ def telegram_multipart_call(token: str, method: str, payload: dict, files: dict[
     for key, value in payload.items():
         chunks.append(f"--{boundary}\r\n".encode("utf-8"))
         chunks.append(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode("utf-8"))
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value, ensure_ascii=False)
         chunks.append(str(value).encode("utf-8"))
         chunks.append(b"\r\n")
     for key, path in files.items():
@@ -91,18 +93,6 @@ def main() -> None:
         )
         print(f"Deleted message_id={args.delete_message_id}")
 
-    if args.image_file:
-        image_path = Path(args.image_file)
-        if not image_path.exists():
-            raise SystemExit(f"Image file not found: {image_path}")
-        photo_result = telegram_multipart_call(
-            token,
-            "sendPhoto",
-            {"chat_id": args.chat_id},
-            {"photo": image_path},
-        )
-        print(f"Posted photo_message_id={int(photo_result['result']['message_id'])}")
-
     payload = {
         "chat_id": args.chat_id,
         "text": text,
@@ -113,9 +103,27 @@ def main() -> None:
             "inline_keyboard": [[{"text": args.button_text, "url": args.button_url}]],
         }
 
-    result = telegram_call(token, "sendMessage", payload)
-    message_id = int(result["result"]["message_id"])
-    print(f"Posted message_id={message_id}")
+    if args.image_file and len(text) <= 1024:
+        image_path = Path(args.image_file)
+        if not image_path.exists():
+            raise SystemExit(f"Image file not found: {image_path}")
+        photo_payload = {"chat_id": args.chat_id, "caption": text}
+        if "reply_markup" in payload:
+            photo_payload["reply_markup"] = payload["reply_markup"]
+        result = telegram_multipart_call(token, "sendPhoto", photo_payload, {"photo": image_path})
+        message_id = int(result["result"]["message_id"])
+        print(f"Posted photo_message_id={message_id}")
+    else:
+        if args.image_file:
+            image_path = Path(args.image_file)
+            if not image_path.exists():
+                raise SystemExit(f"Image file not found: {image_path}")
+            photo_result = telegram_multipart_call(token, "sendPhoto", {"chat_id": args.chat_id}, {"photo": image_path})
+            print(f"Posted photo_message_id={int(photo_result['result']['message_id'])}")
+
+        result = telegram_call(token, "sendMessage", payload)
+        message_id = int(result["result"]["message_id"])
+        print(f"Posted message_id={message_id}")
 
     if args.pin:
         telegram_call(
