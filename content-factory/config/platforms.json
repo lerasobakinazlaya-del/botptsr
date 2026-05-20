@@ -1,0 +1,27 @@
+{
+  "telegram": {
+    "enabled": true,
+    "mode": "api",
+    "required_env": ["BOT_TOKEN", "CONTENT_FACTORY_TELEGRAM_CHAT_ID"],
+    "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo."
+  },
+  "tiktok": {
+    "enabled": true,
+    "mode": "api_or_manual",
+    "required_env": ["TIKTOK_ACCESS_TOKEN"],
+    "optional_env": ["TIKTOK_PRIVACY_LEVEL"],
+    "notes": "Direct Post требует approved video.publish scope и audit. До этого используем ready-to-upload exports."
+  },
+  "shorts": {
+    "enabled": true,
+    "mode": "api_or_manual",
+    "required_env": ["YOUTUBE_CLIENT_SECRET_JSON", "YOUTUBE_TOKEN_JSON"],
+    "notes": "YouTube Data API videos.insert работает через OAuth; новые непроверенные проекты могут грузить только private."
+  },
+  "reels": {
+    "enabled": true,
+    "mode": "api_or_manual",
+    "required_env": ["INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_IG_USER_ID", "CONTENT_PUBLIC_BASE_URL"],
+    "notes": "Instagram Reels publishing требует Professional account, Graph API token и публичный URL видео."
+  }
+}

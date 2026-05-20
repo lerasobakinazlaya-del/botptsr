@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "id": "night_001",
+      "platform": "reels",
+      "status": "ready_manual",
+      "reason": "API connector is configured as gated: use exports now, add OAuth/app review before live upload.",
+      "video_file": "content-factory/exports/reels/night_001.mp4",
+      "caption_file": "content-factory/exports/reels/night_001.txt"
+    },
+    {
+      "id": "night_001",
+      "platform": "shorts",
+      "status": "ready_manual",
+      "reason": "API connector is configured as gated: use exports now, add OAuth/app review before live upload.",
+      "video_file": "content-factory/exports/shorts/night_001.mp4",
+      "caption_file": "content-factory/exports/shorts/night_001.txt"
+    },
+    {
+      "id": "night_001",
+      "platform": "telegram",
+      "status": "needs_credentials",
+      "missing_env": [
+        "BOT_TOKEN",
+        "CONTENT_FACTORY_TELEGRAM_CHAT_ID"
+      ],
+      "video_file": "content-factory/exports/telegram/night_001.mp4"
+    },
+    {
+      "id": "night_001",
+      "platform": "tiktok",
+      "status": "ready_manual",
+      "reason": "API connector is configured as gated: use exports now, add OAuth/app review before live upload.",
+      "video_file": "content-factory/exports/tiktok/night_001.mp4",
+      "caption_file": "content-factory/exports/tiktok/night_001.txt"
+    }
+  ]
+}

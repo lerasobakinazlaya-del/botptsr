@@ -1,0 +1,65 @@
+{
+  "updated_at": "2026-05-20T15:37:19.714108+00:00",
+  "items": [
+    {
+      "id": "night_001",
+      "platform": "reels",
+      "status": "ready_manual",
+      "missing_env": [
+        "INSTAGRAM_ACCESS_TOKEN",
+        "INSTAGRAM_IG_USER_ID",
+        "CONTENT_PUBLIC_BASE_URL"
+      ],
+      "video_file": "content-factory/exports/reels/night_001.mp4",
+      "caption_file": "content-factory/exports/reels/night_001.txt",
+      "cover_file": "content-factory/exports/reels/night_001-cover.jpg",
+      "hook": "ты опять не спишь?",
+      "mode": "api_or_manual",
+      "notes": "Instagram Reels publishing требует Professional account, Graph API token и публичный URL видео."
+    },
+    {
+      "id": "night_001",
+      "platform": "shorts",
+      "status": "ready_manual",
+      "missing_env": [
+        "YOUTUBE_CLIENT_SECRET_JSON",
+        "YOUTUBE_TOKEN_JSON"
+      ],
+      "video_file": "content-factory/exports/shorts/night_001.mp4",
+      "caption_file": "content-factory/exports/shorts/night_001.txt",
+      "cover_file": "content-factory/exports/shorts/night_001-cover.jpg",
+      "hook": "ты опять не спишь?",
+      "mode": "api_or_manual",
+      "notes": "YouTube Data API videos.insert работает через OAuth; новые непроверенные проекты могут грузить только private."
+    },
+    {
+      "id": "night_001",
+      "platform": "telegram",
+      "status": "needs_credentials",
+      "missing_env": [
+        "BOT_TOKEN",
+        "CONTENT_FACTORY_TELEGRAM_CHAT_ID"
+      ],
+      "video_file": "content-factory/exports/telegram/night_001.mp4",
+      "caption_file": "content-factory/exports/telegram/night_001.txt",
+      "cover_file": "content-factory/exports/telegram/night_001-cover.jpg",
+      "hook": "ты опять не спишь?",
+      "mode": "api",
+      "notes": "Можно отправлять готовые MP4 в канал/чат через Bot API sendVideo."
+    },
+    {
+      "id": "night_001",
+      "platform": "tiktok",
+      "status": "ready_manual",
+      "missing_env": [
+        "TIKTOK_ACCESS_TOKEN"
+      ],
+      "video_file": "content-factory/exports/tiktok/night_001.mp4",
+      "caption_file": "content-factory/exports/tiktok/night_001.txt",
+      "cover_file": "content-factory/exports/tiktok/night_001-cover.jpg",
+      "hook": "ты опять не спишь?",
+      "mode": "api_or_manual",
+      "notes": "Direct Post требует approved video.publish scope и audit. До этого используем ready-to-upload exports."
+    }
+  ]
+}

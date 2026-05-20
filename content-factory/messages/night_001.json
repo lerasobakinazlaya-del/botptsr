@@ -1,6 +1,6 @@
 {
   "id": "night_001",
-  "platform": ["tiktok", "shorts", "reels"],
+  "platform": ["tiktok", "shorts", "reels", "telegram"],
   "duration": 8,
   "scene": "night_room",
   "hook": "ты опять не спишь?",

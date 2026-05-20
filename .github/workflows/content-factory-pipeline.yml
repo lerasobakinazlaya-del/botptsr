@@ -1,0 +1,85 @@
+name: Content factory pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Message id to render, or 'all'"
+        required: true
+        default: "all"
+      publish_live:
+        description: "Publish API-enabled targets instead of dry-run"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  schedule:
+    - cron: "42 6 * * *"
+
+concurrency:
+  group: content-factory-pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+  CONTENT_FACTORY_TELEGRAM_CHAT_ID: ${{ secrets.CONTENT_FACTORY_TELEGRAM_CHAT_ID }}
+  TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+  TIKTOK_PRIVACY_LEVEL: ${{ secrets.TIKTOK_PRIVACY_LEVEL }}
+  YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+  YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+  INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+  INSTAGRAM_IG_USER_ID: ${{ secrets.INSTAGRAM_IG_USER_ID }}
+  CONTENT_PUBLIC_BASE_URL: ${{ secrets.CONTENT_PUBLIC_BASE_URL }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install pillow
+
+      - name: Run content factory
+        run: |
+          if [ "${{ github.event.inputs.message || 'all' }}" = "all" ]; then
+            python scripts/content_factory_pipeline.py --all
+          else
+            python scripts/content_factory_pipeline.py --message "${{ github.event.inputs.message }}"
+          fi
+
+      - name: Publish dry-run or live
+        run: |
+          if [ "${{ github.event.inputs.publish_live || 'false' }}" = "true" ]; then
+            python scripts/content_factory_publish.py --live
+          else
+            python scripts/content_factory_publish.py
+          fi
+
+      - name: Commit content factory state
+        run: |
+          if [ -z "$(git status --short content-factory docs/content-factory-tiktok-pipeline.md)" ]; then
+            echo "No content factory changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content-factory docs/content-factory-tiktok-pipeline.md
+          git commit -m "Update content factory pipeline state"
+          git push
