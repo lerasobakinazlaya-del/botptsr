@@ -2,7 +2,8 @@ name: Channel scheduler
 
 on:
   schedule:
-    - cron: "17 9,17 * * *"
+    - cron: "35 9 * * *"
+    - cron: "45 17 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -16,7 +17,7 @@ on:
       limit:
         description: "Max posts per run"
         required: true
-        default: "2"
+        default: "1"
 
 concurrency:
   group: channel-scheduler
@@ -33,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      LIMIT: ${{ github.event.inputs.limit || '2' }}
+      LIMIT: ${{ github.event.inputs.limit || '1' }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
 
     steps:

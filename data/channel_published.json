@@ -33,6 +33,8 @@
     },
     "2026-05-20-night-p1": {
       "chat_id": "@trynit_ai",
+      "deleted_at": "2026-05-21T00:00:00+03:00",
+      "deleted_reason": "Removed duplicate weak channel post with internal day label",
       "github_run_id": "26185306390",
       "github_sha": "485c50137a8844628739db12d391e1e45458789b",
       "image_file": "assets/message-cards/week-01/card-01.png",

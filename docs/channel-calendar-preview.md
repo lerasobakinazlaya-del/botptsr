@@ -5,16 +5,15 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-05-20 12:30 MSK · `published`
+## 2026-05-22 12:30 MSK · `scheduled`
 
-ID: `2026-05-20-night-p1`
-Файл: `docs/channel-posts/2026-05-20-night-p1.md`
+ID: `2026-05-22-night-p1`
+Файл: `docs/channel-posts/2026-05-22-night-p1.md`
 Картинка: `assets/message-cards/week-01/card-01.png`
 Превью в админке: `assets/message-cards/week-01/card-01.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p1`
-Закреп: `True`
-Telegram message_id: `20`
+Закреп: `False`
 
 Предпросмотр:
 
@@ -28,22 +27,19 @@ Telegram message_id: `20`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-20 20:40 MSK · `published`
+## 2026-05-22 20:40 MSK · `scheduled`
 
-ID: `2026-05-20-night-p2`
-Файл: `docs/channel-posts/2026-05-20-night-p2.md`
+ID: `2026-05-22-night-p2`
+Файл: `docs/channel-posts/2026-05-22-night-p2.md`
 Картинка: `assets/message-cards/week-01/card-07.png`
 Превью в админке: `assets/message-cards/week-01/card-07.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p2`
 Закреп: `False`
-Telegram message_id: `22`
 
 Предпросмотр:
 
 ```text
-День 1 из 7: ночной диалог.
-
 Нить выдерживает первый поток и помогает найти одну понятную мысль.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -51,10 +47,10 @@ Telegram message_id: `22`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-21 12:30 MSK · `scheduled`
+## 2026-05-23 12:30 MSK · `scheduled`
 
-ID: `2026-05-21-memory-p1`
-Файл: `docs/channel-posts/2026-05-21-memory-p1.md`
+ID: `2026-05-23-memory-p1`
+Файл: `docs/channel-posts/2026-05-23-memory-p1.md`
 Картинка: `assets/message-cards/week-01/card-08.png`
 Превью в админке: `assets/message-cards/week-01/card-08.png`
 Кнопка: `Попробовать Нить`
@@ -73,10 +69,10 @@ ID: `2026-05-21-memory-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-21 20:40 MSK · `scheduled`
+## 2026-05-23 20:40 MSK · `scheduled`
 
-ID: `2026-05-21-memory-p2`
-Файл: `docs/channel-posts/2026-05-21-memory-p2.md`
+ID: `2026-05-23-memory-p2`
+Файл: `docs/channel-posts/2026-05-23-memory-p2.md`
 Картинка: `assets/message-cards/week-01/card-14.png`
 Превью в админке: `assets/message-cards/week-01/card-14.png`
 Кнопка: `Попробовать Нить`
@@ -86,8 +82,6 @@ ID: `2026-05-21-memory-p2`
 Предпросмотр:
 
 ```text
-День 2 из 7: память.
-
 Нить возвращает разговор туда, где он оборвался.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -95,10 +89,10 @@ ID: `2026-05-21-memory-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-22 12:30 MSK · `scheduled`
+## 2026-05-24 12:30 MSK · `scheduled`
 
-ID: `2026-05-22-long-task-p1`
-Файл: `docs/channel-posts/2026-05-22-long-task-p1.md`
+ID: `2026-05-24-long-task-p1`
+Файл: `docs/channel-posts/2026-05-24-long-task-p1.md`
 Картинка: `assets/message-cards/week-01/card-15.png`
 Превью в админке: `assets/message-cards/week-01/card-15.png`
 Кнопка: `Попробовать Нить`
@@ -117,10 +111,10 @@ ID: `2026-05-22-long-task-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-22 20:40 MSK · `scheduled`
+## 2026-05-24 20:40 MSK · `scheduled`
 
-ID: `2026-05-22-long-task-p2`
-Файл: `docs/channel-posts/2026-05-22-long-task-p2.md`
+ID: `2026-05-24-long-task-p2`
+Файл: `docs/channel-posts/2026-05-24-long-task-p2.md`
 Картинка: `assets/message-cards/week-01/card-21.png`
 Превью в админке: `assets/message-cards/week-01/card-21.png`
 Кнопка: `Попробовать Нить`
@@ -130,8 +124,6 @@ ID: `2026-05-22-long-task-p2`
 Предпросмотр:
 
 ```text
-День 3 из 7: длинная задача.
-
 Нить сначала берет суть, потом ведет разбор по частям.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -139,10 +131,10 @@ ID: `2026-05-22-long-task-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-23 12:30 MSK · `scheduled`
+## 2026-05-25 12:30 MSK · `scheduled`
 
-ID: `2026-05-23-not-send-p1`
-Файл: `docs/channel-posts/2026-05-23-not-send-p1.md`
+ID: `2026-05-25-not-send-p1`
+Файл: `docs/channel-posts/2026-05-25-not-send-p1.md`
 Картинка: `assets/message-cards/week-01/card-22.png`
 Превью в админке: `assets/message-cards/week-01/card-22.png`
 Кнопка: `Попробовать Нить`
@@ -161,10 +153,10 @@ ID: `2026-05-23-not-send-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-23 20:40 MSK · `scheduled`
+## 2026-05-25 20:40 MSK · `scheduled`
 
-ID: `2026-05-23-not-send-p2`
-Файл: `docs/channel-posts/2026-05-23-not-send-p2.md`
+ID: `2026-05-25-not-send-p2`
+Файл: `docs/channel-posts/2026-05-25-not-send-p2.md`
 Картинка: `assets/message-cards/week-01/card-28.png`
 Превью в админке: `assets/message-cards/week-01/card-28.png`
 Кнопка: `Попробовать Нить`
@@ -174,8 +166,6 @@ ID: `2026-05-23-not-send-p2`
 Предпросмотр:
 
 ```text
-День 4 из 7: сообщение, которое лучше не отправлять.
-
 Нить помогает сначала выговориться, а потом собрать нормальную формулировку.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -183,10 +173,10 @@ ID: `2026-05-23-not-send-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-24 12:30 MSK · `scheduled`
+## 2026-05-26 12:30 MSK · `scheduled`
 
-ID: `2026-05-24-one-day-p1`
-Файл: `docs/channel-posts/2026-05-24-one-day-p1.md`
+ID: `2026-05-26-one-day-p1`
+Файл: `docs/channel-posts/2026-05-26-one-day-p1.md`
 Картинка: `assets/message-cards/week-01/card-29.png`
 Превью в админке: `assets/message-cards/week-01/card-29.png`
 Кнопка: `Попробовать Нить`
@@ -205,10 +195,10 @@ ID: `2026-05-24-one-day-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-24 20:40 MSK · `scheduled`
+## 2026-05-26 20:40 MSK · `scheduled`
 
-ID: `2026-05-24-one-day-p2`
-Файл: `docs/channel-posts/2026-05-24-one-day-p2.md`
+ID: `2026-05-26-one-day-p2`
+Файл: `docs/channel-posts/2026-05-26-one-day-p2.md`
 Картинка: `assets/message-cards/week-01/card-35.png`
 Превью в админке: `assets/message-cards/week-01/card-35.png`
 Кнопка: `Попробовать Нить`
@@ -218,8 +208,6 @@ ID: `2026-05-24-one-day-p2`
 Предпросмотр:
 
 ```text
-День 5 из 7: дневной доступ.
-
 Дневной доступ включает глубину там, где появляется реальная работа.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -227,10 +215,10 @@ ID: `2026-05-24-one-day-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-25 12:30 MSK · `scheduled`
+## 2026-05-27 12:30 MSK · `scheduled`
 
-ID: `2026-05-25-raw-thought-p1`
-Файл: `docs/channel-posts/2026-05-25-raw-thought-p1.md`
+ID: `2026-05-27-raw-thought-p1`
+Файл: `docs/channel-posts/2026-05-27-raw-thought-p1.md`
 Картинка: `assets/message-cards/week-01/card-36.png`
 Превью в админке: `assets/message-cards/week-01/card-36.png`
 Кнопка: `Попробовать Нить`
@@ -249,10 +237,10 @@ ID: `2026-05-25-raw-thought-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-25 20:40 MSK · `scheduled`
+## 2026-05-27 20:40 MSK · `scheduled`
 
-ID: `2026-05-25-raw-thought-p2`
-Файл: `docs/channel-posts/2026-05-25-raw-thought-p2.md`
+ID: `2026-05-27-raw-thought-p2`
+Файл: `docs/channel-posts/2026-05-27-raw-thought-p2.md`
 Картинка: `assets/message-cards/week-01/card-42.png`
 Превью в админке: `assets/message-cards/week-01/card-42.png`
 Кнопка: `Попробовать Нить`
@@ -262,8 +250,6 @@ ID: `2026-05-25-raw-thought-p2`
 Предпросмотр:
 
 ```text
-День 6 из 7: сырая мысль.
-
 Нить задает пару вопросов и превращает хаос в следующий шаг.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -271,10 +257,10 @@ ID: `2026-05-25-raw-thought-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-26 12:30 MSK · `scheduled`
+## 2026-05-28 12:30 MSK · `scheduled`
 
-ID: `2026-05-26-week-thread-p1`
-Файл: `docs/channel-posts/2026-05-26-week-thread-p1.md`
+ID: `2026-05-28-week-thread-p1`
+Файл: `docs/channel-posts/2026-05-28-week-thread-p1.md`
 Картинка: `assets/message-cards/week-01/card-43.png`
 Превью в админке: `assets/message-cards/week-01/card-43.png`
 Кнопка: `Попробовать Нить`
@@ -293,10 +279,10 @@ ID: `2026-05-26-week-thread-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-26 20:40 MSK · `scheduled`
+## 2026-05-28 20:40 MSK · `scheduled`
 
-ID: `2026-05-26-week-thread-p2`
-Файл: `docs/channel-posts/2026-05-26-week-thread-p2.md`
+ID: `2026-05-28-week-thread-p2`
+Файл: `docs/channel-posts/2026-05-28-week-thread-p2.md`
 Картинка: `assets/message-cards/week-01/card-49.png`
 Превью в админке: `assets/message-cards/week-01/card-49.png`
 Кнопка: `Попробовать Нить`
@@ -306,8 +292,6 @@ ID: `2026-05-26-week-thread-p2`
 Предпросмотр:
 
 ```text
-День 7 из 7: недельная нить.
-
 Нить держит цепочку: мысли, решения, задачи и следующий шаг.
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.

@@ -126,9 +126,8 @@ def post_body(day_number: int, item: dict[str, Any], variant: int) -> str:
 
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 """
+    del day_number
     return f"""
-День {day_number} из 7: {item['theme']}.
-
 {item['promise']}
 
 Хороший AI-собеседник не давит советами и не делает вид, что все просто. Он помогает удержать нить разговора и выбрать следующий шаг.
@@ -157,7 +156,7 @@ def build_channel_schedule(start: date) -> dict[str, Any]:
                     "preview_image_file": image_file,
                     "button_text": "Попробовать Нить",
                     "button_url": start_url("telegram", "channel", f"{item['key']}_p{variant}"),
-                    "pin": offset == 0 and variant == 1,
+                    "pin": False,
                 }
             )
     return {"timezone": TZ, "default_chat_id": CHANNEL, "items": items}

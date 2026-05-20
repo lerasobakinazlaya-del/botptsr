@@ -17,6 +17,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--schedule-file", default="config/channel_schedule.json")
     parser.add_argument("--published-log", default="data/channel_published.json")
     parser.add_argument("--limit", type=int, default=2, help="Max posts per run.")
+    parser.add_argument(
+        "--max-lag-hours",
+        type=float,
+        default=6,
+        help="Skip posts that are older than this many hours. Use 0 to publish all backlog.",
+    )
     parser.add_argument("--now", default="", help="Override current time as ISO timestamp.")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--token-env", default="BOT_TOKEN")
@@ -129,6 +135,22 @@ def main() -> None:
             continue
         publish_at = parse_time(str(item.get("publish_at") or ""), default_tz)
         if publish_at <= now:
+            if args.max_lag_hours > 0:
+                lag_hours = (now - publish_at).total_seconds() / 3600
+                if lag_hours > args.max_lag_hours:
+                    print(f"Skipping stale post {item_id}: lag_hours={lag_hours:.2f}")
+                    if args.dry_run:
+                        continue
+                    published[str(item_id)] = {
+                        "skipped": True,
+                        "reason": "stale",
+                        "skipped_at": datetime.now(timezone.utc).isoformat(),
+                        "scheduled_at": publish_at.isoformat(),
+                        "text_file": item.get("text_file", ""),
+                        "image_file": item.get("image_file", ""),
+                    }
+                    write_json(published_path, published_log)
+                    continue
             due_items.append((publish_at, item))
 
     due_items.sort(key=lambda pair: pair[0])
