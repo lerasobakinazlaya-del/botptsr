@@ -55,13 +55,29 @@ def build_caption(item: dict) -> str:
     story_caption = str(item.get("caption") or "").strip()
     bubble_text = str(item.get("bubble_text") or "").strip()
     return (
-        "Готовая сторис для канала.\n\n"
+        "Готовое видео-сторис для канала.\n\n"
         f"ID: {item.get('id')}\n\n"
-        "Текст на картинке:\n"
+        "Текст на видео:\n"
         f"{bubble_text}\n\n"
         "Caption/ссылка для публикации:\n"
         f"{story_caption}"
     )[:1024]
+
+
+def story_media_path(item: dict) -> Path:
+    media_value = str(item.get("video_file") or item.get("image_file") or "").strip()
+    if not media_value:
+        raise FileNotFoundError(f"Story media is not configured for {item.get('id')}")
+    media_path = Path(media_value)
+    if not media_path.exists():
+        raise FileNotFoundError(f"Story media not found: {media_path}")
+    return media_path
+
+
+def telegram_media_method(media_path: Path) -> tuple[str, str]:
+    if media_path.suffix.lower() in {".mp4", ".mov", ".m4v"}:
+        return "sendVideo", "video"
+    return "sendPhoto", "photo"
 
 
 def main() -> None:
@@ -98,7 +114,7 @@ def main() -> None:
     print(f"Now UTC: {now.isoformat()}")
     print(f"Due story deliveries: {len(due_items)}")
     for publish_at, item in due_items:
-        print(f"- {item['id']} at {publish_at.isoformat()} image={item.get('image_file')}")
+        print(f"- {item['id']} at {publish_at.isoformat()} media={item.get('video_file') or item.get('image_file')}")
 
     if args.dry_run or not due_items:
         return
@@ -112,17 +128,16 @@ def main() -> None:
         raise SystemExit("No story delivery chat id found. Set STORY_DELIVERY_CHAT_ID or OWNER_ID.")
 
     for publish_at, item in due_items:
-        image_path = Path(str(item.get("image_file") or ""))
-        if not image_path.exists():
-            raise FileNotFoundError(f"Story image not found: {image_path}")
+        media_path = story_media_path(item)
+        method, file_key = telegram_media_method(media_path)
 
         message_ids: dict[str, int] = {}
         for chat_id in chat_ids:
             result = telegram_multipart_call(
                 token,
-                "sendPhoto",
+                method,
                 {"chat_id": chat_id, "caption": build_caption(item)},
-                {"photo": image_path},
+                {file_key: media_path},
             )
             message_id = int(result["result"]["message_id"])
             message_ids[chat_id] = message_id
@@ -132,6 +147,7 @@ def main() -> None:
             "delivered_at": datetime.now(timezone.utc).isoformat(),
             "scheduled_at": publish_at.isoformat(),
             "image_file": item.get("image_file", ""),
+            "video_file": item.get("video_file", ""),
             "message_ids": message_ids,
             "github_run_id": os.getenv("GITHUB_RUN_ID", ""),
             "github_sha": os.getenv("GITHUB_SHA", ""),

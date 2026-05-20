@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
+import subprocess
 import textwrap
 from pathlib import Path
 from typing import Any
@@ -69,19 +71,6 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, m
     return lines
 
 
-def draw_progress(draw: ImageDraw.ImageDraw, active_segment: int) -> None:
-    segment_count = 7
-    gap = 8
-    x = 36
-    y = 38
-    height = 6
-    width = int((CANVAS[0] - x * 2 - gap * (segment_count - 1)) / segment_count)
-    for index in range(segment_count):
-        left = x + index * (width + gap)
-        color = (245, 255, 255, 245) if index <= active_segment else (245, 255, 255, 118)
-        draw.rounded_rectangle((left, y, left + width, y + height), radius=3, fill=color)
-
-
 def draw_avatar(draw: ImageDraw.ImageDraw) -> None:
     x, y, size = 54, 90, 76
     teal = (58, 214, 178, 255)
@@ -104,7 +93,6 @@ def render_story(item: dict[str, Any], index: int) -> Path:
 
     draw.rectangle((0, 0, CANVAS[0], 260), fill=(0, 0, 0, 42))
     draw.rectangle((0, 1510, CANVAS[0], CANVAS[1]), fill=(0, 0, 0, 38))
-    draw_progress(draw, index)
     draw_avatar(draw)
 
     title_font = load_font(30)
@@ -117,9 +105,6 @@ def render_story(item: dict[str, Any], index: int) -> Path:
 
     draw.text((155, 92), "Нить", font=title_font, fill=white)
     draw.text((155, 128), "онлайн", font=status_font, fill=muted)
-    for dot in range(3):
-        draw.ellipse((1012, 94 + dot * 18, 1020, 102 + dot * 18), fill=white)
-
     bubble_text = str(item.get("bubble_text") or "").strip()
     bubble_x = 170 if len(bubble_text) > 66 else 300
     bubble_w = 750 if len(bubble_text) > 66 else 610
@@ -148,6 +133,40 @@ def render_story(item: dict[str, Any], index: int) -> Path:
 
     image.convert("RGB").save(output_path, quality=95)
     return output_path
+
+
+def render_story_video(item: dict[str, Any]) -> Path | None:
+    image_path = PROJECT_ROOT / str(item.get("image_file") or "")
+    video_value = str(item.get("video_file") or "").strip()
+    if not video_value:
+        return None
+    video_path = PROJECT_ROOT / video_value
+    video_path.parent.mkdir(parents=True, exist_ok=True)
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("ffmpeg not found, skipping story video render")
+        return None
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-loop",
+            "1",
+            "-t",
+            "8",
+            "-i",
+            str(image_path),
+            "-vf",
+            "fps=30,format=yuv420p",
+            "-movflags",
+            "+faststart",
+            str(video_path),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return video_path
 
 
 def generate_preview(schedule: dict[str, Any], output: Path) -> None:
@@ -197,6 +216,9 @@ def main() -> int:
             continue
         output = render_story(item, index)
         print(f"Rendered {output.relative_to(PROJECT_ROOT).as_posix()}")
+        video = render_story_video(item)
+        if video:
+            print(f"Rendered {video.relative_to(PROJECT_ROOT).as_posix()}")
     generate_preview(schedule, Path(args.preview_file))
     print(f"Story preview written: {args.preview_file}")
     return 0
