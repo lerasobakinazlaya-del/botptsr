@@ -30,6 +30,28 @@
       "published_at": "2026-05-20T12:03:07.892319+00:00",
       "scheduled_at": "2026-05-20T09:30:00+00:00",
       "text_file": "docs/channel-posts/memory.md"
+    },
+    "2026-05-20-night-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26185306390",
+      "github_sha": "485c50137a8844628739db12d391e1e45458789b",
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "message_id": 20,
+      "photo_message_id": 20,
+      "published_at": "2026-05-20T19:34:04.183671+00:00",
+      "scheduled_at": "2026-05-20T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-20-night-p1.md"
+    },
+    "2026-05-20-night-p2": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26185306390",
+      "github_sha": "485c50137a8844628739db12d391e1e45458789b",
+      "image_file": "assets/message-cards/week-01/card-07.png",
+      "message_id": 22,
+      "photo_message_id": 22,
+      "published_at": "2026-05-20T19:34:05.815723+00:00",
+      "scheduled_at": "2026-05-20T17:40:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-20-night-p2.md"
     }
   }
 }

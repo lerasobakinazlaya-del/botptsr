@@ -5,7 +5,7 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-05-20 12:30 MSK · `scheduled`
+## 2026-05-20 12:30 MSK · `published`
 
 ID: `2026-05-20-night-p1`
 Файл: `docs/channel-posts/2026-05-20-night-p1.md`
@@ -14,6 +14,7 @@ ID: `2026-05-20-night-p1`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p1`
 Закреп: `True`
+Telegram message_id: `20`
 
 Предпросмотр:
 
@@ -27,7 +28,7 @@ ID: `2026-05-20-night-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-20 20:40 MSK · `scheduled`
+## 2026-05-20 20:40 MSK · `published`
 
 ID: `2026-05-20-night-p2`
 Файл: `docs/channel-posts/2026-05-20-night-p2.md`
@@ -36,6 +37,7 @@ ID: `2026-05-20-night-p2`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p2`
 Закреп: `False`
+Telegram message_id: `22`
 
 Предпросмотр:
 
