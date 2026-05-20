@@ -1,0 +1,76 @@
+{
+  "brand": {
+    "name": "Нить",
+    "bot_username": "asknitai_bot",
+    "telegram_channel": "trynit_ai",
+    "bio": "AI-собеседник в Telegram: живой диалог, память контекста и разбор длинных задач.",
+    "default_cta": "Попробовать бесплатно"
+  },
+  "accounts": [
+    {
+      "platform": "tiktok",
+      "status": "manual_setup_required",
+      "preferred_handles": [
+        "trynit_ai",
+        "nit_ai",
+        "nit_dialog"
+      ],
+      "profile_link": "https://t.me/asknitai_bot?start=src_tt__cmp_profile__med_bio__cnt_main",
+      "automation_mode": "api_after_app_review_or_manual_fallback",
+      "required_credentials": [
+        "TIKTOK_CLIENT_KEY",
+        "TIKTOK_CLIENT_SECRET",
+        "TIKTOK_REFRESH_TOKEN"
+      ],
+      "notes": "Direct Post требует OAuth, user consent и review приложения для публичной публикации."
+    },
+    {
+      "platform": "instagram",
+      "status": "manual_setup_required",
+      "preferred_handles": [
+        "trynit.ai",
+        "trynit_ai",
+        "nit.dialog"
+      ],
+      "profile_link": "https://t.me/asknitai_bot?start=src_ig__cmp_profile__med_bio__cnt_main",
+      "automation_mode": "graph_api_after_business_or_creator_setup",
+      "required_credentials": [
+        "META_APP_ID",
+        "META_APP_SECRET",
+        "INSTAGRAM_ACCOUNT_ID",
+        "META_PAGE_ID",
+        "META_LONG_LIVED_ACCESS_TOKEN"
+      ],
+      "notes": "Нужен Instagram Business/Creator, привязанный к Facebook Page."
+    },
+    {
+      "platform": "youtube",
+      "status": "manual_setup_required",
+      "preferred_handles": [
+        "@trynit_ai",
+        "@nit_ai",
+        "@nit_dialog"
+      ],
+      "profile_link": "https://t.me/asknitai_bot?start=src_yt__cmp_profile__med_bio__cnt_main",
+      "automation_mode": "youtube_data_api",
+      "required_credentials": [
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "YOUTUBE_REFRESH_TOKEN"
+      ],
+      "notes": "Shorts публикуются как обычное видео через videos.insert; нужен вертикальный MP4 и #Shorts."
+    }
+  ],
+  "daily_targets": {
+    "minimum": {
+      "tiktok": 2,
+      "instagram": 1,
+      "youtube": 1
+    },
+    "scale_when_winning": {
+      "tiktok": 4,
+      "instagram": 2,
+      "youtube": 2
+    }
+  }
+}
