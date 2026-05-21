@@ -9,6 +9,17 @@
         "254279477": 100
       },
       "scheduled_at": "2026-05-20T07:30:00+00:00"
+    },
+    "2026-05-21-night-s1": {
+      "delivered_at": "2026-05-21T09:41:14.128278+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "image_file": "assets/stories/daily/2026-05-21-night-s1.png",
+      "message_ids": {
+        "254279477": 108
+      },
+      "scheduled_at": "2026-05-21T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-05-21-night-s1.mp4"
     }
   }
 }

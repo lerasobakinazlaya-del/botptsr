@@ -13,11 +13,13 @@ from publish_telegram_channel_post import telegram_multipart_call
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Send due generated stories to admins for manual channel publishing.")
+    parser = argparse.ArgumentParser(description="Send generated stories to admins for manual channel publishing.")
     parser.add_argument("--schedule-file", default="config/story_schedule.json")
     parser.add_argument("--delivered-log", default="data/story_delivered.json")
     parser.add_argument("--limit", type=int, default=1)
     parser.add_argument("--now", default="")
+    parser.add_argument("--all", action="store_true", help="Send next undelivered stories regardless of schedule time.")
+    parser.add_argument("--force", action="store_true", help="Ignore delivery log and resend matching stories.")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--token-env", default="BOT_TOKEN")
     parser.add_argument("--chat-env", default="")
@@ -100,12 +102,12 @@ def main() -> None:
         item_id = str(item.get("id") or "").strip()
         if not item_id:
             raise SystemExit("Story schedule item without id.")
-        if item_id in delivered:
+        if not args.force and item_id in delivered:
             continue
         if not bool(item.get("enabled", True)):
             continue
         publish_at = parse_time(str(item.get("publish_at") or ""), default_tz)
-        if publish_at <= now:
+        if args.all or publish_at <= now:
             due_items.append((publish_at, item))
 
     due_items.sort(key=lambda pair: pair[0])
@@ -113,7 +115,7 @@ def main() -> None:
         due_items = due_items[: args.limit]
 
     print(f"Now UTC: {now.isoformat()}")
-    print(f"Due story deliveries: {len(due_items)}")
+    print(f"Story deliveries selected: {len(due_items)}")
     for publish_at, item in due_items:
         print(f"- {item['id']} at {publish_at.isoformat()} media={item.get('video_file') or item.get('image_file')}")
 
@@ -137,7 +139,7 @@ def main() -> None:
             result = telegram_multipart_call(
                 token,
                 method,
-                {"chat_id": chat_id, "caption": build_caption(item)},
+                {"chat_id": chat_id, "caption": build_caption(item), "supports_streaming": "true"},
                 {file_key: media_path},
             )
             message_id = int(result["result"]["message_id"])

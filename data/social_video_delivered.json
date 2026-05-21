@@ -1,0 +1,21 @@
+{
+  "delivered": {
+    "day01_night_pov": {
+      "delivered_at": "2026-05-21T09:41:14.354132+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "message_ids": {
+        "254279477": [
+          107,
+          109
+        ]
+      },
+      "platform_ids": [
+        "day01_night_pov-reels",
+        "day01_night_pov-tiktok",
+        "day01_night_pov-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_pov.mp4"
+    }
+  }
+}
