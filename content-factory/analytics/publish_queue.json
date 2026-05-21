@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-20T16:07:15.073737+00:00",
+  "updated_at": "2026-05-21T10:25:33.457791+00:00",
   "items": [
     {
       "id": "night_001",
@@ -33,10 +33,8 @@
     {
       "id": "night_001",
       "platform": "telegram",
-      "status": "needs_credentials",
-      "missing_env": [
-        "BOT_TOKEN"
-      ],
+      "status": "ready_api",
+      "missing_env": [],
       "video_file": "content-factory/exports/telegram/night_001.mp4",
       "caption_file": "content-factory/exports/telegram/night_001.txt",
       "hook": "ты опять не спишь?",
