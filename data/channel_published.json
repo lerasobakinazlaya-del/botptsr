@@ -49,8 +49,8 @@
     },
     "2026-05-20-night-p2": {
       "chat_id": "@trynit_ai",
-      "edited_at": "2026-05-21T02:57:31+03:00",
-      "edited_reason": "Removed visible internal day label from published caption",
+      "edited_at": "2026-05-21T03:03:00+03:00",
+      "edited_reason": "Removed visible internal day label and fixed UTF-8 caption encoding",
       "github_run_id": "26185306390",
       "github_sha": "485c50137a8844628739db12d391e1e45458789b",
       "image_file": "assets/message-cards/week-01/card-07.png",
