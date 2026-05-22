@@ -28,7 +28,7 @@ Telegram message_id: `25`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-22 20:40 MSK · `scheduled`
+## 2026-05-22 20:40 MSK · `published`
 
 ID: `2026-05-22-night-p2`
 Файл: `docs/channel-posts/2026-05-22-night-p2.md`
@@ -37,6 +37,7 @@ ID: `2026-05-22-night-p2`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p2`
 Закреп: `False`
+Telegram message_id: `26`
 
 Предпросмотр:
 
