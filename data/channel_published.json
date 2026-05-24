@@ -114,6 +114,17 @@
       "published_at": "2026-05-23T10:55:01.699434+00:00",
       "scheduled_at": "2026-05-23T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-23-night-p1.md"
+    },
+    "2026-05-24-night-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26359338209",
+      "github_sha": "044df3faf7890a327467e1a5c91f5661551e1eda",
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "message_id": 28,
+      "photo_message_id": 28,
+      "published_at": "2026-05-24T10:56:53.225142+00:00",
+      "scheduled_at": "2026-05-24T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-24-night-p1.md"
     }
   }
 }
