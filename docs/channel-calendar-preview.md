@@ -5,16 +5,15 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-05-23 12:30 MSK · `published`
+## 2026-05-24 12:30 MSK · `scheduled`
 
-ID: `2026-05-23-night-p1`
-Файл: `docs/channel-posts/2026-05-23-night-p1.md`
+ID: `2026-05-24-night-p1`
+Файл: `docs/channel-posts/2026-05-24-night-p1.md`
 Картинка: `assets/message-cards/week-01/card-01.png`
 Превью в админке: `assets/message-cards/week-01/card-01.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p1`
 Закреп: `False`
-Telegram message_id: `27`
 
 Предпросмотр:
 
@@ -28,10 +27,10 @@ Telegram message_id: `27`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-23 20:40 MSK · `scheduled`
+## 2026-05-24 20:40 MSK · `scheduled`
 
-ID: `2026-05-23-night-p2`
-Файл: `docs/channel-posts/2026-05-23-night-p2.md`
+ID: `2026-05-24-night-p2`
+Файл: `docs/channel-posts/2026-05-24-night-p2.md`
 Картинка: `assets/message-cards/week-01/card-07.png`
 Превью в админке: `assets/message-cards/week-01/card-07.png`
 Кнопка: `Попробовать Нить`
@@ -48,10 +47,10 @@ ID: `2026-05-23-night-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-24 12:30 MSK · `scheduled`
+## 2026-05-25 12:30 MSK · `scheduled`
 
-ID: `2026-05-24-memory-p1`
-Файл: `docs/channel-posts/2026-05-24-memory-p1.md`
+ID: `2026-05-25-memory-p1`
+Файл: `docs/channel-posts/2026-05-25-memory-p1.md`
 Картинка: `assets/message-cards/week-01/card-08.png`
 Превью в админке: `assets/message-cards/week-01/card-08.png`
 Кнопка: `Попробовать Нить`
@@ -70,10 +69,10 @@ ID: `2026-05-24-memory-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-24 20:40 MSK · `scheduled`
+## 2026-05-25 20:40 MSK · `scheduled`
 
-ID: `2026-05-24-memory-p2`
-Файл: `docs/channel-posts/2026-05-24-memory-p2.md`
+ID: `2026-05-25-memory-p2`
+Файл: `docs/channel-posts/2026-05-25-memory-p2.md`
 Картинка: `assets/message-cards/week-01/card-14.png`
 Превью в админке: `assets/message-cards/week-01/card-14.png`
 Кнопка: `Попробовать Нить`
@@ -90,10 +89,10 @@ ID: `2026-05-24-memory-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-25 12:30 MSK · `scheduled`
+## 2026-05-26 12:30 MSK · `scheduled`
 
-ID: `2026-05-25-long-task-p1`
-Файл: `docs/channel-posts/2026-05-25-long-task-p1.md`
+ID: `2026-05-26-long-task-p1`
+Файл: `docs/channel-posts/2026-05-26-long-task-p1.md`
 Картинка: `assets/message-cards/week-01/card-15.png`
 Превью в админке: `assets/message-cards/week-01/card-15.png`
 Кнопка: `Попробовать Нить`
@@ -112,10 +111,10 @@ ID: `2026-05-25-long-task-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-25 20:40 MSK · `scheduled`
+## 2026-05-26 20:40 MSK · `scheduled`
 
-ID: `2026-05-25-long-task-p2`
-Файл: `docs/channel-posts/2026-05-25-long-task-p2.md`
+ID: `2026-05-26-long-task-p2`
+Файл: `docs/channel-posts/2026-05-26-long-task-p2.md`
 Картинка: `assets/message-cards/week-01/card-21.png`
 Превью в админке: `assets/message-cards/week-01/card-21.png`
 Кнопка: `Попробовать Нить`
@@ -132,10 +131,10 @@ ID: `2026-05-25-long-task-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-26 12:30 MSK · `scheduled`
+## 2026-05-27 12:30 MSK · `scheduled`
 
-ID: `2026-05-26-not-send-p1`
-Файл: `docs/channel-posts/2026-05-26-not-send-p1.md`
+ID: `2026-05-27-not-send-p1`
+Файл: `docs/channel-posts/2026-05-27-not-send-p1.md`
 Картинка: `assets/message-cards/week-01/card-22.png`
 Превью в админке: `assets/message-cards/week-01/card-22.png`
 Кнопка: `Попробовать Нить`
@@ -154,10 +153,10 @@ ID: `2026-05-26-not-send-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-26 20:40 MSK · `scheduled`
+## 2026-05-27 20:40 MSK · `scheduled`
 
-ID: `2026-05-26-not-send-p2`
-Файл: `docs/channel-posts/2026-05-26-not-send-p2.md`
+ID: `2026-05-27-not-send-p2`
+Файл: `docs/channel-posts/2026-05-27-not-send-p2.md`
 Картинка: `assets/message-cards/week-01/card-28.png`
 Превью в админке: `assets/message-cards/week-01/card-28.png`
 Кнопка: `Попробовать Нить`
@@ -174,10 +173,10 @@ ID: `2026-05-26-not-send-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-27 12:30 MSK · `scheduled`
+## 2026-05-28 12:30 MSK · `scheduled`
 
-ID: `2026-05-27-one-day-p1`
-Файл: `docs/channel-posts/2026-05-27-one-day-p1.md`
+ID: `2026-05-28-one-day-p1`
+Файл: `docs/channel-posts/2026-05-28-one-day-p1.md`
 Картинка: `assets/message-cards/week-01/card-29.png`
 Превью в админке: `assets/message-cards/week-01/card-29.png`
 Кнопка: `Попробовать Нить`
@@ -196,10 +195,10 @@ ID: `2026-05-27-one-day-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-27 20:40 MSK · `scheduled`
+## 2026-05-28 20:40 MSK · `scheduled`
 
-ID: `2026-05-27-one-day-p2`
-Файл: `docs/channel-posts/2026-05-27-one-day-p2.md`
+ID: `2026-05-28-one-day-p2`
+Файл: `docs/channel-posts/2026-05-28-one-day-p2.md`
 Картинка: `assets/message-cards/week-01/card-35.png`
 Превью в админке: `assets/message-cards/week-01/card-35.png`
 Кнопка: `Попробовать Нить`
@@ -216,10 +215,10 @@ ID: `2026-05-27-one-day-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-28 12:30 MSK · `scheduled`
+## 2026-05-29 12:30 MSK · `scheduled`
 
-ID: `2026-05-28-raw-thought-p1`
-Файл: `docs/channel-posts/2026-05-28-raw-thought-p1.md`
+ID: `2026-05-29-raw-thought-p1`
+Файл: `docs/channel-posts/2026-05-29-raw-thought-p1.md`
 Картинка: `assets/message-cards/week-01/card-36.png`
 Превью в админке: `assets/message-cards/week-01/card-36.png`
 Кнопка: `Попробовать Нить`
@@ -238,10 +237,10 @@ ID: `2026-05-28-raw-thought-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-28 20:40 MSK · `scheduled`
+## 2026-05-29 20:40 MSK · `scheduled`
 
-ID: `2026-05-28-raw-thought-p2`
-Файл: `docs/channel-posts/2026-05-28-raw-thought-p2.md`
+ID: `2026-05-29-raw-thought-p2`
+Файл: `docs/channel-posts/2026-05-29-raw-thought-p2.md`
 Картинка: `assets/message-cards/week-01/card-42.png`
 Превью в админке: `assets/message-cards/week-01/card-42.png`
 Кнопка: `Попробовать Нить`
@@ -258,10 +257,10 @@ ID: `2026-05-28-raw-thought-p2`
 Попробовать Нить можно по кнопке ниже.
 ```
 
-## 2026-05-29 12:30 MSK · `scheduled`
+## 2026-05-30 12:30 MSK · `scheduled`
 
-ID: `2026-05-29-week-thread-p1`
-Файл: `docs/channel-posts/2026-05-29-week-thread-p1.md`
+ID: `2026-05-30-week-thread-p1`
+Файл: `docs/channel-posts/2026-05-30-week-thread-p1.md`
 Картинка: `assets/message-cards/week-01/card-43.png`
 Превью в админке: `assets/message-cards/week-01/card-43.png`
 Кнопка: `Попробовать Нить`
@@ -280,10 +279,10 @@ ID: `2026-05-29-week-thread-p1`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-05-29 20:40 MSK · `scheduled`
+## 2026-05-30 20:40 MSK · `scheduled`
 
-ID: `2026-05-29-week-thread-p2`
-Файл: `docs/channel-posts/2026-05-29-week-thread-p2.md`
+ID: `2026-05-30-week-thread-p2`
+Файл: `docs/channel-posts/2026-05-30-week-thread-p2.md`
 Картинка: `assets/message-cards/week-01/card-49.png`
 Превью в админке: `assets/message-cards/week-01/card-49.png`
 Кнопка: `Попробовать Нить`
