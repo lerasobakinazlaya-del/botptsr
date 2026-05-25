@@ -7,7 +7,7 @@
 - Telegram-доставка оператору: включена.
 - Stories для ручной публикации: бот присылает готовые MP4.
 - TikTok / Reels / Shorts для ручной публикации: бот присылает MP4 и отдельное сообщение с текстами для трех площадок.
-- Трекинг-ссылки в бота: генерируются отдельно для TikTok, Reels и Shorts.
+- Трекинг-ссылки в бота: генерируются отдельно для TikTok, Reels и Shorts, но не вставляются в публичные описания вручную.
 
 ## Что еще не подключено
 
@@ -20,19 +20,19 @@
 TikTok:
 
 - Рекомендуемый username: `trynit_ai`.
-- Ссылка в профиле: `https://t.me/asknitai_bot?start=src_tt__cmp_profile__med_bio__cnt_main`.
+- Ссылка в профиле: `https://t.me/asknitai_bot`.
 - Bio: `Нить. AI-собеседник, когда мысль застряла. Попробуй в Telegram.`
 
 Instagram:
 
 - Рекомендуемый username: `trynit.ai` или `trynit_ai`.
-- Ссылка в профиле: `https://t.me/asknitai_bot?start=src_ig__cmp_profile__med_bio__cnt_main`.
+- Ссылка в профиле: `https://t.me/asknitai_bot`.
 - Bio: `AI-собеседник в Telegram. Для ночных мыслей, длинных задач и сообщений, которые трудно отправить.`
 
 YouTube:
 
 - Рекомендуемый handle: `@trynit_ai`.
-- Ссылка в описании канала: `https://t.me/asknitai_bot?start=src_yt__cmp_profile__med_bio__cnt_main`.
+- Ссылка в описании канала: `https://t.me/asknitai_bot`.
 - Описание: `Нить помогает продолжить мысль, разобрать длинный текст и начать диалог без неловкости.`
 
 ## Ручной процесс на сейчас

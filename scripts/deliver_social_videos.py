@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BOARD = PROJECT_ROOT / "docs" / "social-video-board-current.csv"
 DEFAULT_LOG = PROJECT_ROOT / "data" / "social_video_delivered.json"
+BOT_SHORT_URL = "https://t.me/asknitai_bot"
 
 
 def parse_args() -> argparse.Namespace:
@@ -119,27 +120,34 @@ def compact_caption(video_id: str, rows: list[dict[str, str]]) -> str:
     publish_times = sorted({row["publish_time"] for row in rows if row.get("publish_time")})
     time_label = publish_times[0] if publish_times else "сегодня"
     return (
-        f"Готовый ролик для ручной публикации.\n\n"
+        "Готовый ролик для ручной публикации.\n\n"
         f"ID: {video_id}\n"
         f"Площадки: {platforms}\n"
         f"Время: {time_label}\n\n"
-        "Следующим сообщением пришлю тексты и ссылки."
+        "Следующим сообщением пришлю короткие тексты для вставки."
     )[:1024]
+
+
+def public_link_for(platform: str) -> str:
+    if platform == "TikTok":
+        return "ссылка на бота в профиле"
+    return BOT_SHORT_URL
 
 
 def details_text(video_id: str, rows: list[dict[str, str]]) -> str:
     lines = [
         f"Публикация: {video_id}",
         "",
-        "Загрузи этот MP4 на площадки ниже. В TikTok ссылку держим в профиле, в Reels/Shorts можно добавить ссылку в описание, где доступно.",
+        "Для вставки используй короткий вариант ниже. Длинный tracking хранится только в CSV для аналитики.",
         "",
     ]
     for row in rows:
+        platform = row["platform"]
         lines.extend(
             [
-                f"{row['platform']} · {row['publish_time']}",
+                f"{platform} · {row['publish_time']}",
                 f"Текст: {row['caption']}",
-                f"Трекинг: {row['url']}",
+                f"Ссылка для вставки: {public_link_for(platform)}",
                 "",
             ]
         )
