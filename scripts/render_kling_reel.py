@@ -111,6 +111,21 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, m
     return lines
 
 
+def draw_centered_text(
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    text: str,
+    font: ImageFont.ImageFont,
+    fill: tuple[int, int, int, int],
+) -> None:
+    text_box = draw.textbbox((0, 0), text, font=font)
+    text_w = text_box[2] - text_box[0]
+    text_h = text_box[3] - text_box[1]
+    x = box[0] + ((box[2] - box[0] - text_w) // 2)
+    y = box[1] + ((box[3] - box[1] - text_h) // 2) - 2
+    draw.text((x, y), text, font=font, fill=fill)
+
+
 def cover_frame(frame: Image.Image) -> Image.Image:
     source = frame.convert("RGB")
     ratio = max(CANVAS[0] / source.width, CANVAS[1] / source.height)
@@ -120,7 +135,7 @@ def cover_frame(frame: Image.Image) -> Image.Image:
     return resized.crop((left, top, left + CANVAS[0], top + CANVAS[1]))
 
 
-def draw_overlay(frame: Image.Image, message: str, frame_index: int, total_frames: int) -> Image.Image:
+def draw_overlay(frame: Image.Image, message: str, message_index: int, frame_index: int, total_frames: int) -> Image.Image:
     image = cover_frame(frame).convert("RGBA")
     overlay = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay, "RGBA")
@@ -129,14 +144,15 @@ def draw_overlay(frame: Image.Image, message: str, frame_index: int, total_frame
     text_font = load_font(48)
     small_font = load_font(25)
 
-    draw.rounded_rectangle((810, 56, 1026, 126), radius=24, fill=(5, 22, 26, 138))
-    draw.text((836, 73), "Нить", font=brand_font, fill=(72, 233, 196, 245))
-    draw.text((836, 103), "онлайн", font=small_font, fill=(216, 232, 230, 190))
+    brand_box = (810, 56, 1026, 132)
+    draw.rounded_rectangle(brand_box, radius=24, fill=(5, 22, 26, 150))
+    draw_centered_text(draw, (brand_box[0], 66, brand_box[2], 99), "Нить", brand_font, (72, 233, 196, 245))
+    draw_centered_text(draw, (brand_box[0], 99, brand_box[2], 126), "онлайн", small_font, (216, 232, 230, 190))
 
     lines = wrap_text(draw, message, text_font, 760)[:3]
     bubble_h = 80 + 60 * len(lines)
     is_last = frame_index > total_frames * 0.78
-    x = 116 if frame_index % 2 else 176
+    x = 116 if message_index % 2 else 176
     y = 1260 if not is_last else 1390
     draw.rounded_rectangle((x, y, x + 828, y + bubble_h), radius=34, fill=(7, 29, 34, 218))
     text_y = y + 34
@@ -221,8 +237,9 @@ def render_video(source: Path, output: Path, messages: list[str], preset_name: s
 
         for index, frame_path in enumerate(sorted(source_frames.glob("source_*.png"))):
             with Image.open(frame_path) as frame:
-                message_index = min(len(messages) - 1, int(index / max(total_frames, 1) * len(messages)))
-                rendered = draw_overlay(frame, messages[message_index], index, total_frames)
+                hold_frames = max(1, int(FPS * 1.35))
+                message_index = min(len(messages) - 1, index // hold_frames)
+                rendered = draw_overlay(frame, messages[message_index], message_index, index, total_frames)
                 rendered.save(render_frames / f"frame_{index:05d}.jpg", quality=92)
 
         duration = probe_duration(source)
