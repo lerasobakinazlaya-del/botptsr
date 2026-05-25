@@ -33,6 +33,57 @@
         "day01_night_pov-shorts"
       ],
       "video_file": "assets/social-videos/week-01/shared/day01_night_pov.mp4"
+    },
+    "day02_memory_challenge": {
+      "delivered_at": "2026-05-25T11:17:45.842478+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "message_ids": {
+        "254279477": [
+          123,
+          124
+        ]
+      },
+      "platform_ids": [
+        "day02_memory_challenge-reels",
+        "day02_memory_challenge-tiktok",
+        "day02_memory_challenge-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day02_memory_challenge.mp4"
+    },
+    "day02_memory_dialog": {
+      "delivered_at": "2026-05-25T11:17:44.322872+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "message_ids": {
+        "254279477": [
+          121,
+          122
+        ]
+      },
+      "platform_ids": [
+        "day02_memory_dialog-reels",
+        "day02_memory_dialog-tiktok",
+        "day02_memory_dialog-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day02_memory_dialog.mp4"
+    },
+    "day02_memory_pov": {
+      "delivered_at": "2026-05-25T11:17:42.684681+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "message_ids": {
+        "254279477": [
+          119,
+          120
+        ]
+      },
+      "platform_ids": [
+        "day02_memory_pov-reels",
+        "day02_memory_pov-tiktok",
+        "day02_memory_pov-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day02_memory_pov.mp4"
     }
   }
 }
