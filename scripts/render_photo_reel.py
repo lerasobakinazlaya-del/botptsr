@@ -34,6 +34,14 @@ AUDIO_PRESETS = {
         "clean-beat",
         "0.12*sin(2*PI*130*t)+0.055*sin(2*PI*260*t)*(lt(mod(t,0.4),0.18))+0.04*sin(2*PI*520*t)*(lt(mod(t,0.2),0.05))",
     ),
+    "neon-step": AudioPreset(
+        "neon-step",
+        "0.10*sin(2*PI*98*t)+0.07*sin(2*PI*196*t)*(lt(mod(t,0.5),0.24))+0.045*sin(2*PI*392*t)*(lt(mod(t,0.25),0.07))+0.025*sin(2*PI*784*t)*(between(mod(t,1.0),0.72,0.84))",
+    ),
+    "soft-drive": AudioPreset(
+        "soft-drive",
+        "0.09*sin(2*PI*123*t)+0.075*sin(2*PI*246*t)*(lt(mod(t,0.375),0.16))+0.04*sin(2*PI*369*t)*(lt(mod(t,0.75),0.08))+0.025*sin(2*PI*615*t)*(gt(mod(t,0.75),0.58))",
+    ),
 }
 
 
