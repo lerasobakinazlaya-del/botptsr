@@ -37,15 +37,29 @@ AUDIO_PRESETS = {
 }
 
 
-MESSAGES = [
+DEFAULT_MESSAGES = [
     "Ты опять не спишь?",
     "Напиши как есть.",
+    "Без красивой формулировки.",
     "Я помогу собрать мысль.",
-    "Не отправляй сразу. Сначала выдохни.",
-    "Контекст не потеряется.",
-    "Начни с одной фразы.",
+    "Не отправляй сразу.",
+    "Сначала выдохни.",
+    "Можно начать с одной фразы.",
+    "Я не потеряю контекст.",
+    "Скажи то, что крутится в голове.",
+    "Разложим это спокойно.",
+    "Не надо объяснять всю жизнь заново.",
+    "Я подхвачу нить разговора.",
+    "Если мысль застряла, напиши ее сюда.",
     "Нить рядом в Telegram.",
 ]
+
+
+def load_messages(path: Path | None) -> list[str]:
+    if not path or not path.exists():
+        return DEFAULT_MESSAGES
+    messages = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return messages or DEFAULT_MESSAGES
 
 
 def load_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
@@ -89,7 +103,7 @@ def cover_crop(image: Image.Image, zoom: float, pan_x: float, pan_y: float) -> I
     return resized.crop((left, top, left + CANVAS[0], top + CANVAS[1]))
 
 
-def draw_bubble(frame: Image.Image, text: str, index: int) -> Image.Image:
+def draw_bubble(frame: Image.Image, text: str, index: int, is_final: bool) -> Image.Image:
     image = frame.convert("RGBA")
     overlay = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay, "RGBA")
@@ -114,7 +128,7 @@ def draw_bubble(frame: Image.Image, text: str, index: int) -> Image.Image:
         draw.text((x + 38, text_y), line, font=text_font, fill=(245, 249, 247, 250))
         text_y += 56
 
-    if index == len(MESSAGES) - 1:
+    if is_final:
         cta_y = 1680
         draw.rounded_rectangle((82, cta_y, 998, cta_y + 94), radius=34, fill=(6, 24, 27, 188))
         draw.text((122, cta_y + 24), "Попробовать: @asknitai_bot", font=title_font, fill=(78, 237, 200, 250))
@@ -123,7 +137,7 @@ def draw_bubble(frame: Image.Image, text: str, index: int) -> Image.Image:
     return ImageEnhance.Contrast(composed).enhance(1.03)
 
 
-def render_frames(source_dir: Path, frame_dir: Path, seconds_per_scene: float) -> int:
+def render_frames(source_dir: Path, frame_dir: Path, seconds_per_scene: float, messages: list[str]) -> int:
     images = sorted(source_dir.glob("scene-*.png"))
     if not images:
         raise FileNotFoundError(f"No scene images found in {source_dir}")
@@ -137,10 +151,13 @@ def render_frames(source_dir: Path, frame_dir: Path, seconds_per_scene: float) -
             for step in range(frame_count):
                 progress = step / max(frame_count - 1, 1)
                 zoom = 1.0 + (0.055 * progress if scene_index % 2 == 0 else 0.055 * (1 - progress))
+                phase = 0 if progress < 0.52 else 1
+                message_index = (scene_index * 2 + phase) % len(messages)
+                is_final = scene_index == len(images) - 1 and phase == 1
                 frame = cover_crop(image, zoom, pan_x, pan_y)
                 if step == frame_count - 1:
                     frame = frame.filter(ImageFilter.UnsharpMask(radius=1.1, percent=110, threshold=3))
-                frame = draw_bubble(frame, MESSAGES[scene_index % len(MESSAGES)], scene_index)
+                frame = draw_bubble(frame, messages[message_index], scene_index + phase, is_final)
                 frame.save(frame_dir / f"frame_{index:05d}.jpg", quality=92)
                 index += 1
     return index
@@ -173,7 +190,13 @@ def create_audio(path: Path, duration: float, preset: AudioPreset) -> None:
     )
 
 
-def render_video(source_dir: Path, output_path: Path, preset_name: str, seconds_per_scene: float) -> None:
+def render_video(
+    source_dir: Path,
+    output_path: Path,
+    preset_name: str,
+    seconds_per_scene: float,
+    messages: list[str],
+) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("ffmpeg is required")
@@ -184,7 +207,7 @@ def render_video(source_dir: Path, output_path: Path, preset_name: str, seconds_
         temp_dir = Path(temp)
         frame_dir = temp_dir / "frames"
         frame_dir.mkdir()
-        total_frames = render_frames(source_dir, frame_dir, seconds_per_scene)
+        total_frames = render_frames(source_dir, frame_dir, seconds_per_scene, messages)
         duration = total_frames / FPS
         audio_path = temp_dir / f"{preset.name}.m4a"
         create_audio(audio_path, duration, preset)
@@ -232,15 +255,17 @@ def main() -> int:
     parser.add_argument("--output-dir", default=str(PROJECT_ROOT / "assets/social-videos/custom"))
     parser.add_argument("--preset", choices=sorted(AUDIO_PRESETS), default="warm")
     parser.add_argument("--seconds-per-scene", type=float, default=2.05)
+    parser.add_argument("--messages-file", default=str(PROJECT_ROOT / "config/photo_reel_messages.txt"))
     parser.add_argument("--all-presets", action="store_true")
     args = parser.parse_args()
 
     source_dir = Path(args.source_dir)
     output_dir = Path(args.output_dir)
+    messages = load_messages(Path(args.messages_file) if args.messages_file else None)
     presets = sorted(AUDIO_PRESETS) if args.all_presets else [args.preset]
     for preset in presets:
         output_path = output_dir / f"nit-photo-reel-{preset}.mp4"
-        render_video(source_dir, output_path, preset, args.seconds_per_scene)
+        render_video(source_dir, output_path, preset, args.seconds_per_scene, messages)
         print(f"Rendered {output_path.relative_to(PROJECT_ROOT).as_posix()}")
     return 0
 
