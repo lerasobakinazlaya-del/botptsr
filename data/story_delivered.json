@@ -20,6 +20,39 @@
       },
       "scheduled_at": "2026-05-21T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-05-21-night-s1.mp4"
+    },
+    "2026-05-25-night-s1": {
+      "delivered_at": "2026-05-25T10:08:10.290545+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "image_file": "assets/stories/daily/2026-05-25-night-s1.png",
+      "message_ids": {
+        "254279477": 114
+      },
+      "scheduled_at": "2026-05-25T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-05-25-night-s1.mp4"
+    },
+    "2026-05-25-night-s2": {
+      "delivered_at": "2026-05-25T10:08:11.304737+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "image_file": "assets/stories/daily/2026-05-25-night-s2.png",
+      "message_ids": {
+        "254279477": 115
+      },
+      "scheduled_at": "2026-05-25T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-05-25-night-s2.mp4"
+    },
+    "2026-05-25-night-s3": {
+      "delivered_at": "2026-05-25T10:08:12.709610+00:00",
+      "github_run_id": "",
+      "github_sha": "",
+      "image_file": "assets/stories/daily/2026-05-25-night-s3.png",
+      "message_ids": {
+        "254279477": 116
+      },
+      "scheduled_at": "2026-05-25T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-05-25-night-s3.mp4"
     }
   }
 }

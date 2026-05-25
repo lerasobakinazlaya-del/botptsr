@@ -44,6 +44,7 @@ jobs:
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       STORY_DELIVERY_CHAT_ID: ${{ secrets.STORY_DELIVERY_CHAT_ID }}
+      OWNER_ID: ${{ secrets.OWNER_ID }}
       LIMIT: ${{ github.event.inputs.limit || '1' }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
       SEND_ALL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.all || 'false' }}

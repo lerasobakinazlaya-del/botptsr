@@ -2,7 +2,7 @@ name: Content factory crew
 
 on:
   schedule:
-    - cron: "10 2 * * *"
+    - cron: "10 2 * * 1"
   workflow_dispatch:
     inputs:
       start_date:

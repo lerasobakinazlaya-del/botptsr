@@ -3,7 +3,6 @@ name: Channel scheduler
 on:
   schedule:
     - cron: "35 9 * * *"
-    - cron: "45 17 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
