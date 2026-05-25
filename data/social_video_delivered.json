@@ -1,5 +1,22 @@
 {
   "delivered": {
+    "day01_night_dialog": {
+      "delivered_at": "2026-05-25T11:14:47.246985+00:00",
+      "github_run_id": "26397610995",
+      "github_sha": "96b94fb101856ddc123fea5d6a863d58e4937c2a",
+      "message_ids": {
+        "254279477": [
+          117,
+          118
+        ]
+      },
+      "platform_ids": [
+        "day01_night_dialog-reels",
+        "day01_night_dialog-tiktok",
+        "day01_night_dialog-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_dialog.mp4"
+    },
     "day01_night_pov": {
       "delivered_at": "2026-05-21T09:41:14.354132+00:00",
       "github_run_id": "",
