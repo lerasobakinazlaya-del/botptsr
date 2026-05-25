@@ -1,6 +1,6 @@
 # Контент-завод Нити
 
-Период: `2026-05-24` - `2026-05-30`.
+Период: `2026-05-25` - `2026-05-31`.
 
 ## Ежедневная норма
 
@@ -28,7 +28,7 @@
 ## Рабочие команды
 
 ```powershell
-python scripts/generate_growth_content_plan.py --start-date 2026-05-24
+python scripts/generate_growth_content_plan.py --start-date 2026-05-25
 python scripts/generate_story_assets.py
 python scripts/generate_message_card_pack.py
 python scripts/generate_social_videos.py
