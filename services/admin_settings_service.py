@@ -456,8 +456,8 @@ class AdminSettingsService:
         },
         "limits": {
             "free_daily_messages_enabled": True,
-            "free_daily_messages_limit": 12,
-            "free_daily_warning_thresholds": [5, 3, 1, 0],
+            "free_daily_messages_limit": 15,
+            "free_daily_warning_thresholds": [3],
             "free_daily_warning_template": "Бесплатных сообщений на сегодня осталось: {remaining} из {limit}. Платный доступ даст больше лимита и откроет закрытые режимы.",
             "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
             "premium_daily_messages_enabled": True,

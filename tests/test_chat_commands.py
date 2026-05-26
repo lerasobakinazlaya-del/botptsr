@@ -181,24 +181,24 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         state, notice = _build_quota_notice(
             {},
             {"is_premium": False},
-            11,
+            12,
             {
                 "free_daily_messages_enabled": True,
-                "free_daily_messages_limit": 12,
-                "free_daily_warning_thresholds": [5, 3, 1],
+                "free_daily_messages_limit": 15,
+                "free_daily_warning_thresholds": [3],
                 "free_daily_warning_template": "Осталось {remaining} из {limit}",
             },
         )
 
-        self.assertIn("Осталось 1 из 12", notice)
+        self.assertIn("Осталось 3 из 15", notice)
         repeated_state, repeated_notice = _build_quota_notice(
             state,
             {"is_premium": False},
-            11,
+            12,
             {
                 "free_daily_messages_enabled": True,
-                "free_daily_messages_limit": 12,
-                "free_daily_warning_thresholds": [5, 3, 1],
+                "free_daily_messages_limit": 15,
+                "free_daily_warning_thresholds": [3],
                 "free_daily_warning_template": "Осталось {remaining} из {limit}",
             },
         )
