@@ -1,5 +1,22 @@
 {
   "delivered": {
+    "day01_night_before-send": {
+      "delivered_at": "2026-05-26T16:53:51.543663+00:00",
+      "github_run_id": "26462463660",
+      "github_sha": "cc3ca280d5c9d58506e87e6e690950be9c78cdb5",
+      "message_ids": {
+        "254279477": [
+          163,
+          164
+        ]
+      },
+      "platform_ids": [
+        "day01_night_before-send-reels",
+        "day01_night_before-send-tiktok",
+        "day01_night_before-send-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_before-send.mp4"
+    },
     "day01_night_challenge": {
       "delivered_at": "2026-05-26T10:19:20.063812+00:00",
       "github_run_id": "26446455535",
@@ -17,6 +34,23 @@
       ],
       "video_file": "assets/social-videos/week-01/shared/day01_night_challenge.mp4"
     },
+    "day01_night_comment": {
+      "delivered_at": "2026-05-26T16:53:46.032607+00:00",
+      "github_run_id": "26462463660",
+      "github_sha": "cc3ca280d5c9d58506e87e6e690950be9c78cdb5",
+      "message_ids": {
+        "254279477": [
+          159,
+          160
+        ]
+      },
+      "platform_ids": [
+        "day01_night_comment-reels",
+        "day01_night_comment-tiktok",
+        "day01_night_comment-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_comment.mp4"
+    },
     "day01_night_dialog": {
       "delivered_at": "2026-05-25T11:14:47.246985+00:00",
       "github_run_id": "26397610995",
@@ -33,6 +67,23 @@
         "day01_night_dialog-shorts"
       ],
       "video_file": "assets/social-videos/week-01/shared/day01_night_dialog.mp4"
+    },
+    "day01_night_night": {
+      "delivered_at": "2026-05-26T16:53:48.792152+00:00",
+      "github_run_id": "26462463660",
+      "github_sha": "cc3ca280d5c9d58506e87e6e690950be9c78cdb5",
+      "message_ids": {
+        "254279477": [
+          161,
+          162
+        ]
+      },
+      "platform_ids": [
+        "day01_night_night-reels",
+        "day01_night_night-tiktok",
+        "day01_night_night-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_night.mp4"
     },
     "day01_night_pov": {
       "delivered_at": "2026-05-21T09:41:14.354132+00:00",
