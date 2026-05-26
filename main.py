@@ -78,6 +78,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp["redis"] = container.redis
     dp["admin_settings_service"] = container.admin_settings_service
     dp["conversation_summary_service"] = container.conversation_summary_service
+    dp["product_entitlements_service"] = container.product_entitlements_service
     dp["mode_access_service"] = container.mode_access_service
 
     dp.message.middleware(LoggingMiddleware())

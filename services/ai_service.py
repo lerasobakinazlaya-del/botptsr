@@ -5,7 +5,6 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from services.ai_profile_service import resolve_ai_profile
 from services.conversation_driver import (
     apply_driver_guardrails,
     build_reflection,
@@ -18,6 +17,7 @@ from services.conversation_driver import (
 from services.conversation_engine_v2 import ConversationEngineV2
 from services.emotional_hooks import ensure_open_loop, inject_hook, select_hook
 from services.prompt_safety import redact_prompt_for_log
+from services.product_entitlements_service import ProductEntitlementsService
 from services.response_guardrails import (
     analyze_response_style,
     apply_human_style_guardrails,
@@ -146,6 +146,7 @@ class AIService:
         settings_service,
         conversation_engine=None,
         memory_profile_service=None,
+        product_entitlements_service=None,
         debug: bool = False,
         log_full_prompt: bool = False,
         debug_prompt_user_id: int | None = None,
@@ -166,6 +167,7 @@ class AIService:
         self.access_engine = access_engine
         self.settings_service = settings_service
         self.conversation_engine = conversation_engine or ConversationEngineV2(settings_service)
+        self.product_entitlements_service = product_entitlements_service or ProductEntitlementsService()
         self.debug = debug
         self.log_full_prompt = log_full_prompt
         self.debug_prompt_user_id = debug_prompt_user_id
@@ -358,7 +360,11 @@ class AIService:
 
         translation_request = self._looks_like_full_translation_request(user_message)
         long_task_request = self._looks_like_long_task_request(user_message)
-        ai_profile = resolve_ai_profile(ai_settings, active_mode, subscription_plan)
+        ai_profile = self.product_entitlements_service.get_ai_profile(
+            runtime_settings=runtime_settings,
+            active_mode=active_mode,
+            plan_key=subscription_plan,
+        )
         if long_task_request:
             ai_profile = self._apply_long_task_profile(ai_profile)
         else:
@@ -532,7 +538,11 @@ class AIService:
         reengagement_style = dict(engagement_settings.get("reengagement_style") or {})
         active_mode = self._resolve_effective_mode(state.copy(), runtime_settings)
         ai_profile = self._apply_reengagement_profile(
-            resolve_ai_profile(ai_settings, active_mode, subscription_plan),
+            self.product_entitlements_service.get_ai_profile(
+                runtime_settings=runtime_settings,
+                active_mode=active_mode,
+                plan_key=subscription_plan,
+            ),
             reengagement_style=reengagement_style,
         )
         history_for_context = self._limit_history_messages(

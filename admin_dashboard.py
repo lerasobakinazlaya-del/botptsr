@@ -26,7 +26,6 @@ from services.admin_guardrails import (
     build_broadcast_preview,
     normalize_broadcast_user_ids,
 )
-from services.ai_profile_service import resolve_ai_profile
 from services.admin_metrics_service import AdminMetricsService
 from services.content_studio_service import build_content_calendar
 from services.launch_service import build_launch_links
@@ -921,7 +920,11 @@ async def api_test_prompt(request: Request, _: str = Depends(require_auth)):
     context = await _prepare_test_context(payload)
     history = _parse_history(payload.get("history"))
     runtime_settings = container.admin_settings_service.get_runtime_settings()
-    ai_profile = resolve_ai_profile(runtime_settings["ai"], context["active_mode"])
+    ai_profile = container.product_entitlements_service.get_ai_profile(
+        runtime_settings=runtime_settings,
+        active_mode=context["active_mode"],
+        plan_key="free",
+    )
     system_prompt = container.ai_service.conversation_engine.build_system_prompt(
         state=context["updated_state"],
         access_level=context["access_level"],
@@ -990,7 +993,11 @@ async def api_test_reply(request: Request, _: str = Depends(require_auth)):
 
     ai_settings = runtime_settings["ai"]
     subscription_plan = str(payload.get("subscription_plan") or "free").strip().lower() or "free"
-    ai_profile = resolve_ai_profile(ai_settings, context["active_mode"], subscription_plan)
+    ai_profile = container.product_entitlements_service.get_ai_profile(
+        runtime_settings=runtime_settings,
+        active_mode=context["active_mode"],
+        plan_key=subscription_plan,
+    )
     system_prompt = container.ai_service.conversation_engine.build_system_prompt(
         state=context["updated_state"],
         access_level=context["access_level"],

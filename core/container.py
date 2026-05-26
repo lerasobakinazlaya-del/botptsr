@@ -31,6 +31,7 @@ from services.mode_access_service import ModeAccessService
 from services.openai_client import OpenAIClient
 from services.payment_service import PaymentService
 from services.proactive_message_service import ProactiveMessageService
+from services.product_entitlements_service import ProductEntitlementsService
 from services.prompt_builder import PromptBuilder
 from services.referral_service import ReferralService
 from services.reengagement_service import ReengagementService
@@ -77,7 +78,8 @@ class Container:
             long_term_memory_service=self.long_term_memory_service,
             redis=self.redis,
         )
-        self.mode_access_service = ModeAccessService()
+        self.product_entitlements_service = ProductEntitlementsService()
+        self.mode_access_service = ModeAccessService(self.product_entitlements_service)
         self.conversation_engine = ConversationEngineV2(self.admin_settings_service)
         self.prompt_builder = PromptBuilder(
             self.admin_settings_service,
@@ -102,6 +104,7 @@ class Container:
             access_engine=self.access_engine,
             settings_service=self.admin_settings_service,
             conversation_engine=self.conversation_engine,
+            product_entitlements_service=self.product_entitlements_service,
             debug=self.settings.debug,
             log_full_prompt=self.settings.ai_log_full_prompt,
             debug_prompt_user_id=self.settings.ai_debug_prompt_user_id,

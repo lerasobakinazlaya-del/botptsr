@@ -21,8 +21,8 @@ from handlers.payments import (
     show_premium_menu,
 )
 from handlers.start import build_help_text
-from services.ai_profile_service import resolve_ai_profile
 from services.ai_service import AIBackpressureError, looks_like_full_translation_request
+from services.product_entitlements_service import ProductEntitlementsService
 from services.telegram_formatting import (
     TelegramFormattingOptions,
     escape_plain_text_for_telegram,
@@ -368,28 +368,16 @@ def _subscription_plan(user: dict[str, object] | None) -> str:
 
 
 def _plan_daily_limit(plan_key: str, limits_settings: dict) -> tuple[bool, int, str, str, list[int]]:
-    if plan_key == "premium":
-        return (
-            bool(limits_settings.get("premium_daily_messages_enabled")),
-            max(1, int(limits_settings.get("premium_daily_messages_limit", 200))),
-            str(limits_settings.get("premium_daily_limit_message") or "").strip(),
-            str(limits_settings.get("premium_daily_warning_template") or "").strip(),
-            _normalize_int_list(limits_settings.get("premium_daily_warning_thresholds")),
-        )
-    if plan_key == "pro":
-        return (
-            bool(limits_settings.get("pro_daily_messages_enabled", True)),
-            max(1, int(limits_settings.get("pro_daily_messages_limit", 80))),
-            str(limits_settings.get("pro_daily_limit_message") or "").strip(),
-            str(limits_settings.get("pro_daily_warning_template") or "").strip(),
-            _normalize_int_list(limits_settings.get("pro_daily_warning_thresholds")),
-        )
+    daily_limit = ProductEntitlementsService().get_plan_daily_limit(
+        plan_key=plan_key,
+        limits_settings=limits_settings,
+    )
     return (
-        bool(limits_settings.get("free_daily_messages_enabled")),
-        max(1, int(limits_settings.get("free_daily_messages_limit", 12))),
-        str(limits_settings.get("free_daily_limit_message") or "").strip(),
-        str(limits_settings.get("free_daily_warning_template") or "").strip(),
-        _normalize_int_list(limits_settings.get("free_daily_warning_thresholds")),
+        bool(daily_limit["enabled"]),
+        int(daily_limit["limit"]),
+        str(daily_limit["limit_message"]),
+        str(daily_limit["warning_template"]),
+        list(daily_limit["warning_thresholds"]),
     )
 
 
@@ -705,11 +693,11 @@ async def chat_handler(
     monetization_repository,
     conversation_summary_service,
     chat_session_service,
+    product_entitlements_service,
     mode_access_service,
     db,
 ):
     runtime_settings = admin_settings_service.get_runtime_settings()
-    ai_settings = runtime_settings["ai"]
     chat_settings = runtime_settings["chat"]
     ui_settings = runtime_settings["ui"]
     limits_settings = runtime_settings["limits"]
@@ -814,7 +802,11 @@ async def chat_handler(
             return
 
         active_mode = str(state.get("active_mode") or (user or {}).get("active_mode") or "base")
-        ai_profile = resolve_ai_profile(ai_settings, active_mode, _subscription_plan(user))
+        ai_profile = product_entitlements_service.get_ai_profile(
+            runtime_settings=runtime_settings,
+            active_mode=active_mode,
+            user=user,
+        )
         selection_status = mode_access_service.get_selection_status(
             user=user or {},
             mode_key=active_mode,
