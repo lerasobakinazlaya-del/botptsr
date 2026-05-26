@@ -34,6 +34,31 @@ def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def video_has_audio(video_path: Path) -> bool:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe or not video_path.exists():
+        return False
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "a",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "csv=p=0",
+            str(video_path),
+        ],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return "audio" in result.stdout
+
+
 def cover_resize(image: Image.Image, size: tuple[int, int]) -> Image.Image:
     source_ratio = image.width / image.height
     target_ratio = size[0] / size[1]
@@ -222,6 +247,64 @@ def render_image_sequence_video(image_paths: list[Path], video_path: Path, *, ho
     return video_path
 
 
+def add_background_music(video_path: Path, schedule: dict[str, Any]) -> None:
+    if video_has_audio(video_path):
+        return
+
+    music_config = dict(schedule.get("music") or {})
+    if not bool(music_config.get("enabled", True)):
+        return
+
+    music_value = str(music_config.get("file") or "content-factory/music/ambient-night-01.m4a").strip()
+    if not music_value:
+        return
+
+    music_path = PROJECT_ROOT / music_value
+    if not music_path.exists():
+        print(f"Music file not found, skipping story audio: {music_path}")
+        return
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("ffmpeg not found, skipping story audio")
+        return
+
+    volume = float(music_config.get("volume", 0.14))
+    temp_path = video_path.with_name(f"{video_path.stem}.with-audio{video_path.suffix}")
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(video_path),
+            "-stream_loop",
+            "-1",
+            "-i",
+            str(music_path),
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-filter:a",
+            f"volume={volume},afade=t=in:st=0:d=0.35",
+            "-shortest",
+            "-movflags",
+            "+faststart",
+            str(temp_path),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    temp_path.replace(video_path)
+
+
 def render_story_video(item: dict[str, Any], frame_paths: list[Path]) -> Path | None:
     video_value = str(item.get("video_file") or "").strip()
     if not video_value:
@@ -373,11 +456,14 @@ def main() -> int:
         print(f"Rendered {output.relative_to(PROJECT_ROOT).as_posix()}")
         frame_paths = render_story_frames(item, index)
         print(f"Rendered {len(frame_paths)} frame(s) for {item.get('id')}")
-        video = render_story_video(item, frame_paths)
+        video_path = PROJECT_ROOT / str(item.get("video_file") or "")
+        video = video_path if video_path.exists() and video_has_audio(video_path) else render_story_video(item, frame_paths)
         if video:
+            add_background_music(video, schedule)
             print(f"Rendered {video.relative_to(PROJECT_ROOT).as_posix()}")
     reel = render_story_reel(schedule)
     if reel:
+        add_background_music(reel, schedule)
         print(f"Rendered {reel.relative_to(PROJECT_ROOT).as_posix()}")
     generate_preview(schedule, Path(args.preview_file))
     print(f"Story preview written: {args.preview_file}")
