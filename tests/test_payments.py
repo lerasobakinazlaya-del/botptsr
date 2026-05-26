@@ -848,16 +848,16 @@ class ModesKeyboardTests(unittest.TestCase):
     def test_modes_keyboard_adds_premium_menu_button_for_non_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": False},
-            {"ui": {"premium_button_text": "💎 Premium"}, "limits": {}, "payment": {}},
+            {"ui": {"premium_button_text": "✨ Планы"}, "limits": {}, "payment": {}},
         )
 
         self.assertEqual(keyboard.inline_keyboard[-1][0].callback_data, CALLBACK_OPEN_PREMIUM_MENU)
-        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium")
+        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "✨ Планы")
 
     def test_modes_keyboard_hides_buy_button_for_premium_user(self):
         keyboard = get_modes_keyboard(
             {"is_premium": True},
-            {"ui": {"premium_button_text": "💎 Premium"}, "limits": {}, "payment": {}},
+            {"ui": {"premium_button_text": "✨ Планы"}, "limits": {}, "payment": {}},
         )
 
         callback_data = [button.callback_data for row in keyboard.inline_keyboard for button in row]
@@ -868,7 +868,7 @@ class ModesKeyboardTests(unittest.TestCase):
             {"is_premium": False},
             {
                 "ui": {
-                    "premium_button_text": "💎 Premium",
+                    "premium_button_text": "✨ Планы",
                     "modes_premium_marker": "🔒",
                 },
                 "limits": {},
@@ -894,7 +894,7 @@ class ModesKeyboardTests(unittest.TestCase):
 
         texts = [button.text for row in keyboard.inline_keyboard for button in row]
         self.assertIn("🧠 Наставник 🔒", texts)
-        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "💎 Premium")
+        self.assertEqual(keyboard.inline_keyboard[-1][0].text, "✨ Планы")
 
     def test_build_modes_menu_text_returns_clean_catalog_title(self):
         text = build_modes_menu_text(

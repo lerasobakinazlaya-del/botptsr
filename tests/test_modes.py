@@ -4,29 +4,26 @@ from handlers.modes import build_mode_saved_text, build_modes_menu_text
 
 
 class ModesMenuTests(unittest.TestCase):
-    def test_free_user_modes_menu_contains_premium_bridge(self):
+    def test_free_user_modes_menu_stays_clean(self):
         text = build_modes_menu_text(
             {"is_premium": False},
-            {"ui": {"modes_title": "Выбери режим общения:", "premium_button_text": "✨ Полный доступ"}},
+            {"ui": {"modes_title": "Выбери режим общения:", "premium_button_text": "✨ Планы"}},
             {
                 "base": {"name": "База", "is_premium": False},
                 "comfort": {"name": "Психолог", "is_premium": True},
             },
         )
 
-        self.assertIn("✨ Полный доступ", text)
-        self.assertIn("Психолог", text)
-        self.assertIn("более глубокие ответы", text)
+        self.assertEqual("Выбери режим общения:", text)
 
     def test_premium_user_modes_menu_does_not_upsell(self):
         text = build_modes_menu_text(
             {"is_premium": True},
-            {"ui": {"modes_title": "Выбери режим общения:", "premium_button_text": "✨ Полный доступ"}},
+            {"ui": {"modes_title": "Выбери режим общения:", "premium_button_text": "✨ Планы"}},
             {"comfort": {"name": "Психолог", "is_premium": True}},
         )
 
-        self.assertNotIn("Полный доступ", text)
-
+        self.assertNotIn("Планы", text)
 
     def test_preview_mode_saved_text_explains_remaining_trial(self):
         text = build_mode_saved_text(

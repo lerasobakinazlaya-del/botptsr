@@ -259,9 +259,21 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
     def test_useful_paywall_suppressed_for_medical_context(self):
         triggered = _should_trigger_useful_advice_paywall(
             user={"subscription_plan": "free"},
+            state={"interaction_count": 8},
             active_mode="mentor",
             user_text="Помоги, аритмия и что делать",
             response="1. шаг\n2. план",
+        )
+
+        self.assertFalse(triggered)
+
+    def test_useful_paywall_waits_for_several_messages(self):
+        triggered = _should_trigger_useful_advice_paywall(
+            user={"subscription_plan": "free"},
+            state={"interaction_count": 2},
+            active_mode="mentor",
+            user_text="Помоги разобрать и дай план",
+            response="1. Первый шаг\n2. План на сегодня",
         )
 
         self.assertFalse(triggered)

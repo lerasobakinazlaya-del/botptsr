@@ -359,7 +359,7 @@
       "mentor": 2,
       "dominant": 2
     },
-    "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или Premium.",
+    "mode_preview_exhausted_message": "Лимит сообщений для режима {mode_name} на сегодня исчерпан. Попробуй другой режим или открой планы.",
     "free_long_task_enabled": true,
     "free_long_task_min_chars": 900,
     "free_long_task_min_lines": 8,
@@ -662,11 +662,11 @@
         "is_default": false
       }
     },
-    "premium_menu_description_template": "Платный доступ — это когда бот перестает быть разовым ответчиком и становится нормальным AI-партнером.\n\n• помнит контекст между сообщениями\n• сам мягко возвращается после паузы\n• открывает сильные режимы: {premium_modes_list}\n• дает до {premium_daily_limit} сообщений в день\n• отвечает глубже, точнее и с меньшим ощущением шаблона\n\nСтартовый план: {price_label} за {access_days_label}.",
-    "premium_menu_packages_title": "Выбери формат доступа:",
+    "premium_menu_description_template": "Платные планы нужны, когда хочется не разового ответа, а нормального продолжения разговора.\n\n• Pro — больше контекста, больше сообщений и все режимы без обрыва\n• Premium — еще глубже ответы, сильнее память и более точный разбор\n• сильные режимы: {premium_modes_list}\n• до {premium_daily_limit} сообщений в день в старшем плане\n\nПервый платный план: {price_label} за {access_days_label}.",
+    "premium_menu_packages_title": "Выбери план:",
     "premium_menu_package_line_template": "• {title} — {price_label} на {access_days_label}",
     "premium_menu_package_button_template": "{title} • {price_label}",
-    "premium_menu_preview_template": "Без Premium можно попробовать: {preview_modes_list}.",
+    "premium_menu_preview_template": "Сначала можно попробовать режимы бесплатно: {preview_modes_list}.",
     "premium_menu_buy_button_template": "Оплатить {price_label} • {access_days_label}",
     "premium_menu_back_button_text": "← К режимам",
     "virtual_payment_description_template": "Checkout\n\nТариф: {package_title}\nЦена: {price_label}\nСрок доступа: {access_days_label}\n\nСейчас включен тестовый режим оплаты для проверки воронки. Реального списания не будет.",
@@ -677,7 +677,7 @@
     "recurring_button_text": "Открыть оплату",
     "already_premium_message": "Premium уже активен. Можно продлить его заранее.",
     "premium_benefits_text": "Платные планы дают память контекста, инициативу после паузы, сильные режимы и более точные ответы без ощущения одноразового чат-бота.",
-    "buy_cta_text": "Открыть Premium",
+    "buy_cta_text": "Смотреть планы",
     "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
     "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
     "success_message": "Оплата прошла успешно. Premium уже активен.",
@@ -694,7 +694,7 @@
   "ui": {
     "write_button_text": "💬 Начать диалог",
     "modes_button_text": "🧭 Режимы",
-    "premium_button_text": "✨ Premium",
+    "premium_button_text": "✨ Планы",
     "input_placeholder": "Напиши, что у тебя сейчас в голове...",
     "onboarding_input_placeholder": "Выбери точку входа или напиши своими словами...",
     "onboarding_prompt_buttons": [

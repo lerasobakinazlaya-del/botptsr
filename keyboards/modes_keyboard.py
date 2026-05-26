@@ -34,7 +34,7 @@ def _ordered_modes(mode_catalog: dict | None = None) -> list[dict]:
 
 def _build_premium_button_text(runtime_settings: dict) -> str:
     ui_settings = runtime_settings.get("ui", {}) if isinstance(runtime_settings, dict) else {}
-    return str(ui_settings.get("premium_button_text") or "Premium").strip() or "Premium"
+    return str(ui_settings.get("premium_button_text") or "✨ Планы").strip() or "✨ Планы"
 
 
 def get_modes_keyboard(

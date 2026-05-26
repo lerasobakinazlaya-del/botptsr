@@ -31,6 +31,7 @@ from services.telegram_formatting import (
 
 router = Router()
 logger = logging.getLogger(__name__)
+SOFT_PAYWALL_MIN_INTERACTIONS = 3
 
 _NAME_RECALL_PATTERNS = (
     re.compile(r"\bкак\s+меня\s+зовут\b", re.IGNORECASE),
@@ -497,7 +498,7 @@ def _should_trigger_emotional_paywall(
         return False
     if len(str(response or "").strip()) < 140:
         return False
-    if int((state or {}).get("interaction_count", 0) or 0) < 3:
+    if int((state or {}).get("interaction_count", 0) or 0) < SOFT_PAYWALL_MIN_INTERACTIONS:
         return False
     emotional_keywords = (
         "тревог",
@@ -515,6 +516,7 @@ def _should_trigger_emotional_paywall(
 def _should_trigger_useful_advice_paywall(
     *,
     user: dict[str, object] | None,
+    state: dict | None,
     active_mode: str,
     user_text: str,
     response: str,
@@ -522,6 +524,8 @@ def _should_trigger_useful_advice_paywall(
     if _subscription_plan(user) != "free":
         return False
     if _is_sensitive_monetization_context(user_text=user_text):
+        return False
+    if int((state or {}).get("interaction_count", 0) or 0) < SOFT_PAYWALL_MIN_INTERACTIONS:
         return False
     request_keywords = (
         "помоги",
@@ -967,6 +971,7 @@ async def chat_handler(
                     soft_paywall_trigger = OFFER_TRIGGER_EMOTIONAL_ENGAGEMENT
             elif _should_trigger_useful_advice_paywall(
                 user=user or {},
+                state=new_state,
                 active_mode=active_mode,
                 user_text=user_text,
                 response=response,
