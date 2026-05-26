@@ -109,6 +109,18 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("renderOpenAIAlertStatus(healthUsage,usageAlerts)", source)
         self.assertIn("const sourceTokens=stats=>(stats&&stats.total_tokens)||((stats&&stats.tokens)||0);", source)
 
+    def test_admin_limits_page_exposes_free_monthly_caps(self):
+        source = self._admin_source()
+
+        self.assertIn('id="limits_free_monthly_messages_enabled"', source)
+        self.assertIn('id="limits_free_monthly_messages_limit"', source)
+        self.assertIn('id="limits_free_monthly_limit_message"', source)
+        self.assertIn('id="limits_free_monthly_tokens_enabled"', source)
+        self.assertIn('id="limits_free_monthly_tokens_limit"', source)
+        self.assertIn('id="limits_free_monthly_tokens_limit_message"', source)
+        self.assertIn("free_monthly_messages_enabled:$('#limits_free_monthly_messages_enabled').checked", source)
+        self.assertIn("free_monthly_tokens_limit:Number($('#limits_free_monthly_tokens_limit').value)", source)
+
     def test_dashboard_exposes_openai_user_spend_blocks(self):
         source = self._admin_source()
 
