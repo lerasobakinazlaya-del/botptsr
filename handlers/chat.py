@@ -20,6 +20,7 @@ from handlers.payments import (
     OFFER_TRIGGER_USEFUL_ADVICE,
     show_premium_menu,
 )
+from handlers.start import build_help_text
 from services.ai_profile_service import resolve_ai_profile
 from services.ai_service import AIBackpressureError, looks_like_full_translation_request
 from services.telegram_formatting import (
@@ -736,12 +737,21 @@ async def chat_handler(
     if await _handle_timezone_command(message, user_preference_repository, state_repository):
         return
 
-    if user_text == ui_settings["modes_button_text"]:
+    normalized_command = user_text.strip().lower()
+
+    if user_text == ui_settings["modes_button_text"] or normalized_command in {"/modes", "\\modes"}:
         await show_modes_menu(message, user_service, admin_settings_service)
         return
 
-    if user_text == ui_settings["premium_button_text"]:
+    if user_text == ui_settings["premium_button_text"] or normalized_command in {"/premium", "\\premium", "/plans", "\\plans"}:
         await show_premium_menu(message, payment_service, user_service, admin_settings_service)
+        return
+
+    if normalized_command in {"/help", "\\help"}:
+        await message.answer(
+            build_help_text(runtime_settings),
+            reply_markup=None,
+        )
         return
 
     if user_text.lower() in {"/ref", "рефералка", "реферальная ссылка"} and referral_settings["enabled"]:

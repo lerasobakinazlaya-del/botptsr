@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from datetime import datetime, timezone
 
 from aiogram.types import (
@@ -13,8 +13,8 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-from handlers.modes import CALLBACK_OPEN_MODES
-from handlers.payments import CALLBACK_OPEN_PREMIUM_MENU
+from handlers.modes import CALLBACK_OPEN_MODES, show_modes_menu
+from handlers.payments import CALLBACK_OPEN_PREMIUM_MENU, show_premium_menu
 
 
 router = Router()
@@ -136,7 +136,28 @@ def _build_start_cta_text(ui_settings: dict) -> str:
     followup_text = _build_welcome_followup_text(ui_settings)
     if followup_text:
         return followup_text
-    return "Можно выбрать режим или сразу открыть Premium."
+    return "Можно выбрать режим или сразу открыть планы."
+
+
+def build_help_text(runtime_settings: dict) -> str:
+    ui_settings = (runtime_settings or {}).get("ui", {})
+    configured = str(ui_settings.get("help_message") or "").strip()
+    if configured:
+        return configured
+    return (
+        "Что можно делать:\n"
+        "/start — быстрый старт\n"
+        "/modes — выбрать режим\n"
+        "/premium — открыть планы Pro / Premium\n"
+        "/ref — пригласить друга\n"
+        "/help — показать это сообщение\n\n"
+        "Правила пользования:\n"
+        "• пиши как есть, без специальных формулировок\n"
+        "• режим можно переключать в любой момент\n"
+        "• сильные режимы можно попробовать бесплатно ограниченное число раз\n"
+        "• после нескольких сообщений бот может предложить платные планы, если нужен более длинный и связный разговор\n"
+        "• кнопка «Сохранить мысль» появляется, когда в ответе есть полезная мысль, которую удобно переслать или оставить себе"
+    )
 
 
 @router.message(CommandStart())
@@ -257,3 +278,22 @@ async def start_handler(
         return
 
     await send_user_welcome_v2(ui_settings["welcome_user_text"], include_onboarding=True)
+
+
+@router.message(Command("modes"))
+async def modes_command_handler(message: Message, user_service, admin_settings_service):
+    await show_modes_menu(message, user_service, admin_settings_service)
+
+
+@router.message(Command("premium", "plans"))
+async def premium_command_handler(message: Message, payment_service, user_service, admin_settings_service):
+    await show_premium_menu(message, payment_service, user_service, admin_settings_service)
+
+
+@router.message(Command("help"))
+async def help_command_handler(message: Message, admin_settings_service):
+    runtime = admin_settings_service.get_runtime_settings()
+    await message.answer(
+        build_help_text(runtime),
+        reply_markup=get_main_keyboard(runtime["ui"]),
+    )

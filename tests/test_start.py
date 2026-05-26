@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
-from handlers.start import start_handler
+from handlers.start import build_help_text, start_handler
 from handlers.modes import CALLBACK_OPEN_MODES
 from handlers.payments import CALLBACK_OPEN_PREMIUM_MENU
 
@@ -268,7 +268,7 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(message.answers), 2)
         self.assertEqual(
             message.answers[1]["text"],
-            "Можно выбрать режим или сразу открыть Premium.",
+            "Можно выбрать режим или сразу открыть планы.",
         )
         self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
 
@@ -291,6 +291,16 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             FakeAdminSettingsService().get_runtime_settings()["ui"]["welcome_admin_text"],
         )
         self.assertIsInstance(message.answers[1]["reply_markup"], InlineKeyboardMarkup)
+
+    def test_build_help_text_explains_commands_and_rules(self):
+        text = build_help_text({"ui": {}})
+
+        self.assertIn("/start", text)
+        self.assertIn("/modes", text)
+        self.assertIn("/premium", text)
+        self.assertIn("/help", text)
+        self.assertIn("Правила пользования", text)
+        self.assertIn("Сохранить мысль", text)
 
 
 if __name__ == "__main__":
