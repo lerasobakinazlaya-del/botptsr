@@ -19,7 +19,25 @@ CALLBACK_MODE_PREFIX = "mode:"
 def build_modes_menu_text(user: dict, runtime_settings: dict, mode_catalog: dict) -> str:
     ui_settings = runtime_settings.get("ui", {})
     title = str(ui_settings.get("modes_title") or "Выбери режим общения:").strip()
-    return title or "Выбери режим общения:"
+    title = title or "Выбери режим общения:"
+    mode_lines = []
+    for _, mode in sorted(
+        (mode_catalog or {}).items(),
+        key=lambda item: (int((item[1] or {}).get("sort_order", 0) or 0), str(item[0])),
+    ):
+        name = str(mode.get("name") or "").strip()
+        description = str(mode.get("description") or "").strip()
+        icon = str(mode.get("icon") or "").strip()
+        if not name or not description:
+            continue
+        first_line = description.splitlines()[0].strip()
+        if len(first_line) > 160:
+            first_line = first_line[:157].rstrip() + "..."
+        mode_lines.append(f"{icon} {name} — {first_line}".strip())
+
+    if not mode_lines:
+        return title
+    return f"{title}\n\n" + "\n".join(mode_lines)
 
 
 def build_mode_saved_text(

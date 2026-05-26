@@ -25,6 +25,30 @@ class ModesMenuTests(unittest.TestCase):
 
         self.assertNotIn("Планы", text)
 
+    def test_modes_menu_shows_product_descriptions_when_available(self):
+        text = build_modes_menu_text(
+            {"is_premium": False},
+            {"ui": {"modes_title": "Выбери режим общения:"}},
+            {
+                "mentor": {
+                    "name": "Разбор",
+                    "icon": "🧠",
+                    "description": "Для задач и решений: отделить главное от шума.",
+                    "sort_order": 30,
+                },
+                "base": {
+                    "name": "Диалог",
+                    "icon": "💬",
+                    "description": "Для обычного разговора без консультационного формата.",
+                    "sort_order": 10,
+                },
+            },
+        )
+
+        self.assertIn("💬 Диалог — Для обычного разговора", text)
+        self.assertIn("🧠 Разбор — Для задач и решений", text)
+        self.assertLess(text.index("Диалог"), text.index("Разбор"))
+
     def test_preview_mode_saved_text_explains_remaining_trial(self):
         text = build_mode_saved_text(
             mode_name="Разбор",

@@ -49,6 +49,11 @@ class RuntimeSettingsRegressionTests(unittest.TestCase):
         self.assertTrue(runtime["limits"]["free_monthly_tokens_enabled"])
         self.assertEqual(12000, runtime["limits"]["free_monthly_tokens_limit"])
 
+        catalog = json.loads(Path("config/mode_catalog.json").read_text(encoding="utf-8"))
+        self.assertIn("Для обычного разговора", catalog["base"]["description"])
+        self.assertNotIn("лишнего лака", catalog["base"]["description"].lower())
+        self.assertIn("следующий шаг", catalog["mentor"]["description"])
+
     def test_user_facing_config_has_no_mojibake_markers(self):
         markers = ("Рџ", "Рњ", "Р§", "СЏ", "вЂ", "рџ")
         paths = (
