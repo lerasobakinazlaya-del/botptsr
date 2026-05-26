@@ -1,5 +1,22 @@
 {
   "delivered": {
+    "day01_night_challenge": {
+      "delivered_at": "2026-05-26T10:19:20.063812+00:00",
+      "github_run_id": "26446455535",
+      "github_sha": "0455c77e6f234cc70eea30a601eed78a6ef5ef30",
+      "message_ids": {
+        "254279477": [
+          152,
+          153
+        ]
+      },
+      "platform_ids": [
+        "day01_night_challenge-reels",
+        "day01_night_challenge-tiktok",
+        "day01_night_challenge-shorts"
+      ],
+      "video_file": "assets/social-videos/week-01/shared/day01_night_challenge.mp4"
+    },
     "day01_night_dialog": {
       "delivered_at": "2026-05-25T11:14:47.246985+00:00",
       "github_run_id": "26397610995",
