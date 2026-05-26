@@ -16,7 +16,7 @@ from core.middlewares import (
     SuspiciousContentMiddleware,
     ThrottlingMiddleware,
 )
-from handlers import admin, chat, growth, modes, payments, start
+from handlers import admin, callbacks, chat, growth, modes, payments, start
 
 
 @asynccontextmanager
@@ -97,6 +97,7 @@ def create_dispatcher(container: Container, settings) -> Dispatcher:
     dp.include_router(payments.router)
     dp.include_router(modes.router)
     dp.include_router(growth.router)
+    dp.include_router(callbacks.router)
     dp.include_router(chat.router)
 
     return dp
