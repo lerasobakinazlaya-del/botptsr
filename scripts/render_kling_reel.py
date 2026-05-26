@@ -164,8 +164,10 @@ def draw_overlay(frame: Image.Image, message: str, message_index: int, frame_ind
         draw.rounded_rectangle((114, 1662, 966, 1754), radius=34, fill=(5, 22, 26, 188))
         draw.text((154, 1687), "Попробовать: @asknitai_bot", font=brand_font, fill=(78, 237, 200, 250))
 
-    draw.rectangle((0, 1800, 1080, 1920), fill=(3, 14, 17, 255))
-    draw.text((736, 1844), "@asknitai_bot", font=small_font, fill=(216, 245, 239, 250))
+    draw.rectangle((0, 1788, 1080, 1920), fill=(3, 14, 17, 255))
+    handle_box = (264, 1812, 816, 1888)
+    draw.rounded_rectangle(handle_box, radius=30, fill=(8, 30, 36, 255))
+    draw_centered_text(draw, handle_box, "@asknitai_bot", brand_font, (216, 245, 239, 252))
 
     composed = Image.alpha_composite(image, overlay).convert("RGB")
     return ImageEnhance.Contrast(composed).enhance(1.04)
@@ -208,7 +210,7 @@ def create_audio(path: Path, duration: float, preset: AudioPreset) -> None:
             "-i",
             f"aevalsrc='{preset.expression}':s=44100:d={duration:.2f}",
             "-af",
-            f"afade=t=in:st=0:d=0.25,afade=t=out:st={max(0.0, duration - 0.75):.2f}:d=0.55",
+            f"volume=1.8,alimiter=limit=0.94,afade=t=in:st=0:d=0.25,afade=t=out:st={max(0.0, duration - 0.75):.2f}:d=0.55",
             "-c:a",
             "aac",
             "-b:a",
