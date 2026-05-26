@@ -178,30 +178,16 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(message.answers)
 
     def test_quota_notice_warns_when_free_messages_are_low(self):
-        state, notice = _build_quota_notice(
-            {},
-            {"is_premium": False},
-            12,
-            {
-                "free_daily_messages_enabled": True,
-                "free_daily_messages_limit": 15,
-                "free_daily_warning_thresholds": [3],
-                "free_daily_warning_template": "Осталось {remaining} из {limit}",
-            },
-        )
+        limits = {
+            "free_daily_messages_enabled": True,
+            "free_daily_messages_limit": 5,
+            "free_daily_warning_thresholds": [3],
+            "free_daily_warning_template": "left {remaining} of {limit}",
+        }
+        state, notice = _build_quota_notice({}, {"is_premium": False}, 2, limits)
 
-        self.assertIn("Осталось 3 из 15", notice)
-        repeated_state, repeated_notice = _build_quota_notice(
-            state,
-            {"is_premium": False},
-            12,
-            {
-                "free_daily_messages_enabled": True,
-                "free_daily_messages_limit": 15,
-                "free_daily_warning_thresholds": [3],
-                "free_daily_warning_template": "Осталось {remaining} из {limit}",
-            },
-        )
+        self.assertIn("left 3 of 5", notice)
+        repeated_state, repeated_notice = _build_quota_notice(state, {"is_premium": False}, 2, limits)
         self.assertIsNone(repeated_notice)
         self.assertEqual(state, repeated_state)
 

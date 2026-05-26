@@ -78,3 +78,37 @@ class OpenAIUsageRepositoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(overview["top_users_30d"][0]["first_name"], "Alice")
         self.assertEqual(overview["top_users_30d"][0]["total_tokens"], 560)
         self.assertEqual(overview["daily_14d"][0]["requests"], 2)
+
+    async def test_user_tokens_current_month_can_be_filtered_by_source(self):
+        await self.repository.log_event(
+            user_id=1,
+            source="chat",
+            model="gpt-4o-mini",
+            prompt_tokens=300,
+            completion_tokens=120,
+            total_tokens=420,
+            estimated_cost_usd=0.000117,
+            latency_ms=640.0,
+            finish_reason="stop",
+            request_user="1",
+            metadata={},
+        )
+        await self.repository.log_event(
+            user_id=1,
+            source="admin_test_reply",
+            model="gpt-4o-mini",
+            prompt_tokens=100,
+            completion_tokens=40,
+            total_tokens=140,
+            estimated_cost_usd=0.000039,
+            latency_ms=220.0,
+            finish_reason="stop",
+            request_user="admin-live-test",
+            metadata={},
+        )
+
+        chat_tokens = await self.repository.get_user_tokens_current_month(1, source="chat")
+        all_tokens = await self.repository.get_user_tokens_current_month(1)
+
+        self.assertEqual(420, chat_tokens)
+        self.assertEqual(560, all_tokens)

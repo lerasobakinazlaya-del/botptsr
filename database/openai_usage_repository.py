@@ -297,6 +297,27 @@ class OpenAIUsageRepository:
             for row in rows
         ]
 
+    async def get_user_tokens_current_month(
+        self,
+        user_id: int,
+        *,
+        source: str | None = None,
+    ) -> int:
+        query = [
+            "SELECT COALESCE(SUM(total_tokens), 0)",
+            "FROM openai_usage_events",
+            "WHERE user_id = ?",
+            "  AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')",
+        ]
+        params: list[Any] = [int(user_id)]
+        if source is not None:
+            query.append("  AND COALESCE(NULLIF(source, ''), 'unknown') = ?")
+            params.append(str(source).strip() or "unknown")
+
+        cursor = await self.db.connection.execute("\n".join(query), tuple(params))
+        row = await cursor.fetchone()
+        return int(row[0] or 0) if row else 0
+
     async def _fetch_scalar_overview(self) -> dict[str, Any]:
         cursor = await self.db.connection.execute(
             """

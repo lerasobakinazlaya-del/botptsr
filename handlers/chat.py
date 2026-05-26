@@ -689,6 +689,7 @@ async def chat_handler(
     payment_service,
     user_service,
     referral_service,
+    openai_usage_repository,
     admin_settings_service,
     monetization_repository,
     conversation_summary_service,
@@ -756,6 +757,29 @@ async def chat_handler(
         if should_apply_limits:
             today_count = await message_repository.get_user_messages_count_today(user_id)
             plan_key = _subscription_plan(user)
+            if plan_key == "free":
+                monthly_count = await message_repository.get_user_messages_count_current_month(user_id)
+                monthly_chat_tokens = await openai_usage_repository.get_user_tokens_current_month(
+                    user_id,
+                    source="chat",
+                )
+                hard_limit_status = product_entitlements_service.get_hard_usage_limit_status(
+                    user=user,
+                    limits_settings=limits_settings,
+                    monthly_messages=monthly_count,
+                    monthly_chat_tokens=monthly_chat_tokens,
+                )
+                if not bool(hard_limit_status["allowed"]):
+                    await message.answer(str(hard_limit_status["message"]))
+                    await show_premium_menu(
+                        message,
+                        payment_service,
+                        user_service,
+                        admin_settings_service,
+                        trigger=OFFER_TRIGGER_LIMIT_REACHED,
+                        premium_limit=int(limits_settings.get("premium_daily_messages_limit", 200)),
+                    )
+                    return
             limit_enabled, limit_value, limit_message, _, _ = _plan_daily_limit(plan_key, limits_settings)
             if limit_enabled and today_count >= limit_value:
                 await message.answer(limit_message)

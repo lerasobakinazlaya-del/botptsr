@@ -170,6 +170,20 @@ class MessageRepository:
         row = await cursor.fetchone()
         return row[0] if row else 0
 
+    async def get_user_messages_count_current_month(self, user_id: int) -> int:
+        cursor = await self.db.connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM messages
+            WHERE user_id = ?
+              AND role = 'user'
+              AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else 0
+
     async def get_inactive_user_candidates(
         self,
         *,

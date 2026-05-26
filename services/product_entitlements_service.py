@@ -44,6 +44,96 @@ class ProductEntitlementsService:
             ),
         }
 
+    def get_monthly_usage_policy(
+        self,
+        *,
+        user: dict[str, Any] | None = None,
+        plan_key: str | None = None,
+        limits_settings: dict[str, Any],
+    ) -> dict[str, Any]:
+        plan = self._normalize_plan_key(plan_key or self.normalize_plan(user))
+        prefix = "premium" if plan == "premium" else "pro" if plan == "pro" else "free"
+        messages_enabled = bool(limits_settings.get(f"{prefix}_monthly_messages_enabled", plan == "free"))
+        tokens_enabled = bool(limits_settings.get(f"{prefix}_monthly_tokens_enabled", plan == "free"))
+        return {
+            "plan": plan,
+            "messages_enabled": messages_enabled,
+            "messages_limit": self._normalize_optional_limit(
+                limits_settings.get(f"{prefix}_monthly_messages_limit"),
+                default=40 if plan == "free" else 0,
+                enabled=messages_enabled,
+            ),
+            "messages_limit_message": str(
+                limits_settings.get(f"{prefix}_monthly_limit_message")
+                or "Ты исчерпал бесплатный лимит сообщений на этот месяц. Чтобы продолжить без паузы, открой платный план."
+            ).strip(),
+            "tokens_enabled": tokens_enabled,
+            "tokens_limit": self._normalize_optional_limit(
+                limits_settings.get(f"{prefix}_monthly_tokens_limit"),
+                default=12000 if plan == "free" else 0,
+                enabled=tokens_enabled,
+            ),
+            "tokens_limit_message": str(
+                limits_settings.get(f"{prefix}_monthly_tokens_limit_message")
+                or "Ты исчерпал бесплатный лимит токенов на этот месяц. Чтобы продолжить, открой платный план."
+            ).strip(),
+        }
+
+    def get_hard_usage_limit_status(
+        self,
+        *,
+        user: dict[str, Any] | None,
+        limits_settings: dict[str, Any],
+        monthly_messages: int,
+        monthly_chat_tokens: int,
+    ) -> dict[str, Any]:
+        policy = self.get_monthly_usage_policy(user=user, limits_settings=limits_settings)
+        plan = str(policy["plan"])
+        messages_used = max(0, int(monthly_messages or 0))
+        tokens_used = max(0, int(monthly_chat_tokens or 0))
+
+        if bool(policy["messages_enabled"]) and messages_used >= int(policy["messages_limit"]):
+            return {
+                "allowed": False,
+                "reason": "monthly_messages",
+                "plan": plan,
+                "used": messages_used,
+                "limit": int(policy["messages_limit"]),
+                "message": str(policy["messages_limit_message"]).format(
+                    used=messages_used,
+                    limit=int(policy["messages_limit"]),
+                ),
+            }
+
+        if bool(policy["tokens_enabled"]) and tokens_used >= int(policy["tokens_limit"]):
+            return {
+                "allowed": False,
+                "reason": "monthly_chat_tokens",
+                "plan": plan,
+                "used": tokens_used,
+                "limit": int(policy["tokens_limit"]),
+                "message": str(policy["tokens_limit_message"]).format(
+                    used=tokens_used,
+                    limit=int(policy["tokens_limit"]),
+                ),
+            }
+
+        return {
+            "allowed": True,
+            "reason": None,
+            "plan": plan,
+            "monthly_messages_remaining": (
+                max(0, int(policy["messages_limit"]) - messages_used)
+                if bool(policy["messages_enabled"])
+                else None
+            ),
+            "monthly_chat_tokens_remaining": (
+                max(0, int(policy["tokens_limit"]) - tokens_used)
+                if bool(policy["tokens_enabled"])
+                else None
+            ),
+        }
+
     def get_ai_profile(
         self,
         *,
@@ -147,6 +237,9 @@ class ProductEntitlementsService:
         )
         used_today = int(today_messages or 0)
         daily_remaining = max(0, int(daily["limit"]) - used_today)
+        monthly_policy = self.get_monthly_usage_policy(user=user, limits_settings=limits)
+        used_monthly_messages = int(monthly_messages or 0)
+        used_monthly_tokens = int(monthly_chat_tokens or 0)
         return {
             "plan": plan,
             "is_paid": plan in {"pro", "premium"},
@@ -156,12 +249,24 @@ class ProductEntitlementsService:
                 "remaining": daily_remaining,
             },
             "monthly_messages": {
-                "used": int(monthly_messages or 0),
-                "remaining": None,
+                "used": used_monthly_messages,
+                "remaining": (
+                    max(0, int(monthly_policy["messages_limit"]) - used_monthly_messages)
+                    if bool(monthly_policy["messages_enabled"])
+                    else None
+                ),
+                "limit": int(monthly_policy["messages_limit"]) if bool(monthly_policy["messages_enabled"]) else None,
+                "enabled": bool(monthly_policy["messages_enabled"]),
             },
             "monthly_chat_tokens": {
-                "used": int(monthly_chat_tokens or 0),
-                "remaining": None,
+                "used": used_monthly_tokens,
+                "remaining": (
+                    max(0, int(monthly_policy["tokens_limit"]) - used_monthly_tokens)
+                    if bool(monthly_policy["tokens_enabled"])
+                    else None
+                ),
+                "limit": int(monthly_policy["tokens_limit"]) if bool(monthly_policy["tokens_enabled"]) else None,
+                "enabled": bool(monthly_policy["tokens_enabled"]),
             },
             "active_mode": active_mode,
             "mode_access": mode_access,
@@ -226,6 +331,14 @@ class ProductEntitlementsService:
         if normalized in self.VALID_PLANS:
             return normalized
         return fallback
+
+    def _normalize_optional_limit(self, value: Any, *, default: int, enabled: bool) -> int:
+        if not enabled:
+            return 0
+        try:
+            return max(1, int(value if value is not None else default))
+        except (TypeError, ValueError):
+            return max(1, int(default))
 
     def _normalize_int_list(self, raw: object) -> list[int]:
         if isinstance(raw, str):

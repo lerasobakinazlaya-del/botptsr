@@ -456,10 +456,16 @@ class AdminSettingsService:
         },
         "limits": {
             "free_daily_messages_enabled": True,
-            "free_daily_messages_limit": 15,
+            "free_daily_messages_limit": 5,
             "free_daily_warning_thresholds": [3],
             "free_daily_warning_template": "Бесплатных сообщений на сегодня осталось: {remaining} из {limit}. Платный доступ даст больше лимита и откроет закрытые режимы.",
             "free_daily_limit_message": "Ты исчерпал дневной лимит бесплатных сообщений. Чтобы продолжить, оформи Premium или возвращайся завтра.",
+            "free_monthly_messages_enabled": True,
+            "free_monthly_messages_limit": 40,
+            "free_monthly_limit_message": "Бесплатный месячный лимит исчерпан: {used} из {limit} сообщений. Чтобы продолжить без обрыва, открой платный план.",
+            "free_monthly_tokens_enabled": True,
+            "free_monthly_tokens_limit": 12000,
+            "free_monthly_tokens_limit_message": "Бесплатный месячный лимит по токенам исчерпан: {used} из {limit}. Чтобы продолжить, открой платный план.",
             "premium_daily_messages_enabled": True,
             "premium_daily_messages_limit": 120,
             "premium_daily_warning_thresholds": [20, 10, 5, 1, 0],
@@ -1213,6 +1219,24 @@ class AdminSettingsService:
         )
         limits["free_daily_warning_template"] = self._normalize_text(
             limits.get("free_daily_warning_template", ""),
+            multiline=True,
+        )
+        limits["free_monthly_messages_enabled"] = bool(limits.get("free_monthly_messages_enabled", True))
+        limits["free_monthly_messages_limit"] = max(
+            1,
+            int(limits.get("free_monthly_messages_limit", 40) or 40),
+        )
+        limits["free_monthly_limit_message"] = self._normalize_text(
+            limits.get("free_monthly_limit_message", ""),
+            multiline=True,
+        )
+        limits["free_monthly_tokens_enabled"] = bool(limits.get("free_monthly_tokens_enabled", True))
+        limits["free_monthly_tokens_limit"] = max(
+            1,
+            int(limits.get("free_monthly_tokens_limit", 12000) or 12000),
+        )
+        limits["free_monthly_tokens_limit_message"] = self._normalize_text(
+            limits.get("free_monthly_tokens_limit_message", ""),
             multiline=True,
         )
         limits["premium_daily_messages_enabled"] = bool(limits.get("premium_daily_messages_enabled"))

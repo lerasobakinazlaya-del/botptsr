@@ -46,6 +46,12 @@ class ProductEntitlementsServiceTests(unittest.TestCase):
                 "free_daily_warning_thresholds": [3],
                 "free_daily_warning_template": "left {remaining}",
                 "free_daily_limit_message": "free done",
+                "free_monthly_messages_enabled": True,
+                "free_monthly_messages_limit": 40,
+                "free_monthly_limit_message": "monthly messages {used}/{limit}",
+                "free_monthly_tokens_enabled": True,
+                "free_monthly_tokens_limit": 12000,
+                "free_monthly_tokens_limit_message": "monthly tokens {used}/{limit}",
                 "pro_daily_messages_enabled": True,
                 "pro_daily_messages_limit": 80,
                 "premium_daily_messages_enabled": True,
@@ -156,6 +162,44 @@ class ProductEntitlementsServiceTests(unittest.TestCase):
         self.assertEqual(0.5, pro_profile["temperature"])
         self.assertIn("mentor", pro_profile["prompt_suffix"])
 
+    def test_free_monthly_messages_are_a_hard_limit(self):
+        status = self.service.get_hard_usage_limit_status(
+            user={"subscription_plan": "free"},
+            limits_settings=self.runtime_settings["limits"],
+            monthly_messages=40,
+            monthly_chat_tokens=1000,
+        )
+
+        self.assertFalse(status["allowed"])
+        self.assertEqual("monthly_messages", status["reason"])
+        self.assertEqual(40, status["limit"])
+        self.assertIn("40/40", status["message"])
+
+    def test_free_monthly_chat_tokens_are_a_hard_limit(self):
+        status = self.service.get_hard_usage_limit_status(
+            user={"subscription_plan": "free"},
+            limits_settings=self.runtime_settings["limits"],
+            monthly_messages=10,
+            monthly_chat_tokens=12000,
+        )
+
+        self.assertFalse(status["allowed"])
+        self.assertEqual("monthly_chat_tokens", status["reason"])
+        self.assertEqual(12000, status["limit"])
+        self.assertIn("12000/12000", status["message"])
+
+    def test_paid_monthly_caps_are_disabled_by_default(self):
+        status = self.service.get_hard_usage_limit_status(
+            user={"subscription_plan": "pro"},
+            limits_settings=self.runtime_settings["limits"],
+            monthly_messages=999,
+            monthly_chat_tokens=999999,
+        )
+
+        self.assertTrue(status["allowed"])
+        self.assertIsNone(status["monthly_messages_remaining"])
+        self.assertIsNone(status["monthly_chat_tokens_remaining"])
+
     def test_snapshot_gives_handlers_one_product_view(self):
         snapshot = self.service.build_snapshot(
             user={"subscription_plan": "free"},
@@ -172,7 +216,13 @@ class ProductEntitlementsServiceTests(unittest.TestCase):
         self.assertEqual(3, snapshot["daily_messages"]["remaining"])
         self.assertTrue(snapshot["mode_access"]["is_preview"])
         self.assertEqual(10, snapshot["monthly_messages"]["used"])
+        self.assertTrue(snapshot["monthly_messages"]["enabled"])
+        self.assertEqual(40, snapshot["monthly_messages"]["limit"])
+        self.assertEqual(30, snapshot["monthly_messages"]["remaining"])
         self.assertEqual(1000, snapshot["monthly_chat_tokens"]["used"])
+        self.assertTrue(snapshot["monthly_chat_tokens"]["enabled"])
+        self.assertEqual(12000, snapshot["monthly_chat_tokens"]["limit"])
+        self.assertEqual(11000, snapshot["monthly_chat_tokens"]["remaining"])
 
 
 if __name__ == "__main__":
