@@ -92,7 +92,7 @@ def _is_free_long_task_request(user: dict | None, user_text: str, limits_setting
 def _build_long_task_preview(user_text: str, limits_settings: dict) -> str:
     preview_chars = max(120, int(limits_settings.get("free_long_task_preview_chars", 420) or 420))
     normalized = str(user_text or "").strip()
-    excerpt = _truncate_sentence(normalized, min(preview_chars, 520))
+    excerpt = _truncate_sentence(_build_free_long_task_start(normalized), min(preview_chars, 520))
     lines_count = len([line for line in normalized.splitlines() if line.strip()])
     chars_count = len(normalized)
     translation_note = (
@@ -105,7 +105,7 @@ def _build_long_task_preview(user_text: str, limits_settings: dict) -> str:
         limits_settings.get("free_long_task_preview_message")
         or (
             "Вижу большую задачу: {chars_count} символов, {lines_count} строк.\n\n"
-            "Бесплатно дам короткий полезный старт, чтобы не оставлять тебя с пустыми руками: «{excerpt}»\n\n"
+            "Бесплатный старт: {excerpt}\n\n"
             "Дальше могу в платном доступе удержать весь контекст, разложить задачу по шагам и дать длинный ответ без обрыва.{translation_note}\n\n"
             "Если хочешь бесплатно, пришли один короткий фрагмент или один конкретный вопрос."
         )
@@ -115,6 +115,36 @@ def _build_long_task_preview(user_text: str, limits_settings: dict) -> str:
         lines_count=lines_count,
         excerpt=excerpt,
         translation_note=translation_note,
+    )
+
+
+def _build_free_long_task_start(user_text: str) -> str:
+    lowered = str(user_text or "").lower()
+    if any(keyword in lowered for keyword in ("бот", "прилож", "сервис", "saas", "стартап", "product", "companion")):
+        return (
+            "Вижу задачу про продукт и позиционирование. Старт: сначала сформулируй одну ясную фразу, "
+            "для кого продукт и какой момент он улучшает; потом отдели эмоцию бренда от списка функций. "
+            "Функции лучше подавать как доказательство обещания, а не как главный текст."
+        )
+    if any(keyword in lowered for keyword in ("переведи", "перевод", "translate", "lyrics", "текст песни")):
+        return (
+            "Вижу задачу на перевод и смысл. Старт: сначала определить тон и конфликт текста, потом переводить "
+            "не построчно механически, а смысловыми блоками. Для защищенного текста безопаснее дать разбор, "
+            "короткие допустимые фрагменты и пересказ."
+        )
+    if any(keyword in lowered for keyword in ("план", "стратег", "продвиж", "маркет", "реклама", "контент")):
+        return (
+            "Вижу стратегическую задачу. Старт: зафиксируй цель, аудиторию, канал и один измеримый результат. "
+            "Потом разбей работу на гипотезы: что тестируем, чем измеряем, когда решаем продолжать или менять."
+        )
+    if any(keyword in lowered for keyword in ("код", "ошиб", "скрипт", "api", "deploy", "github", "сервер")):
+        return (
+            "Вижу техническую задачу. Старт: отдели симптом от желаемого результата, найди точку входа, "
+            "проверь логи и воспроизведение. После этого уже можно чинить не наугад, а по цепочке причины."
+        )
+    return (
+        "Вижу большую задачу, где важнее не повторить текст, а выделить суть. Старт: сформулируй главный результат, "
+        "одно ограничение и первый конкретный шаг. Так задачу можно разбирать без потери контекста."
     )
 
 

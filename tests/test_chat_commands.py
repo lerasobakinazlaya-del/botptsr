@@ -90,6 +90,36 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(_is_free_long_task_request({"subscription_plan": "free"}, text, limits))
         self.assertFalse(_is_free_long_task_request({"subscription_plan": "pro"}, text, limits))
 
+    def test_multiline_product_prompt_can_paywall_without_echoing_user_text(self):
+        text = (
+            "Давай обсудим. Мой бот anchoas - food companion\n"
+            "Большинство приложений про питание учат контролю:\n"
+            "считать калории, укладываться в нормы, избегать лишнего.\n"
+            "Anchoas устроен иначе.\n"
+            "Здесь еда — это не наказание и не дисциплина.\n"
+            "Это гедонистическая игра, вкус и забота о себе через разнообразие.\n"
+            "10 разных источников белка\n"
+            "30 типов клетчатки\n"
+            "ферментированные продукты каждую неделю"
+        )
+        limits = {
+            "free_long_task_enabled": True,
+            "free_long_task_min_chars": 900,
+            "free_long_task_min_lines": 8,
+            "free_long_task_preview_chars": 420,
+        }
+
+        self.assertLess(len(text), 900)
+        self.assertTrue(_looks_like_long_task_request(text, limits))
+        self.assertTrue(_is_free_long_task_request({"subscription_plan": "free"}, text, limits))
+
+        preview = _build_long_task_preview(text, limits)
+
+        self.assertIn("продукт", preview.lower())
+        self.assertIn("позиционирование", preview.lower())
+        self.assertNotIn("Большинство приложений про питание", preview)
+        self.assertNotIn("ферментированные продукты каждую неделю", preview)
+
     def test_long_task_preview_marks_state_and_mentions_paid_continuation(self):
         text = "Реши большую задачу.\n" + ("Контекст и детали.\n" * 8)
         limits = {"free_long_task_preview_chars": 160}
@@ -100,6 +130,26 @@ class ChatCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("платном доступе", preview)
         self.assertIn("last_long_task_preview_at", state["monetization"])
         self.assertEqual(len(text), state["monetization"]["last_long_task_chars"])
+
+    def test_long_task_preview_does_not_echo_large_product_prompt(self):
+        text = (
+            "Давай обсудим. Мой бот anchoas - food companion\n"
+            "Большинство приложений про питание учат контролю: считать калории,\n"
+            "укладываться в нормы, избегать лишнего.\n"
+            "Anchoas устроен иначе.\n"
+            "Здесь еда — это не наказание и не дисциплина.\n"
+            "Это гедонистическая игра, вкус и забота о себе через разнообразие.\n"
+            "10 разных источников белка\n"
+            "30 типов клетчатки\n"
+            "ферментированные продукты каждую неделю"
+        )
+
+        preview = _build_long_task_preview(text, {"free_long_task_preview_chars": 420})
+
+        self.assertIn("продукт", preview.lower())
+        self.assertIn("позиционирование", preview.lower())
+        self.assertNotIn("Большинство приложений про питание", preview)
+        self.assertNotIn("ферментированные продукты каждую неделю", preview)
 
     async def test_proactive_off_disables_initiative(self):
         repo = FakeStateRepository()
