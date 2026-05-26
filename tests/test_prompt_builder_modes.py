@@ -110,7 +110,7 @@ class PromptBuilderModeTests(unittest.TestCase):
         free_profile = resolve_ai_profile(ai_settings, "base", "free")
         premium_profile = resolve_ai_profile(ai_settings, "base", "premium")
 
-        self.assertEqual(free_profile["model"], "gpt-4o-mini")
+        self.assertEqual(free_profile["model"], "gpt-5.4-mini")
         self.assertIn("Тариф Free:", free_profile["prompt_suffix"])
         self.assertEqual(premium_profile["model"], "gpt-5.4")
         self.assertGreater(premium_profile["max_completion_tokens"], free_profile["max_completion_tokens"])

@@ -163,14 +163,14 @@ class AdminSettingsService:
             "response_language": "ru",
             "plan_overrides": {
                 "free": {
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-5.4-mini",
                     "max_completion_tokens": 180,
                     "memory_max_tokens": 700,
                     "history_message_limit": 12,
                     "prompt_suffix": "Тариф Free: дай полезный короткий ответ без воды. Оставь ощущение живой нити: один конкретный вывод сейчас и один естественный незакрытый следующий слой, который раскроет Pro или Premium. Не дави оплатой, но мягко показывай, что с платным доступом ты удержишь больше контекста, продолжишь глубже и не оборвешь мысль.",
                 },
                 "pro": {
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-5.4-mini",
                     "max_completion_tokens": 320,
                     "memory_max_tokens": 1200,
                     "history_message_limit": 18,

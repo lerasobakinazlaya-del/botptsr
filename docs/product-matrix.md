@@ -10,8 +10,8 @@ The code already has three user plans:
 
 | Plan | Current messages/day | Current model | Current context profile | Current access |
 | --- | ---: | --- | --- | --- |
-| Free | 15 | `gpt-4o-mini` | short | `Dialog` plus daily preview of paid modes |
-| Pro | 80 | `gpt-4o-mini` | medium | all modes |
+| Free | 5 | `gpt-5.4-mini` | short | `Dialog` plus daily preview of paid modes |
+| Pro | 80 | `gpt-5.4-mini` | medium | all modes |
 | Premium | 200 | `gpt-5.4` | deep | all modes |
 
 Current mode names:
@@ -71,7 +71,7 @@ This keeps costs controllable and makes plans understandable.
 
 | Plan | Default model | Deep escalation | Why |
 | --- | --- | --- | --- |
-| Free | `gpt-4o-mini` or `gpt-4.1-mini` | none | cheap enough for acquisition |
+| Free | `gpt-5.4-mini` | none | strong trial experience, controlled by hard daily/monthly/token caps |
 | Pro | `gpt-5.4-mini` | rare, only long task if explicitly enabled | paid plan should feel better immediately |
 | Premium | `gpt-5.4-mini` | `gpt-5.4` for long task, Breakdown, high-value deep answer | avoids burning full flagship on every casual reply |
 
@@ -208,7 +208,7 @@ The product is no longer a mixed feature set when these are true:
 
 Recommended first production version:
 
-- Free: `5/day`, `40/month`, `12k monthly chat tokens`, model stays cheap.
+- Free: `5/day`, `40/month`, `12k monthly chat tokens`, `gpt-5.4-mini`.
 - Pro: main paid plan, all modes, `gpt-5.4-mini`, medium context.
 - Premium: deeper context and selective `gpt-5.4` escalation, not full flagship for every message.
 

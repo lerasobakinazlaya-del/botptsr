@@ -15,7 +15,7 @@ class ProductEntitlementsServiceTests(unittest.TestCase):
                 "history_message_limit": 20,
                 "plan_overrides": {
                     "free": {
-                        "model": "gpt-4o-mini",
+                        "model": "gpt-5.4-mini",
                         "max_completion_tokens": 180,
                         "memory_max_tokens": 700,
                         "history_message_limit": 12,
@@ -157,6 +157,13 @@ class ProductEntitlementsServiceTests(unittest.TestCase):
             user={"subscription_plan": "premium"},
         )
 
+        free_profile = self.service.get_ai_profile(
+            runtime_settings=self.runtime_settings,
+            active_mode="mentor",
+            user={"subscription_plan": "free"},
+        )
+
+        self.assertEqual("gpt-5.4-mini", free_profile["model"])
         self.assertEqual("gpt-5.4-mini", pro_profile["model"])
         self.assertEqual("gpt-5.4", premium_profile["model"])
         self.assertEqual(0.5, pro_profile["temperature"])
