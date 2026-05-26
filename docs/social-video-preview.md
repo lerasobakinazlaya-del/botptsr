@@ -11,92 +11,272 @@
 
 ## Ролики
 
-### День 2 · TikTok · day02_memory_pov-tiktok
+### День 1 · TikTok · day01_night_pov-tiktok
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_pov.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d02_memory_pov`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_pov`
 
 ```text
-Смотри, как один текст превращается в нормальный следующий шаг. Проверь память
-диалога. Ссылка на бота в профиле.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 2 · Instagram Reels · day02_memory_pov-reels
+### День 1 · Instagram Reels · day01_night_pov-reels
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_pov.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d02_memory_pov`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_pov`
 
 ```text
-Смотри, как один текст превращается в нормальный следующий шаг. Проверь память
-диалога. Попробуй Нить в Telegram.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 2 · YouTube Shorts · day02_memory_pov-shorts
+### День 1 · YouTube Shorts · day01_night_pov-shorts
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_pov.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d02_memory_pov`
+Видео: `assets/social-videos/week-01/shared/day01_night_pov.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_pov`
 
 ```text
-Смотри, как один текст превращается в нормальный следующий шаг. Проверь память
-диалога. Открой Нить по ссылке в описании.
+Смотри, как один текст превращается в нормальный следующий шаг. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 2 · TikTok · day02_memory_dialog-tiktok
+### День 1 · TikTok · day01_night_dialog-tiktok
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_dialog.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d02_memory_dlg`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_dlg`
 
 ```text
-Не идеальный промпт, а живой кусок мысли. Так и должно быть. Проверь память
-диалога. Ссылка на бота в профиле.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 2 · Instagram Reels · day02_memory_dialog-reels
+### День 1 · Instagram Reels · day01_night_dialog-reels
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_dialog.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d02_memory_dlg`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_dlg`
 
 ```text
-Не идеальный промпт, а живой кусок мысли. Так и должно быть. Проверь память
-диалога. Попробуй Нить в Telegram.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 2 · YouTube Shorts · day02_memory_dialog-shorts
+### День 1 · YouTube Shorts · day01_night_dialog-shorts
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_dialog.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d02_memory_dlg`
+Видео: `assets/social-videos/week-01/shared/day01_night_dialog.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_dlg`
 
 ```text
-Не идеальный промпт, а живой кусок мысли. Так и должно быть. Проверь память
-диалога. Открой Нить по ссылке в описании.
+Не идеальный промпт, а живой кусок мысли. Так и должно быть. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
 
-### День 2 · TikTok · day02_memory_challenge-tiktok
+### День 1 · TikTok · day01_night_challenge-tiktok
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_challenge.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d02_memory_ch`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_ch`
 
 ```text
-Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Проверь память
-диалога. Ссылка на бота в профиле.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Ссылка на бота в профиле.
 ```
 
-### День 2 · Instagram Reels · day02_memory_challenge-reels
+### День 1 · Instagram Reels · day01_night_challenge-reels
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_challenge.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d02_memory_ch`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_ch`
 
 ```text
-Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Проверь память
-диалога. Попробуй Нить в Telegram.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Попробуй Нить в Telegram.
 ```
 
-### День 2 · YouTube Shorts · day02_memory_challenge-shorts
+### День 1 · YouTube Shorts · day01_night_challenge-shorts
 
-Видео: `assets/social-videos/week-01/shared/day02_memory_challenge.mp4`
-Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d02_memory_ch`
+Видео: `assets/social-videos/week-01/shared/day01_night_challenge.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_ch`
 
 ```text
-Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Проверь память
-диалога. Открой Нить по ссылке в описании.
+Попробуй написать Нити одну фразу и не объяснять всю жизнь заново. Напиши Нити: «я
+не могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_comment-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_cm`
+
+```text
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_comment-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_cm`
+
+```text
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_comment-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_comment.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_cm`
+
+```text
+Да, бот должен помнить контекст, иначе это не диалог. Напиши Нити: «я не могу
+уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_night-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_night`
+
+```text
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_night-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_night`
+
+```text
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_night-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_night.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_night`
+
+```text
+Если снова листаешь телефон ночью, начни с одной честной фразы. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_before-send-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_bs`
+
+```text
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_before-send-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_bs`
+
+```text
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_before-send-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_before-send.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_bs`
+
+```text
+Сначала напиши это Нити, потом решишь, отправлять ли человеку. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_free-vs-paid-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_fvp`
+
+```text
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_free-vs-paid-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_fvp`
+
+```text
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_free-vs-paid-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_free-vs-paid.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_fvp`
+
+```text
+Бесплатно можно попробовать, глубину включаем там, где появилась работа. Напиши
+Нити: «я не могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_one-question-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_one-question-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_one-question-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_one-question.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_oq`
+
+```text
+Иногда достаточно одного точного вопроса, чтобы стало тише. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
+```
+
+### День 1 · TikTok · day01_night_serial-tiktok
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_tt__cmp_viral_week_01__med_short__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Ссылка на бота в профиле.
+```
+
+### День 1 · Instagram Reels · day01_night_serial-reels
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_ig__cmp_viral_week_01__med_reels__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Попробуй Нить в Telegram.
+```
+
+### День 1 · YouTube Shorts · day01_night_serial-shorts
+
+Видео: `assets/social-videos/week-01/shared/day01_night_serial.mp4`
+Ссылка: `https://t.me/asknitai_bot?start=src_yt__cmp_viral_week_01__med_shorts__cnt_d01_night_serial`
+
+```text
+Это не одиночный ролик, а серия: каждый день одна новая нить. Напиши Нити: «я не
+могу уснуть». Открой Нить по ссылке в описании.
 ```
