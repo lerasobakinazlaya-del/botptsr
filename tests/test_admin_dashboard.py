@@ -188,6 +188,16 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertNotIn('id="payment_package_week_enabled"', source)
         self.assertNotIn("domKey:'week'", source)
 
+    def test_dashboard_has_product_grade_navigation_chrome(self):
+        source = self._admin_source()
+
+        self.assertIn('class="nav-group"', source)
+        self.assertIn('class="nav-label">Операции</div>', source)
+        self.assertIn('class="nav-label">Продукт</div>', source)
+        self.assertIn('id="toolbar-title"', source)
+        self.assertIn('id="toolbar-subtitle"', source)
+        self.assertIn(".page>.actions{position:sticky", source)
+
     def test_user_editor_exposes_subscription_plan_and_saves_it(self):
         source = self._admin_source()
 
