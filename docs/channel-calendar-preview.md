@@ -5,7 +5,7 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-05-27 20:30 MSK · `scheduled`
+## 2026-05-27 20:30 MSK · `published`
 
 ID: `2026-05-27-evening-long-text`
 Файл: `docs/channel-posts/2026-05-27-evening-long-text.md`
@@ -14,6 +14,7 @@ ID: `2026-05-27-evening-long-text`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_long_text_evening`
 Закреп: `False`
+Telegram message_id: `32`
 
 Предпросмотр:
 
