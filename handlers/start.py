@@ -207,7 +207,7 @@ async def start_handler(
             await message.answer(followup_text, reply_markup=start_cta_keyboard)
             if is_new_user and onboarding_keyboard is not None:
                 await message.answer(
-                    "Можно ткнуть в одну из подсказок ниже или сразу написать своими словами.",
+                    "Можно выбрать одну из подсказок ниже или сразу написать своими словами.",
                     reply_markup=onboarding_keyboard,
                 )
 
@@ -219,7 +219,7 @@ async def start_handler(
         )
         if include_onboarding and is_new_user and onboarding_keyboard is not None:
             await message.answer(
-                "РњРѕР¶РЅРѕ С‚РєРЅСѓС‚СЊ РІ РѕРґРЅСѓ РёР· РїРѕРґСЃРєР°Р·РѕРє РЅРёР¶Рµ РёР»Рё СЃСЂР°Р·Сѓ РЅР°РїРёСЃР°С‚СЊ СЃРІРѕРёРјРё СЃР»РѕРІР°РјРё.",
+                "Можно выбрать одну из подсказок ниже или сразу написать своими словами.",
                 reply_markup=onboarding_keyboard,
             )
 

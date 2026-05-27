@@ -345,12 +345,12 @@ class PaymentService:
                     subscription_period=self.RECURRING_STARS_PERIOD_SECONDS,
                 )
                 await message.answer(
-                    "РћРїР»Р°С‚Р° РѕС‚РєСЂРѕРµС‚СЃСЏ РїРѕ РєРЅРѕРїРєРµ РЅРёР¶Рµ.",
+                    "Оплата откроется по кнопке ниже.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(
-                                    text=str(payment.get("recurring_button_text") or "РћС‚РєСЂС‹С‚СЊ РѕРїР»Р°С‚Сѓ").strip(),
+                                    text=str(payment.get("recurring_button_text") or "Открыть оплату").strip(),
                                     url=invoice_link,
                                 )
                             ]
@@ -554,6 +554,14 @@ class PaymentService:
         payment_method = payload.get("payment_method") or (
             self.PAYMENT_METHOD_STARS if payment.currency.upper() == "XTR" else self.PAYMENT_METHOD_YOOKASSA
         )
+        expected_currency = "XTR" if payment_method == self.PAYMENT_METHOD_STARS else self.get_payment_settings()["currency"]
+        if str(payment.currency).upper() != str(expected_currency).upper():
+            raise ValueError("Invoice currency does not match package")
+
+        expected_prices = self.build_prices(package["key"], payment_method)
+        expected_amount = expected_prices[0].amount if expected_prices else None
+        if expected_amount is None or int(payment.total_amount) != int(expected_amount):
+            raise ValueError("Invoice amount does not match package")
 
         amount = self._to_major_units(payment.total_amount, payment.currency)
         premium_expires_at = await self._calculate_premium_expires_at(
@@ -625,19 +633,21 @@ class PaymentService:
 
     def build_success_message(self, result: dict | None) -> str:
         payment = self.get_payment_settings()
-        base_message = str(payment["success_message"]).strip()
         if not result:
-            return base_message
+            return str(payment["success_message"]).strip()
 
-        parts = [base_message] if base_message else []
+        plan_key = str(result.get("plan_key") or "").strip().lower()
+        if plan_key == "pro":
+            parts = ["Оплата прошла. Pro уже активен."]
+        elif plan_key == "premium":
+            parts = ["Оплата прошла. Premium уже активен."]
+        else:
+            base_message = str(payment["success_message"]).strip()
+            parts = [base_message] if base_message else ["Оплата прошла. Доступ активен."]
+
         package_title = str(result.get("package_title") or "").strip()
         if package_title:
             parts.append(f"Тариф: {package_title}.")
-        plan_key = str(result.get("plan_key") or "").strip().lower()
-        if plan_key == "pro":
-            parts.append("План Pro уже активен.")
-        elif plan_key == "premium":
-            parts.append("План Premium уже активен.")
 
         premium_expires_at = str(result.get("premium_expires_at") or "").strip()
         if premium_expires_at:

@@ -164,6 +164,8 @@ class StartHandlerTests(unittest.IsolatedAsyncioTestCase):
             [CALLBACK_OPEN_MODES, CALLBACK_OPEN_PREMIUM_MENU],
         )
         self.assertTrue(message.answers[2]["text"])
+        self.assertIn("Можно выбрать одну из подсказок", message.answers[2]["text"])
+        self.assertNotIn("ткнуть", message.answers[2]["text"].lower())
         self.assertIsInstance(message.answers[2]["reply_markup"], ReplyKeyboardMarkup)
         onboarding_buttons = [
             button.text

@@ -699,6 +699,9 @@ async def successful_payment_handler(message: Message, payment_service, user_ser
         result = await payment_service.handle_successful_payment(message)
     except ValueError:
         logger.warning("Rejected successful_payment with invalid payload for user %s", message.from_user.id)
+        await message.answer(
+            "Не удалось подтвердить платежный запрос. Если списание уже прошло, напиши администратору - мы проверим оплату."
+        )
         return
 
     await message.answer(payment_service.build_success_message(result))

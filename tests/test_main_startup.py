@@ -24,6 +24,13 @@ class MainStartupTests(unittest.TestCase):
         self.assertIn("_check_admin_dashboard_password", source)
         self.assertIn("non-default strong value", source)
 
+    def test_prelaunch_check_accepts_stars_without_provider_token(self):
+        source = Path("scripts/prelaunch_check.py").read_text(encoding="utf-8")
+
+        self.assertIn("Telegram Stars are enabled", source)
+        self.assertIn("No enabled paid packages are configured", source)
+        self.assertIn("provider token is present", source)
+
     def test_container_retries_redis_before_fallback(self):
         source = Path("core/container.py").read_text(encoding="utf-8")
 

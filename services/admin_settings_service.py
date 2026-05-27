@@ -571,7 +571,7 @@ class AdminSettingsService:
                 {
                     "key": "payments_real",
                     "label": "Реальная оплата включена",
-                    "detail": "Перед платным трафиком должен быть Telegram provider token или осознанный virtual-mode для теста.",
+                    "detail": "Перед платным трафиком должен быть реальный платежный канал: Telegram Stars или provider token. Virtual-mode только для теста.",
                     "action": "Проверить payment.mode и provider_token.",
                     "done": False,
                 },
@@ -673,8 +673,8 @@ class AdminSettingsService:
             },
         },
         "payment": {
-            "mode": "virtual",
-            "offer_cta_text_a": "Открыть Premium на 30 дней",
+            "mode": "telegram",
+            "offer_cta_text_a": "Открыть доступ",
             "offer_cta_text_b": "Разблокировать память и все режимы",
             "offer_benefits_text_a": "Память диалога между сообщениями, инициатива от бота и все сильные режимы без обрыва.",
             "offer_benefits_text_b": "Психолог, Разбор и Фокус плюс повышенный лимит, чтобы не останавливаться на полпути.",
@@ -710,7 +710,7 @@ class AdminSettingsService:
             "buy_cta_text": "Смотреть планы",
             "unavailable_message": "Оплата пока не настроена. Обратись к администратору.",
             "invoice_error_message": "Не удалось создать счет. Попробуй позже.",
-            "success_message": "Оплата прошла успешно. Premium уже активен.",
+            "success_message": "Оплата прошла успешно. Доступ активен.",
             "renewal_reminder_days": [7, 3, 1],
             "expiry_reminder_template": "Premium закончится через {days} дн. Продли доступ заранее, чтобы не терять память диалога и все режимы.",
         },

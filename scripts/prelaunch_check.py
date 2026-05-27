@@ -240,6 +240,13 @@ def _check_launch_payments() -> CheckResult:
     payment = dict(runtime.get("payment") or {})
     mode = str(payment.get("mode") or "telegram").strip().lower()
     provider_token = str(payment.get("provider_token") or os.getenv("PAYMENT_PROVIDER_TOKEN") or "").strip()
+    packages = payment.get("packages") or {}
+    enabled_packages = [
+        package
+        for package in packages.values()
+        if isinstance(package, dict) and bool(package.get("enabled", True))
+    ]
+    stars_enabled = bool(payment.get("stars_enabled", True))
 
     if mode == "virtual":
         return CheckResult(
@@ -247,17 +254,24 @@ def _check_launch_payments() -> CheckResult:
             status="failed",
             detail="Payment mode is virtual; paid traffic would not collect real revenue",
         )
-    if not provider_token:
+    if not enabled_packages:
         return CheckResult(
             name="launch-payments",
             status="failed",
-            detail="Payment provider token is missing",
+            detail="No enabled paid packages are configured",
+        )
+    if not provider_token and not stars_enabled:
+        return CheckResult(
+            name="launch-payments",
+            status="failed",
+            detail="Payment provider token is missing and Telegram Stars are disabled",
         )
 
+    provider_detail = "provider token is present" if provider_token else "Telegram Stars are enabled"
     return CheckResult(
         name="launch-payments",
         status="passed",
-        detail=f"Payment mode is {mode} and provider token is present",
+        detail=f"Payment mode is {mode}, {provider_detail}, and {len(enabled_packages)} paid packages are enabled",
     )
 
 

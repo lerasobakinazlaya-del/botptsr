@@ -1091,22 +1091,22 @@ def _dashboard_html() -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Админка бота</title>
   <style>
-    :root{--bg:#08111b;--bg2:#13283c;--panel:rgba(9,19,32,.84);--soft:rgba(255,255,255,.05);--text:#eef6ff;--muted:#9bb0c8;--accent:#85df96;--accent-2:#59c9a8;--warn:#f7c971;--danger:#ff7b72;--border:rgba(255,255,255,.08);--shadow:0 18px 48px rgba(0,0,0,.24);--content-max:1600px}
-    *{box-sizing:border-box}body{margin:0;color:var(--text);font-family:"Trebuchet MS","Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(133,223,150,.12),transparent 26%),radial-gradient(circle at top right,rgba(247,201,113,.12),transparent 24%),linear-gradient(145deg,var(--bg),var(--bg2))}
-    .layout{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px 14px;border-right:1px solid var(--border);background:rgba(5,12,20,.8);backdrop-filter:blur(14px)}.sidebar-inner{position:sticky;top:18px;display:grid;gap:16px}.main{padding:20px;display:grid;gap:14px;min-width:0}.main>*{width:100%;max-width:var(--content-max);margin:0 auto}
-    .brand-card{padding:18px;border:1px solid var(--border);border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:var(--shadow)}.brand-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--warn);margin-bottom:10px}.brand-title{margin:0 0 10px;font-size:28px;line-height:1.05}.brand-copy{margin:0;color:var(--muted);line-height:1.5}
-    .nav{display:grid;gap:8px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:14px;padding:10px 13px;cursor:pointer;font-weight:600;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease}.nav button{text-align:left;width:100%}.nav button:hover,.toolbar button:hover,.actions button:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16)}.nav button.active,.toolbar .primary,.actions .primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#082112;border:0;box-shadow:0 10px 24px rgba(89,201,168,.24)}
-    .sidebar-panels{display:grid;gap:12px}.compact-panel{padding:14px 16px}.sidebar-meta{display:flex;flex-wrap:wrap;gap:8px}.sidebar-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--muted)}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input,.toolbar select{flex:1 1 220px;min-width:0}.toolbar button{flex:0 0 auto}.top-toolbar{position:sticky;top:12px;z-index:3;padding:14px 16px;margin-bottom:0;border:1px solid var(--border);border-radius:20px;background:rgba(7,15,24,.86);backdrop-filter:blur(16px);box-shadow:var(--shadow)}
-    .hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:16px;align-items:stretch;padding:20px 22px;background:linear-gradient(160deg,rgba(133,223,150,.12),rgba(255,255,255,.02) 38%,rgba(247,201,113,.08));box-shadow:var(--shadow)}.hero-main{display:grid;gap:8px;align-content:start}.hero-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--warn)}.hero-title{margin:0;font-size:34px;line-height:1.04}.hero-subtitle{margin:0;max-width:74ch;line-height:1.5}.hero-actions{display:grid;gap:12px;align-content:start}.hero-meta-grid{display:grid;gap:12px}.hero-meta{padding:14px 16px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.04)}.hero-meta-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}.hero-meta-value{font-size:15px;line-height:1.45}
-    .page{display:none;gap:14px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.users-layout{grid-template-columns:minmax(320px,420px) minmax(0,1fr)}.conversations-layout{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    :root{--bg:#f4f6f8;--panel:#fff;--soft:#f7f9fb;--text:#17212b;--muted:#66758a;--accent:#2563eb;--accent-2:#10b981;--warn:#b7791f;--danger:#c2413d;--border:#d9e0ea;--shadow:0 8px 24px rgba(15,23,42,.08);--content-max:1600px}
+    *{box-sizing:border-box}body{margin:0;color:var(--text);font-family:"Segoe UI",Arial,sans-serif;background:var(--bg)}
+    .layout{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px 14px;border-right:1px solid var(--border);background:#0f172a;color:#eef4ff}.sidebar-inner{position:sticky;top:18px;display:grid;gap:16px}.main{padding:20px;display:grid;gap:14px;min-width:0}.main>*{width:100%;max-width:var(--content-max);margin:0 auto}
+    .brand-card{padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#111c33;box-shadow:var(--shadow)}.brand-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#93c5fd;margin-bottom:10px}.brand-title{margin:0 0 10px;font-size:28px;line-height:1.05}.brand-copy{margin:0;color:#b6c3d6;line-height:1.5}
+    .nav{display:grid;gap:8px}.nav button,.toolbar button,.actions button{border:1px solid var(--border);background:var(--soft);color:var(--text);border-radius:8px;padding:10px 13px;cursor:pointer;font-weight:600;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease}.nav button{background:transparent;border-color:rgba(255,255,255,.1);color:#dbe7f7;text-align:left;width:100%}.nav button:hover,.toolbar button:hover,.actions button:hover{border-color:#9bb6da;box-shadow:0 4px 14px rgba(37,99,235,.08)}.nav button.active,.toolbar .primary,.actions .primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 8px 18px rgba(37,99,235,.2)}
+    .sidebar-panels{display:grid;gap:12px}.compact-panel{padding:14px 16px}.sidebar-meta{display:flex;flex-wrap:wrap;gap:8px}.sidebar-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);font-size:12px;color:#c6d3e4}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input,.toolbar select{flex:1 1 220px;min-width:0}.toolbar button{flex:0 0 auto}.top-toolbar{position:sticky;top:12px;z-index:3;padding:14px 16px;margin-bottom:0;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);box-shadow:var(--shadow)}
+    .hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:16px;align-items:stretch;padding:20px 22px;background:#fff;border-left:4px solid var(--accent);box-shadow:var(--shadow)}.hero-main{display:grid;gap:8px;align-content:start}.hero-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--accent)}.hero-title{margin:0;font-size:34px;line-height:1.04}.hero-subtitle{margin:0;max-width:74ch;line-height:1.5}.hero-actions{display:grid;gap:12px;align-content:start}.hero-meta-grid{display:grid;gap:12px}.hero-meta{padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:var(--soft)}.hero-meta-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}.hero-meta-value{font-size:15px;line-height:1.45}
+    .page{display:none;gap:14px}.page.active{display:grid}.panel,.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;box-shadow:var(--shadow)}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.cols{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.users-layout{grid-template-columns:minmax(320px,420px) minmax(0,1fr)}.conversations-layout{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}.two{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}.three{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
     h1,h2,h3,p{margin-top:0}.muted{color:var(--muted)}.stat-label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}.stat-value{font-size:30px;font-weight:700}
-    label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(8,17,29,.92);color:var(--text);font:inherit}textarea{min-height:104px;resize:vertical}
-    .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:14px;margin-bottom:14px}.notice.ok{display:block;background:rgba(96,210,124,.12);border:1px solid rgba(96,210,124,.22)}.notice.error{display:block;background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.24)}
-    pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}
-    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:rgba(96,210,124,.14);color:#9ff0af}.status-pill.bad{background:rgba(255,123,114,.14);color:#ffb0a8}.status-pill.warn{background:rgba(247,201,113,.14);color:#ffd993}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.preset-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.preset-bar button{border-radius:999px}.readiness-list{display:grid;gap:10px}.readiness-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:12px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.03)}.readiness-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--muted)}.readiness-dot.ok{background:#60d27c}.readiness-dot.warn{background:#f7c971}.readiness-dot.bad{background:#ff7b72}.qa-note{display:grid;gap:8px;margin-top:12px}.qa-note .kv-row{align-items:flex-start}.shortcut-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
-    table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
-    .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.message-card.user{border-color:rgba(133,223,150,.24);background:rgba(133,223,150,.08)}.message-card.assistant{border-color:rgba(155,176,200,.2)}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:rgba(8,17,29,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:rgba(247,201,113,.18);border-color:rgba(247,201,113,.42);color:#ffe6a6}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.overview-hero-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.overview-table table{min-width:0}.overview-details .panel{background:rgba(255,255,255,.02)}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
+    label{display:block;margin-bottom:12px}input,textarea,select{width:100%;margin-top:6px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);font:inherit}input:focus,textarea:focus,select:focus{outline:2px solid rgba(37,99,235,.18);border-color:var(--accent)}textarea{min-height:104px;resize:vertical}
+    .checkbox{display:flex;align-items:center;gap:10px;margin:8px 0 14px}.checkbox input{width:auto;margin:0}.notice{display:none;padding:12px 14px;border-radius:8px;margin-bottom:14px}.notice.ok{display:block;background:#ecfdf3;border:1px solid #bbf7d0;color:#166534}.notice.error{display:block;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239}
+    pre{white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:13px}.mode-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff;margin-bottom:12px}.mode-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.badge{padding:5px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
+    .stack{display:grid;gap:12px}.mini-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.metric{padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--soft)}.metric .stat-label{margin-bottom:6px}.metric-value-small{font-size:20px;font-weight:700}.kv-list{display:grid;gap:10px}.kv-row{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--soft)}.kv-key{color:var(--muted)}.kv-value{text-align:right;word-break:break-word}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.status-pill.ok{background:#ecfdf3;color:#166534}.status-pill.bad{background:#fff1f2;color:#9f1239}.status-pill.warn{background:#fffbeb;color:#92400e}.panel h3{margin-bottom:10px}.section-note{margin-bottom:12px}.package-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.soft-panel{padding:14px;border-radius:8px;border:1px solid var(--border);background:var(--soft)}.preset-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.preset-bar button{border-radius:999px}.readiness-list{display:grid;gap:10px}.readiness-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--soft)}.readiness-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--muted)}.readiness-dot.ok{background:#16a34a}.readiness-dot.warn{background:#d97706}.readiness-dot.bad{background:#dc2626}.qa-note{display:grid;gap:8px;margin-top:12px}.qa-note .kv-row{align-items:flex-start}.shortcut-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+    table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#475569}
+    .conversation-feed{display:grid;gap:12px;max-height:56vh;overflow:auto;padding-right:4px}.message-card{padding:14px;border-radius:8px;border:1px solid var(--border);background:#fff}.message-card.user{border-color:#bfdbfe;background:#eff6ff}.message-card.assistant{border-color:#dbe3ee}.message-meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}.memory-box{min-height:120px;max-height:220px;overflow:auto;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px}.memory-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memory-editor-form{display:grid;gap:12px}.memory-actions{display:flex;gap:10px;flex-wrap:wrap}.state-panel{display:grid;gap:12px}.state-section{padding:14px;border-radius:8px;border:1px solid var(--border);background:var(--soft)}.state-section h4{margin:0 0 10px;font-size:14px}.state-raw{margin-top:6px}.state-raw summary{cursor:pointer;color:var(--muted);margin-bottom:10px}.state-raw[open] summary{margin-bottom:12px}.memory-preview-panel{display:grid;gap:12px}.memory-preview-item{padding:14px;border-radius:8px;border:1px solid var(--border);background:var(--soft)}.memory-preview-item h4{margin:0 0 10px;font-size:14px}.memory-preview-item ul{margin:0;padding-left:18px}.memory-preview-item li+li{margin-top:6px}.composer{display:grid;gap:12px}.composer textarea{min-height:96px}.composer-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.template-list{display:flex;gap:8px;flex-wrap:wrap}.template-chip{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:7px 11px;cursor:pointer}.template-chip.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}.bulk-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}.bulk-result{min-height:96px;max-height:180px}.table-wrap{overflow:auto}.table-wrap table{min-width:860px}.overview-hero-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.overview-table table{min-width:0}.overview-details .panel{background:#fff}.users-search-toolbar input{flex:2 1 320px}.details-panel{padding:0;overflow:hidden}.details-panel summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700}.details-panel summary::-webkit-details-marker{display:none}.details-panel[open] summary{background:var(--soft);border-bottom:1px solid var(--border)}.details-content{padding:16px 18px}.segment-summary{margin-bottom:4px}.user-select-cell{width:42px}.inline-checkbox{width:auto;margin:0}
     @media (max-width:1380px){.users-layout,.conversations-layout,.hero{grid-template-columns:1fr}}
     @media (max-width:1180px){.layout{grid-template-columns:1fr}.sidebar-inner{position:static}.cols,.two,.three{grid-template-columns:1fr}.main{padding:16px}.toolbar input,.toolbar select,.toolbar button{flex:1 1 100%}}
   </style>
@@ -1898,10 +1898,11 @@ def _dashboard_html() -> str:
               <label>Валюта<input id="payment_currency"></label>
               <label>Пакет по умолчанию
                 <select id="payment_default_package_key">
-                  <option value="day">1 день</option>
-                  <option value="week">7 дней</option>
-                  <option value="month">30 дней</option>
-                  <option value="year">365 дней</option>
+                  <option value="day_pass">Pro на 1 день</option>
+                  <option value="pro_month">Pro на 30 дней</option>
+                  <option value="pro_year">Pro на 365 дней</option>
+                  <option value="premium_month">Premium на 30 дней</option>
+                  <option value="premium_year">Premium на 365 дней</option>
                 </select>
               </label>
               <label>Название<input id="payment_product_title"></label>
@@ -1964,56 +1965,56 @@ def _dashboard_html() -> str:
               <label>Описание<textarea id="payment_package_day_pass_description"></textarea></label>
             </div>
             <div class="mode-card">
-              <div class="mode-head"><strong>1 день</strong><span class="badge">day</span></div>
-              <label class="checkbox"><input id="payment_package_day_enabled" type="checkbox">Показывать пакет</label>
-              <label class="checkbox"><input id="payment_package_day_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="mode-head"><strong>Pro — 30 дней</strong><span class="badge">pro_month</span></div>
+              <label class="checkbox"><input id="payment_package_pro_month_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_pro_month_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
               <div class="three">
-                <label>Название<input id="payment_package_day_title"></label>
-                <label>Цена<input id="payment_package_day_price_minor_units" type="number" min="1"></label>
-                <label>Дней<input id="payment_package_day_access_duration_days" type="number" min="1"></label>
-                <label>Порядок<input id="payment_package_day_sort_order" type="number"></label>
-                <label>Бейдж<input id="payment_package_day_badge"></label>
+                <label>Название<input id="payment_package_pro_month_title"></label>
+                <label>Цена<input id="payment_package_pro_month_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_pro_month_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_pro_month_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_pro_month_badge"></label>
               </div>
-              <label>Описание<textarea id="payment_package_day_description"></textarea></label>
+              <label>Описание<textarea id="payment_package_pro_month_description"></textarea></label>
             </div>
             <div class="mode-card">
-              <div class="mode-head"><strong>7 дней</strong><span class="badge">week</span></div>
-              <label class="checkbox"><input id="payment_package_week_enabled" type="checkbox">Показывать пакет</label>
-              <label class="checkbox"><input id="payment_package_week_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="mode-head"><strong>Pro — 365 дней</strong><span class="badge">pro_year</span></div>
+              <label class="checkbox"><input id="payment_package_pro_year_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_pro_year_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
               <div class="three">
-                <label>Название<input id="payment_package_week_title"></label>
-                <label>Цена<input id="payment_package_week_price_minor_units" type="number" min="1"></label>
-                <label>Дней<input id="payment_package_week_access_duration_days" type="number" min="1"></label>
-                <label>Порядок<input id="payment_package_week_sort_order" type="number"></label>
-                <label>Бейдж<input id="payment_package_week_badge"></label>
+                <label>Название<input id="payment_package_pro_year_title"></label>
+                <label>Цена<input id="payment_package_pro_year_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_pro_year_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_pro_year_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_pro_year_badge"></label>
               </div>
-              <label>Описание<textarea id="payment_package_week_description"></textarea></label>
+              <label>Описание<textarea id="payment_package_pro_year_description"></textarea></label>
             </div>
             <div class="mode-card">
-              <div class="mode-head"><strong>30 дней</strong><span class="badge">month</span></div>
-              <label class="checkbox"><input id="payment_package_month_enabled" type="checkbox">Показывать пакет</label>
-              <label class="checkbox"><input id="payment_package_month_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="mode-head"><strong>Premium — 30 дней</strong><span class="badge">premium_month</span></div>
+              <label class="checkbox"><input id="payment_package_premium_month_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_premium_month_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
               <div class="three">
-                <label>Название<input id="payment_package_month_title"></label>
-                <label>Цена<input id="payment_package_month_price_minor_units" type="number" min="1"></label>
-                <label>Дней<input id="payment_package_month_access_duration_days" type="number" min="1"></label>
-                <label>Порядок<input id="payment_package_month_sort_order" type="number"></label>
-                <label>Бейдж<input id="payment_package_month_badge"></label>
+                <label>Название<input id="payment_package_premium_month_title"></label>
+                <label>Цена<input id="payment_package_premium_month_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_premium_month_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_premium_month_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_premium_month_badge"></label>
               </div>
-              <label>Описание<textarea id="payment_package_month_description"></textarea></label>
+              <label>Описание<textarea id="payment_package_premium_month_description"></textarea></label>
             </div>
             <div class="mode-card">
-              <div class="mode-head"><strong>365 дней</strong><span class="badge">year</span></div>
-              <label class="checkbox"><input id="payment_package_year_enabled" type="checkbox">Показывать пакет</label>
-              <label class="checkbox"><input id="payment_package_year_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
+              <div class="mode-head"><strong>Premium — 365 дней</strong><span class="badge">premium_year</span></div>
+              <label class="checkbox"><input id="payment_package_premium_year_enabled" type="checkbox">Показывать пакет</label>
+              <label class="checkbox"><input id="payment_package_premium_year_recurring_stars_enabled" type="checkbox">Разрешить автопродление через Stars</label>
               <div class="three">
-                <label>Название<input id="payment_package_year_title"></label>
-                <label>Цена<input id="payment_package_year_price_minor_units" type="number" min="1"></label>
-                <label>Дней<input id="payment_package_year_access_duration_days" type="number" min="1"></label>
-                <label>Порядок<input id="payment_package_year_sort_order" type="number"></label>
-                <label>Бейдж<input id="payment_package_year_badge"></label>
+                <label>Название<input id="payment_package_premium_year_title"></label>
+                <label>Цена<input id="payment_package_premium_year_price_minor_units" type="number" min="1"></label>
+                <label>Дней<input id="payment_package_premium_year_access_duration_days" type="number" min="1"></label>
+                <label>Порядок<input id="payment_package_premium_year_sort_order" type="number"></label>
+                <label>Бейдж<input id="payment_package_premium_year_badge"></label>
               </div>
-              <label>Описание<textarea id="payment_package_year_description"></textarea></label>
+              <label>Описание<textarea id="payment_package_premium_year_description"></textarea></label>
             </div>
           </div>
         </div>
@@ -2173,7 +2174,7 @@ def _dashboard_html() -> str:
     function applyTemplate(textareaSelector,index){const textarea=$(textareaSelector);if(!textarea)return;const template=currentMessageTemplates()[index];if(!template)return;textarea.value=template;textarea.focus()}
     function renderBroadcastResult(result){const el=$('#bulk-message-results');if(!el)return;if(!result){el.textContent='Здесь появится preview и отчет по рассылке.';return}if(result.phase==='preview'){const lines=[`Preview: ${result.requested_count||0} получателей`,`Текст: ${result.preview_text||''}${result.truncated?'...':''}`];if((result.warnings||[]).length){lines.push('','Предупреждения:');(result.warnings||[]).forEach(item=>lines.push(`- ${item}`))}lines.push('','После подтверждения эта рассылка уйдет выбранным пользователям.');el.textContent=lines.join('\\n');return}const lines=[`Запрошено: ${result.requested_count||0}`,`Отправлено: ${result.sent_count||0}`,`Ошибок: ${result.failed_count||0}`];if((result.sent||[]).length)lines.push('',`Успешно: ${(result.sent||[]).map(item=>`${item.user_id} (${item.active_mode||'base'})`).join(', ')}`);if((result.failed||[]).length){lines.push('','Ошибки:');(result.failed||[]).forEach(item=>lines.push(`${item.user_id}: ${item.error||'неизвестно'}`))}el.textContent=lines.join('\\n')}
     function table(cols,rows){if(!rows||!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
-    function clip(value,limit){const text=String(value||'').replace(/\s+/g,' ').trim();const max=Number(limit||120);return text.length>max?`${text.slice(0,Math.max(0,max-1)).trim()}…`:text}
+    function clip(value,limit){const text=String(value||'').replace(/\\s+/g,' ').trim();const max=Number(limit||120);return text.length>max?`${text.slice(0,Math.max(0,max-1)).trim()}…`:text}
     function statusPill(ok,okText='OK',badText='Ошибка'){return `<span class="status-pill ${ok?'ok':'bad'}">${ok?esc(okText):esc(badText)}</span>`}
     function kvList(items){const rows=(items||[]).filter(item=>item&&item[1]!==undefined&&item[1]!==null&&item[1]!=='');if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="kv-list">${rows.map(([label,value])=>`<div class="kv-row"><div class="kv-key">${esc(label)}</div><div class="kv-value">${value}</div></div>`).join('')}</div>`}
     function metricCards(items){const rows=(items||[]).filter(Boolean);if(!rows.length)return '<div class="muted">Пока нет данных.</div>';return `<div class="mini-grid">${rows.map(([label,value,caption])=>`<div class="metric"><div class="stat-label">${esc(label)}</div><div class="metric-value-small">${esc(value)}</div><div class="muted">${esc(caption||'')}</div></div>`).join('')}</div>`}
@@ -2285,10 +2286,10 @@ def _dashboard_html() -> str:
     function parseModeLimitsMap(text){const out={};String(text||'').split('\\n').map(line=>line.trim()).filter(Boolean).forEach(line=>{const [key,...rest]=line.split('=');const value=Number(rest.join('=').trim());if(key&&Number.isFinite(value))out[key.trim()]=value});return out}
     const PAYMENT_PACKAGE_CONFIG=[
       {key:'day_pass',domKey:'day_pass',title:'Pro — 1 день',badge:'day_pass'},
-      {key:'pro_month',domKey:'day',title:'Pro — 30 дней',badge:'pro_month'},
-      {key:'pro_year',domKey:'week',title:'Pro — 365 дней',badge:'pro_year'},
-      {key:'premium_month',domKey:'month',title:'Premium — 30 дней',badge:'premium_month'},
-      {key:'premium_year',domKey:'year',title:'Premium — 365 дней',badge:'premium_year'},
+      {key:'pro_month',domKey:'pro_month',title:'Pro — 30 дней',badge:'pro_month'},
+      {key:'pro_year',domKey:'pro_year',title:'Pro — 365 дней',badge:'pro_year'},
+      {key:'premium_month',domKey:'premium_month',title:'Premium — 30 дней',badge:'premium_month'},
+      {key:'premium_year',domKey:'premium_year',title:'Premium — 365 дней',badge:'premium_year'},
     ]
     const PAYMENT_PACKAGE_KEYS=PAYMENT_PACKAGE_CONFIG.map(item=>item.key)
     function paymentPackageConfig(key){return PAYMENT_PACKAGE_CONFIG.find(item=>item.key===key)||PAYMENT_PACKAGE_CONFIG[0]}
@@ -2623,7 +2624,7 @@ def _dashboard_html() -> str:
       setValue('#payment_provider_token',p.provider_token)
       setValue('#payment_mode',p.mode||'telegram')
       setValue('#payment_currency',p.currency)
-      setValue('#payment_default_package_key',p.default_package_key||'month')
+      setValue('#payment_default_package_key',p.default_package_key||'day_pass')
       setChecked('#payment_recurring_stars_enabled',!!p.recurring_stars_enabled)
       setValue('#payment_product_title',p.product_title)
       setValue('#payment_product_description',p.product_description)

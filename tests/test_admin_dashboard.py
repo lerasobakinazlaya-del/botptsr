@@ -178,6 +178,15 @@ class AdminDashboardTemplateTests(unittest.TestCase):
         self.assertIn("premium_month", source)
         self.assertIn("premium_year", source)
         self.assertIn("payment_offer_long_task_template", source)
+        self.assertIn('option value="day_pass"', source)
+        self.assertIn('option value="pro_month"', source)
+        self.assertIn('option value="premium_month"', source)
+        self.assertNotIn('option value="week"', source)
+        self.assertNotIn("p.default_package_key||'month'", source)
+        self.assertIn('id="payment_package_pro_month_enabled"', source)
+        self.assertIn("domKey:'pro_month'", source)
+        self.assertNotIn('id="payment_package_week_enabled"', source)
+        self.assertNotIn("domKey:'week'", source)
 
     def test_user_editor_exposes_subscription_plan_and_saves_it(self):
         source = self._admin_source()

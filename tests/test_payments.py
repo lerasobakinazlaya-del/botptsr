@@ -662,7 +662,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             from_user=SimpleNamespace(id=42),
             successful_payment=SimpleNamespace(
                 invoice_payload="premium:42:week",
-                total_amount=24900,
+                total_amount=44900,
                 currency="RUB",
                 telegram_payment_charge_id="tg-charge-1",
                 provider_payment_charge_id="provider-charge-1",
@@ -677,7 +677,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(user_service.grants, [(42, 30)])
         self.assertEqual(user_service.subscription_grants, [(42, "pro", 30)])
         self.assertEqual(user_service.set_until_calls, [])
-        self.assertEqual(payment_repository.saved["amount"], 249.0)
+        self.assertEqual(payment_repository.saved["amount"], 449.0)
         self.assertEqual(payment_repository.saved["metadata"]["package_key"], "pro_month")
         self.assertEqual(payment_repository.saved["metadata"]["package_title"], "Pro на 30 дней")
         self.assertEqual(payment_repository.saved["metadata"]["plan_key"], "pro")
@@ -687,7 +687,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             [
                 {
                     "referred_user_id": 42,
-                    "amount_minor_units": 24900,
+                    "amount_minor_units": 44900,
                     "external_payment_id": "tg-charge-1",
                     "is_first_payment": True,
                 }
@@ -726,7 +726,7 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
             from_user=SimpleNamespace(id=42),
             successful_payment=SimpleNamespace(
                 invoice_payload="premium:42:month",
-                total_amount=349,
+                total_amount=399,
                 currency="XTR",
                 telegram_payment_charge_id="tg-charge-2",
                 provider_payment_charge_id="provider-charge-2",
@@ -752,6 +752,38 @@ class PaymentFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["plan_key"], "premium")
         self.assertEqual(monetization_repository.events[-1]["event_name"], "renewed")
         self.assertEqual(monetization_repository.events[-1]["offer_variant"], "b")
+
+    async def test_handle_successful_payment_rejects_amount_mismatch(self):
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium plan",
+                premium_product_description="Unlock premium modes.",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+            monetization_repository=FakeMonetizationRepository(),
+        )
+        message = SimpleNamespace(
+            from_user=SimpleNamespace(id=42),
+            successful_payment=SimpleNamespace(
+                invoice_payload="premium:42:week",
+                total_amount=1,
+                currency="RUB",
+                telegram_payment_charge_id="tg-charge-bad",
+                provider_payment_charge_id="provider-charge-bad",
+                subscription_expiration_date=None,
+                is_recurring=False,
+                is_first_recurring=False,
+            ),
+        )
+
+        with self.assertRaises(ValueError):
+            await service.handle_successful_payment(message)
 
     async def test_process_virtual_payment_grants_days_and_saves_virtual_record(self):
         payment_repository = FakePaymentRepository()
@@ -811,10 +843,37 @@ class PaymentFormattingTests(unittest.TestCase):
             }
         )
 
-        self.assertIn("Payment success", text)
+        self.assertIn("Оплата прошла. Premium уже активен.", text)
         self.assertIn("Premium на 30 дней", text)
-        self.assertIn("План Premium уже активен.", text)
         self.assertIn("28.04.2026 12:00 UTC", text)
+
+    def test_build_success_message_distinguishes_pro(self):
+        service = PaymentService(
+            settings=SimpleNamespace(
+                payment_provider_token="",
+                payment_currency="RUB",
+                premium_price_minor_units=49900,
+                premium_product_title="Premium plan",
+                premium_product_description="Unlock premium modes.",
+            ),
+            payment_repository=FakePaymentRepository(),
+            user_service=FakeUserService(),
+            settings_service=FakeSettingsService(),
+            referral_service=FakeReferralService(),
+        )
+
+        text = service.build_success_message(
+            {
+                "package_title": "Pro на 30 дней",
+                "plan_key": "pro",
+                "premium_expires_at": "2026-04-28 12:00:00",
+                "is_recurring": False,
+            }
+        )
+
+        self.assertIn("Оплата прошла. Pro уже активен.", text)
+        self.assertIn("Pro на 30 дней", text)
+        self.assertNotIn("Premium уже активен", text)
 
 
 
