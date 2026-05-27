@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "defaults": {
+    "music_file": "content-factory/music/ambient-night-01.m4a",
+    "music_volume": 0.16,
+    "output_root": "content-factory/exports/production"
+  },
+  "items": [
+    {
+      "id": "grok_night_001",
+      "status": "draft",
+      "source_type": "video",
+      "source_files": [
+        "content-factory/inbox/grok/grok_night_001.mp4"
+      ],
+      "platforms": ["telegram_story", "tiktok", "reels", "shorts"],
+      "publish_at": "2026-05-28T10:20:00+03:00",
+      "hook": "Ты опять не спишь?",
+      "caption": "Если снова листаешь телефон ночью, начни с одной честной фразы. Нить поможет удержать мысль и сделать следующий шаг.",
+      "cta": "Попробовать Нить: @asknitai_bot",
+      "music_required": true,
+      "min_duration_sec": 6,
+      "max_duration_sec": 30,
+      "min_unique_frames": 3
+    }
+  ]
+}

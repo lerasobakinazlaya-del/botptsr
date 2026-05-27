@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nit production media manifest",
+  "type": "object",
+  "required": ["version", "items"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "music_file": { "type": "string" },
+        "music_volume": { "type": "number", "minimum": 0, "maximum": 1 },
+        "output_root": { "type": "string" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "source_type", "source_files", "platforms", "caption", "publish_at"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]+$" },
+          "status": { "enum": ["draft", "ready", "polished", "delivered", "archived"] },
+          "source_type": { "enum": ["video", "images"] },
+          "source_files": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "platforms": {
+            "type": "array",
+            "items": { "enum": ["telegram_post", "telegram_story", "tiktok", "reels", "shorts"] },
+            "minItems": 1
+          },
+          "caption": { "type": "string" },
+          "publish_at": { "type": "string" },
+          "hook": { "type": "string" },
+          "cta": { "type": "string" },
+          "music_required": { "type": "boolean" },
+          "min_duration_sec": { "type": "number", "minimum": 1 },
+          "max_duration_sec": { "type": "number", "minimum": 1 },
+          "min_unique_frames": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

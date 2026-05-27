@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BOARD = PROJECT_ROOT / "docs" / "social-video-board-current.csv"
+DEFAULT_QUEUE = PROJECT_ROOT / "content-factory" / "analytics" / "delivery_queue.json"
 DEFAULT_LOG = PROJECT_ROOT / "data" / "social_video_delivered.json"
 BOT_SHORT_URL = "https://t.me/asknitai_bot"
 
@@ -24,6 +25,7 @@ BOT_SHORT_URL = "https://t.me/asknitai_bot"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Send ready TikTok/Reels/Shorts videos to an operator in Telegram.")
     parser.add_argument("--board", default=str(DEFAULT_BOARD))
+    parser.add_argument("--queue", default=str(DEFAULT_QUEUE), help="Production JSON queue. Used when it has items.")
     parser.add_argument("--delivered-log", default=str(DEFAULT_LOG))
     parser.add_argument("--limit", type=int, default=9, help="Max unique videos to send.")
     parser.add_argument("--all", action="store_true", help="Send the next undelivered videos regardless of publish time.")
@@ -49,6 +51,37 @@ def write_json(path: Path, payload: dict) -> None:
 def read_board(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as file:
         return list(csv.DictReader(file))
+
+
+def publish_time_from_item(item: dict) -> str:
+    value = str(item.get("publish_time") or "").strip()
+    if value:
+        return value
+    publish_at = str(item.get("publish_at") or "").strip()
+    if "T" in publish_at:
+        return publish_at.split("T", 1)[1][:5]
+    return "00:00"
+
+
+def read_queue(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    payload = read_json(path, {"items": []})
+    rows: list[dict[str, str]] = []
+    for item in payload.get("items") or []:
+        rows.append(
+            {
+                "day": "",
+                "publish_time": publish_time_from_item(item),
+                "platform": str(item.get("platform") or ""),
+                "id": str(item.get("id") or ""),
+                "status": str(item.get("status") or "ready_manual"),
+                "video_file": str(item.get("video_file") or ""),
+                "caption": str(item.get("caption") or ""),
+                "url": BOT_SHORT_URL,
+            }
+        )
+    return rows
 
 
 def parse_publish_time(value: str) -> time:
@@ -129,7 +162,7 @@ def compact_caption(video_id: str, rows: list[dict[str, str]]) -> str:
 
 
 def public_link_for(platform: str) -> str:
-    if platform == "TikTok":
+    if platform in {"TikTok", "tiktok"}:
         return "ссылка на бота в профиле"
     return BOT_SHORT_URL
 
@@ -185,7 +218,8 @@ def main() -> None:
 
     tz = ZoneInfo("Europe/Moscow")
     now = datetime.fromisoformat(args.now).astimezone(tz) if args.now else datetime.now(tz)
-    rows = read_board(board_path)
+    queue_path = Path(args.queue)
+    rows = read_queue(queue_path) if queue_path.exists() else read_board(board_path)
     groups = unique_video_groups(rows)
 
     selected: list[tuple[str, Path, list[dict[str, str]]]] = []

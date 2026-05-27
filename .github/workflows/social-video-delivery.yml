@@ -60,7 +60,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install python-dotenv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install python-dotenv pillow
+
+      - name: Validate production queue
+        run: python scripts/validate_media_exports.py --queue content-factory/analytics/delivery_queue.json --allow-empty
 
       - name: Deliver social videos to operator
         run: |
@@ -71,7 +77,7 @@ jobs:
           if [ "$SEND_ALL" = "true" ]; then
             ARGS+=(--all)
           fi
-          python scripts/deliver_social_videos.py "${ARGS[@]}"
+          python scripts/deliver_social_videos.py --queue content-factory/analytics/delivery_queue.json "${ARGS[@]}"
 
       - name: Commit delivery state
         if: env.DRY_RUN != 'true'

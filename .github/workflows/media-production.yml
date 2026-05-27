@@ -1,0 +1,61 @@
+name: Media production
+
+on:
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: "Manifest item id, or empty for all"
+        required: false
+        default: ""
+
+concurrency:
+  group: media-production
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install pillow
+
+      - name: Polish media
+        run: |
+          if [ -n "${{ github.event.inputs.item_id }}" ]; then
+            python scripts/polish_social_video.py --id "${{ github.event.inputs.item_id }}"
+          else
+            python scripts/polish_social_video.py --all
+          fi
+
+      - name: Validate exports
+        run: python scripts/validate_media_exports.py --queue content-factory/analytics/delivery_queue.json
+
+      - name: Commit production exports
+        run: |
+          if [ -z "$(git status --short content-factory/exports/production content-factory/analytics/delivery_queue.json content-factory/analytics/media_validation_report.json)" ]; then
+            echo "No production media changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content-factory/exports/production content-factory/analytics/delivery_queue.json content-factory/analytics/media_validation_report.json
+          git commit -m "Update production media exports"
+          git push
