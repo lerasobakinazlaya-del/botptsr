@@ -30,7 +30,7 @@ Telegram message_id: `32`
 Можно начать с фразы: «разбери это» — и отправить как есть.
 ```
 
-## 2026-05-28 12:30 MSK · `scheduled`
+## 2026-05-28 12:30 MSK · `published`
 
 ID: `2026-05-28-day-not-send`
 Файл: `docs/channel-posts/2026-05-28-day-not-send.md`
@@ -39,6 +39,7 @@ ID: `2026-05-28-day-not-send`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_not_send_day`
 Закреп: `False`
+Telegram message_id: `33`
 
 Предпросмотр:
 
