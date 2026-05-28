@@ -55,7 +55,7 @@ Telegram message_id: `33`
 Попробуй коротко: «я хочу отправить это, но сомневаюсь».
 ```
 
-## 2026-05-28 20:30 MSK · `scheduled`
+## 2026-05-28 20:30 MSK · `published`
 
 ID: `2026-05-28-evening-night`
 Файл: `docs/channel-posts/2026-05-28-evening-night.md`
@@ -64,6 +64,7 @@ ID: `2026-05-28-evening-night`
 Кнопка: `Написать Нити`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_night_evening`
 Закреп: `False`
+Telegram message_id: `34`
 
 Предпросмотр:
 

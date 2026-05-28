@@ -180,6 +180,17 @@
       "published_at": "2026-05-28T12:49:54.280951+00:00",
       "scheduled_at": "2026-05-28T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-28-day-not-send.md"
+    },
+    "2026-05-28-evening-night": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26598623437",
+      "github_sha": "6c74b71e352d04e835bc40dc677a87a4d94e5996",
+      "image_file": "assets/message-cards/week-01/card-02.png",
+      "message_id": 34,
+      "photo_message_id": 34,
+      "published_at": "2026-05-28T19:55:17.351147+00:00",
+      "scheduled_at": "2026-05-28T17:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-28-evening-night.md"
     }
   }
 }
