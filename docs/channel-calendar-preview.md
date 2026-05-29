@@ -80,7 +80,7 @@ Telegram message_id: `34`
 Начни с одной фразы, даже если она кривая.
 ```
 
-## 2026-05-29 12:30 MSK · `scheduled`
+## 2026-05-29 12:30 MSK · `published`
 
 ID: `2026-05-29-day-memory`
 Файл: `docs/channel-posts/2026-05-29-day-memory.md`
@@ -89,6 +89,7 @@ ID: `2026-05-29-day-memory`
 Кнопка: `Проверить память`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_memory_day`
 Закреп: `False`
+Telegram message_id: `35`
 
 Предпросмотр:
 

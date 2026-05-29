@@ -191,6 +191,17 @@
       "published_at": "2026-05-28T19:55:17.351147+00:00",
       "scheduled_at": "2026-05-28T17:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-28-evening-night.md"
+    },
+    "2026-05-29-day-memory": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26637449729",
+      "github_sha": "1a9a89903ecafc2b429daff7a211cf9a5efbe05a",
+      "image_file": "assets/message-cards/week-01/card-08.png",
+      "message_id": 35,
+      "photo_message_id": 35,
+      "published_at": "2026-05-29T12:33:40.757196+00:00",
+      "scheduled_at": "2026-05-29T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-29-day-memory.md"
     }
   }
 }
