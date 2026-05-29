@@ -202,6 +202,17 @@
       "published_at": "2026-05-29T12:33:40.757196+00:00",
       "scheduled_at": "2026-05-29T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-29-day-memory.md"
+    },
+    "2026-05-29-evening-raw-thought": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26659025104",
+      "github_sha": "917f0a221a6608b66b79d387c567cd26738cf87e",
+      "image_file": "assets/message-cards/week-01/card-36.png",
+      "message_id": 36,
+      "photo_message_id": 36,
+      "published_at": "2026-05-29T19:55:35.847621+00:00",
+      "scheduled_at": "2026-05-29T17:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-29-evening-raw-thought.md"
     }
   }
 }

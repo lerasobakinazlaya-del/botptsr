@@ -103,7 +103,7 @@ Telegram message_id: `35`
 Проверь просто: задай вопрос, который имеет смысл только с учетом прошлого разговора.
 ```
 
-## 2026-05-29 20:30 MSK · `scheduled`
+## 2026-05-29 20:30 MSK · `published`
 
 ID: `2026-05-29-evening-raw-thought`
 Файл: `docs/channel-posts/2026-05-29-evening-raw-thought.md`
@@ -112,6 +112,7 @@ ID: `2026-05-29-evening-raw-thought`
 Кнопка: `Скинуть мысль`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_raw_thought_evening`
 Закреп: `False`
+Telegram message_id: `36`
 
 Предпросмотр:
 
