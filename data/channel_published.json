@@ -224,6 +224,17 @@
       "published_at": "2026-05-30T11:00:06.490519+00:00",
       "scheduled_at": "2026-05-30T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-30-day-one-day.md"
+    },
+    "2026-05-30-evening-dialog": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "26691900707",
+      "github_sha": "35846b3262738f48df55a2da945b2cc96a77a2f0",
+      "image_file": "assets/message-cards/week-01/card-07.png",
+      "message_id": 38,
+      "photo_message_id": 38,
+      "published_at": "2026-05-30T18:43:56.090784+00:00",
+      "scheduled_at": "2026-05-30T17:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-05-30-evening-dialog.md"
     }
   }
 }

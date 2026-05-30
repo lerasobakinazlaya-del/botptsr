@@ -158,7 +158,7 @@ Telegram message_id: `37`
 Начать можно бесплатно. Глубину включишь, если почувствуешь, что разговор пошел.
 ```
 
-## 2026-05-30 20:30 MSK · `scheduled`
+## 2026-05-30 20:30 MSK · `published`
 
 ID: `2026-05-30-evening-dialog`
 Файл: `docs/channel-posts/2026-05-30-evening-dialog.md`
@@ -167,6 +167,7 @@ ID: `2026-05-30-evening-dialog`
 Кнопка: `Начать диалог`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_dialog_evening`
 Закреп: `False`
+Telegram message_id: `38`
 
 Предпросмотр:
 
