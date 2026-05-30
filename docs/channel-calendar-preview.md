@@ -131,7 +131,7 @@ Telegram message_id: `36`
 Иногда первый шаг — не решение. Первый шаг — перестать держать это в голове одному.
 ```
 
-## 2026-05-30 12:30 MSK · `scheduled`
+## 2026-05-30 12:30 MSK · `published`
 
 ID: `2026-05-30-day-one-day`
 Файл: `docs/channel-posts/2026-05-30-day-one-day.md`
@@ -140,6 +140,7 @@ ID: `2026-05-30-day-one-day`
 Кнопка: `Открыть Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_one_day_day`
 Закреп: `False`
+Telegram message_id: `37`
 
 Предпросмотр:
 
