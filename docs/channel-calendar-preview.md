@@ -185,7 +185,7 @@ Telegram message_id: `38`
 Нить должна быть не витриной AI, а собеседником, который не сбивает темп разговора. Если после первого ответа хочется написать еще — значит, диалог живой.
 ```
 
-## 2026-05-31 12:30 MSK · `scheduled`
+## 2026-05-31 12:30 MSK · `published`
 
 ID: `2026-05-31-day-week-thread`
 Файл: `docs/channel-posts/2026-05-31-day-week-thread.md`
@@ -194,6 +194,7 @@ ID: `2026-05-31-day-week-thread`
 Кнопка: `Продолжить нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_week_thread_day`
 Закреп: `False`
+Telegram message_id: `39`
 
 Предпросмотр:
 
