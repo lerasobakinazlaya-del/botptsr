@@ -213,7 +213,7 @@ Telegram message_id: `39`
 Это не просто чат. Это место, куда можно вернуться.
 ```
 
-## 2026-05-31 20:30 MSK · `scheduled`
+## 2026-05-31 20:30 MSK · `published`
 
 ID: `2026-05-31-evening-paywall`
 Файл: `docs/channel-posts/2026-05-31-evening-paywall.md`
@@ -222,6 +222,7 @@ ID: `2026-05-31-evening-paywall`
 Кнопка: `Попробовать бесплатно`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_channel_refresh__med_channel__cnt_paywall_evening`
 Закреп: `False`
+Telegram message_id: `40`
 
 Предпросмотр:
 
