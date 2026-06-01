@@ -5,12 +5,12 @@
   "reel_file": "assets/stories/daily/nit-week-1-reel.mp4",
   "items": [
     {
-      "id": "2026-05-25-night-s1",
+      "id": "2026-06-01-night-s1",
       "enabled": true,
-      "publish_at": "2026-05-25T10:20:00+03:00",
+      "publish_at": "2026-06-01T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-01.png",
-      "image_file": "assets/stories/daily/2026-05-25-night-s1.png",
-      "video_file": "assets/stories/daily/2026-05-25-night-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-01-night-s1.png",
+      "video_file": "assets/stories/daily/2026-06-01-night-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Ты опять не спишь?",
       "frames": [
@@ -33,12 +33,12 @@
       "caption": "Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night"
     },
     {
-      "id": "2026-05-25-night-s2",
+      "id": "2026-06-01-night-s2",
       "enabled": true,
-      "publish_at": "2026-05-25T15:40:00+03:00",
+      "publish_at": "2026-06-01T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-02.png",
-      "image_file": "assets/stories/daily/2026-05-25-night-s2.png",
-      "video_file": "assets/stories/daily/2026-05-25-night-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-01-night-s2.png",
+      "video_file": "assets/stories/daily/2026-06-01-night-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -61,12 +61,12 @@
       "caption": "Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night"
     },
     {
-      "id": "2026-05-25-night-s3",
+      "id": "2026-06-01-night-s3",
       "enabled": true,
-      "publish_at": "2026-05-25T21:10:00+03:00",
+      "publish_at": "2026-06-01T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-25-night-s3.png",
-      "video_file": "assets/stories/daily/2026-05-25-night-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-01-night-s3.png",
+      "video_file": "assets/stories/daily/2026-06-01-night-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -89,12 +89,12 @@
       "caption": "Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night"
     },
     {
-      "id": "2026-05-26-memory-s1",
+      "id": "2026-06-02-memory-s1",
       "enabled": true,
-      "publish_at": "2026-05-26T10:20:00+03:00",
+      "publish_at": "2026-06-02T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-02.png",
-      "image_file": "assets/stories/daily/2026-05-26-memory-s1.png",
-      "video_file": "assets/stories/daily/2026-05-26-memory-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-02-memory-s1.png",
+      "video_file": "assets/stories/daily/2026-06-02-memory-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Я помню, на чем мы остановились.",
       "frames": [
@@ -117,12 +117,12 @@
       "caption": "Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory"
     },
     {
-      "id": "2026-05-26-memory-s2",
+      "id": "2026-06-02-memory-s2",
       "enabled": true,
-      "publish_at": "2026-05-26T15:40:00+03:00",
+      "publish_at": "2026-06-02T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-26-memory-s2.png",
-      "video_file": "assets/stories/daily/2026-05-26-memory-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-02-memory-s2.png",
+      "video_file": "assets/stories/daily/2026-06-02-memory-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -145,12 +145,12 @@
       "caption": "Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory"
     },
     {
-      "id": "2026-05-26-memory-s3",
+      "id": "2026-06-02-memory-s3",
       "enabled": true,
-      "publish_at": "2026-05-26T21:10:00+03:00",
+      "publish_at": "2026-06-02T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-04.png",
-      "image_file": "assets/stories/daily/2026-05-26-memory-s3.png",
-      "video_file": "assets/stories/daily/2026-05-26-memory-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-02-memory-s3.png",
+      "video_file": "assets/stories/daily/2026-06-02-memory-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -173,12 +173,12 @@
       "caption": "Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory"
     },
     {
-      "id": "2026-05-27-long-task-s1",
+      "id": "2026-06-03-long-task-s1",
       "enabled": true,
-      "publish_at": "2026-05-27T10:20:00+03:00",
+      "publish_at": "2026-06-03T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-27-long-task-s1.png",
-      "video_file": "assets/stories/daily/2026-05-27-long-task-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-03-long-task-s1.png",
+      "video_file": "assets/stories/daily/2026-06-03-long-task-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Скинь как есть. Я не потеряю главное.",
       "frames": [
@@ -201,12 +201,12 @@
       "caption": "Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task"
     },
     {
-      "id": "2026-05-27-long-task-s2",
+      "id": "2026-06-03-long-task-s2",
       "enabled": true,
-      "publish_at": "2026-05-27T15:40:00+03:00",
+      "publish_at": "2026-06-03T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-04.png",
-      "image_file": "assets/stories/daily/2026-05-27-long-task-s2.png",
-      "video_file": "assets/stories/daily/2026-05-27-long-task-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-03-long-task-s2.png",
+      "video_file": "assets/stories/daily/2026-06-03-long-task-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -229,12 +229,12 @@
       "caption": "Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task"
     },
     {
-      "id": "2026-05-27-long-task-s3",
+      "id": "2026-06-03-long-task-s3",
       "enabled": true,
-      "publish_at": "2026-05-27T21:10:00+03:00",
+      "publish_at": "2026-06-03T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-01.png",
-      "image_file": "assets/stories/daily/2026-05-27-long-task-s3.png",
-      "video_file": "assets/stories/daily/2026-05-27-long-task-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-03-long-task-s3.png",
+      "video_file": "assets/stories/daily/2026-06-03-long-task-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -257,12 +257,12 @@
       "caption": "Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task"
     },
     {
-      "id": "2026-05-28-not-send-s1",
+      "id": "2026-06-04-not-send-s1",
       "enabled": true,
-      "publish_at": "2026-05-28T10:20:00+03:00",
+      "publish_at": "2026-06-04T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-04.png",
-      "image_file": "assets/stories/daily/2026-05-28-not-send-s1.png",
-      "video_file": "assets/stories/daily/2026-05-28-not-send-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-04-not-send-s1.png",
+      "video_file": "assets/stories/daily/2026-06-04-not-send-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Напиши это мне, не ему.",
       "frames": [
@@ -285,12 +285,12 @@
       "caption": "Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send"
     },
     {
-      "id": "2026-05-28-not-send-s2",
+      "id": "2026-06-04-not-send-s2",
       "enabled": true,
-      "publish_at": "2026-05-28T15:40:00+03:00",
+      "publish_at": "2026-06-04T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-01.png",
-      "image_file": "assets/stories/daily/2026-05-28-not-send-s2.png",
-      "video_file": "assets/stories/daily/2026-05-28-not-send-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-04-not-send-s2.png",
+      "video_file": "assets/stories/daily/2026-06-04-not-send-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -313,12 +313,12 @@
       "caption": "Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send"
     },
     {
-      "id": "2026-05-28-not-send-s3",
+      "id": "2026-06-04-not-send-s3",
       "enabled": true,
-      "publish_at": "2026-05-28T21:10:00+03:00",
+      "publish_at": "2026-06-04T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-02.png",
-      "image_file": "assets/stories/daily/2026-05-28-not-send-s3.png",
-      "video_file": "assets/stories/daily/2026-05-28-not-send-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-04-not-send-s3.png",
+      "video_file": "assets/stories/daily/2026-06-04-not-send-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -341,12 +341,12 @@
       "caption": "Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send"
     },
     {
-      "id": "2026-05-29-one-day-s1",
+      "id": "2026-06-05-one-day-s1",
       "enabled": true,
-      "publish_at": "2026-05-29T10:20:00+03:00",
+      "publish_at": "2026-06-05T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-01.png",
-      "image_file": "assets/stories/daily/2026-05-29-one-day-s1.png",
-      "video_file": "assets/stories/daily/2026-05-29-one-day-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-05-one-day-s1.png",
+      "video_file": "assets/stories/daily/2026-06-05-one-day-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сегодня можно распутать хотя бы один узел.",
       "frames": [
@@ -369,12 +369,12 @@
       "caption": "Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day"
     },
     {
-      "id": "2026-05-29-one-day-s2",
+      "id": "2026-06-05-one-day-s2",
       "enabled": true,
-      "publish_at": "2026-05-29T15:40:00+03:00",
+      "publish_at": "2026-06-05T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-02.png",
-      "image_file": "assets/stories/daily/2026-05-29-one-day-s2.png",
-      "video_file": "assets/stories/daily/2026-05-29-one-day-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-05-one-day-s2.png",
+      "video_file": "assets/stories/daily/2026-06-05-one-day-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -397,12 +397,12 @@
       "caption": "Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day"
     },
     {
-      "id": "2026-05-29-one-day-s3",
+      "id": "2026-06-05-one-day-s3",
       "enabled": true,
-      "publish_at": "2026-05-29T21:10:00+03:00",
+      "publish_at": "2026-06-05T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-29-one-day-s3.png",
-      "video_file": "assets/stories/daily/2026-05-29-one-day-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-05-one-day-s3.png",
+      "video_file": "assets/stories/daily/2026-06-05-one-day-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -425,12 +425,12 @@
       "caption": "Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day"
     },
     {
-      "id": "2026-05-30-raw-thought-s1",
+      "id": "2026-06-06-raw-thought-s1",
       "enabled": true,
-      "publish_at": "2026-05-30T10:20:00+03:00",
+      "publish_at": "2026-06-06T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-02.png",
-      "image_file": "assets/stories/daily/2026-05-30-raw-thought-s1.png",
-      "video_file": "assets/stories/daily/2026-05-30-raw-thought-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-06-raw-thought-s1.png",
+      "video_file": "assets/stories/daily/2026-06-06-raw-thought-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Начни с фразы, которую стыдно отправлять.",
       "frames": [
@@ -453,12 +453,12 @@
       "caption": "Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought"
     },
     {
-      "id": "2026-05-30-raw-thought-s2",
+      "id": "2026-06-06-raw-thought-s2",
       "enabled": true,
-      "publish_at": "2026-05-30T15:40:00+03:00",
+      "publish_at": "2026-06-06T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-30-raw-thought-s2.png",
-      "video_file": "assets/stories/daily/2026-05-30-raw-thought-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-06-raw-thought-s2.png",
+      "video_file": "assets/stories/daily/2026-06-06-raw-thought-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -481,12 +481,12 @@
       "caption": "Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought"
     },
     {
-      "id": "2026-05-30-raw-thought-s3",
+      "id": "2026-06-06-raw-thought-s3",
       "enabled": true,
-      "publish_at": "2026-05-30T21:10:00+03:00",
+      "publish_at": "2026-06-06T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-04.png",
-      "image_file": "assets/stories/daily/2026-05-30-raw-thought-s3.png",
-      "video_file": "assets/stories/daily/2026-05-30-raw-thought-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-06-raw-thought-s3.png",
+      "video_file": "assets/stories/daily/2026-06-06-raw-thought-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
@@ -509,12 +509,12 @@
       "caption": "Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought"
     },
     {
-      "id": "2026-05-31-week-thread-s1",
+      "id": "2026-06-07-week-thread-s1",
       "enabled": true,
-      "publish_at": "2026-05-31T10:20:00+03:00",
+      "publish_at": "2026-06-07T10:20:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-03.png",
-      "image_file": "assets/stories/daily/2026-05-31-week-thread-s1.png",
-      "video_file": "assets/stories/daily/2026-05-31-week-thread-s1.mp4",
+      "image_file": "assets/stories/daily/2026-06-07-week-thread-s1.png",
+      "video_file": "assets/stories/daily/2026-06-07-week-thread-s1.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Через неделю это уже не чат, а маршрут.",
       "frames": [
@@ -537,12 +537,12 @@
       "caption": "Начни 7-дневный диалог: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_week-thread"
     },
     {
-      "id": "2026-05-31-week-thread-s2",
+      "id": "2026-06-07-week-thread-s2",
       "enabled": true,
-      "publish_at": "2026-05-31T15:40:00+03:00",
+      "publish_at": "2026-06-07T15:40:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-04.png",
-      "image_file": "assets/stories/daily/2026-05-31-week-thread-s2.png",
-      "video_file": "assets/stories/daily/2026-05-31-week-thread-s2.mp4",
+      "image_file": "assets/stories/daily/2026-06-07-week-thread-s2.png",
+      "video_file": "assets/stories/daily/2026-06-07-week-thread-s2.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Сообщение, которое не хочется отправлять человеку, можно сначала отправить Нити.",
       "frames": [
@@ -565,12 +565,12 @@
       "caption": "Начни 7-дневный диалог: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_week-thread"
     },
     {
-      "id": "2026-05-31-week-thread-s3",
+      "id": "2026-06-07-week-thread-s3",
       "enabled": true,
-      "publish_at": "2026-05-31T21:10:00+03:00",
+      "publish_at": "2026-06-07T21:10:00+03:00",
       "background_file": "assets/story-backgrounds/story-bg-01.png",
-      "image_file": "assets/stories/daily/2026-05-31-week-thread-s3.png",
-      "video_file": "assets/stories/daily/2026-05-31-week-thread-s3.mp4",
+      "image_file": "assets/stories/daily/2026-06-07-week-thread-s3.png",
+      "video_file": "assets/stories/daily/2026-06-07-week-thread-s3.mp4",
       "headline": "Нить онлайн",
       "bubble_text": "Мини-проверка: какая мысль возвращается к тебе чаще всего?",
       "frames": [
