@@ -257,6 +257,14 @@
       "published_at": "2026-05-31T18:47:49.755875+00:00",
       "scheduled_at": "2026-05-31T17:30:00+00:00",
       "text_file": "docs/channel-posts/2026-05-31-evening-paywall.md"
+    },
+    "2026-06-01-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-06-01T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-06-01T15:41:47.824591+00:00",
+      "text_file": "docs/channel-posts/2026-06-01-night-p1.md"
     }
   }
 }
