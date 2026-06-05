@@ -405,6 +405,17 @@
       },
       "scheduled_at": "2026-06-05T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-06-05-one-day-s2.mp4"
+    },
+    "2026-06-05-one-day-s3": {
+      "delivered_at": "2026-06-05T20:21:45.094950+00:00",
+      "github_run_id": "27037952664",
+      "github_sha": "17d50f9afe2908bf6d999dbd865ae21f4a3eb5ae",
+      "image_file": "assets/stories/daily/2026-06-05-one-day-s3.png",
+      "message_ids": {
+        "254279477": 349
+      },
+      "scheduled_at": "2026-06-05T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-06-05-one-day-s3.mp4"
     }
   }
 }
