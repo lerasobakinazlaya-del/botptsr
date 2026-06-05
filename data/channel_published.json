@@ -298,6 +298,17 @@
       "published_at": "2026-06-04T12:30:21.870871+00:00",
       "scheduled_at": "2026-06-04T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-06-04-not-send-p1.md"
+    },
+    "2026-06-05-one-day-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "27014622301",
+      "github_sha": "6e7df03807dcd91574e464d2cc3d46c970f2a153",
+      "image_file": "assets/message-cards/week-01/card-29.png",
+      "message_id": 44,
+      "photo_message_id": 44,
+      "published_at": "2026-06-05T12:23:49.107308+00:00",
+      "scheduled_at": "2026-06-05T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-06-05-one-day-p1.md"
     }
   }
 }
