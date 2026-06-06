@@ -120,7 +120,7 @@ Telegram message_id: `44`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-06 12:30 MSK · `scheduled`
+## 2026-06-06 12:30 MSK · `published`
 
 ID: `2026-06-06-raw-thought-p1`
 Файл: `docs/channel-posts/2026-06-06-raw-thought-p1.md`
@@ -129,6 +129,7 @@ ID: `2026-06-06-raw-thought-p1`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_raw-thought_p1`
 Закреп: `False`
+Telegram message_id: `45`
 
 Предпросмотр:
 
