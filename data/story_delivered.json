@@ -581,6 +581,17 @@
       },
       "scheduled_at": "2026-06-10T18:10:00+00:00",
       "video_file": "assets/stories/daily/2026-06-10-long-task-s3.mp4"
+    },
+    "2026-06-11-not-send-s1": {
+      "delivered_at": "2026-06-11T11:57:22.228312+00:00",
+      "github_run_id": "27344907514",
+      "github_sha": "55b54e164863b60386341a6f69497e4737573fad",
+      "image_file": "assets/stories/daily/2026-06-11-not-send-s1.png",
+      "message_ids": {
+        "254279477": 374
+      },
+      "scheduled_at": "2026-06-11T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-06-11-not-send-s1.mp4"
     }
   }
 }
