@@ -408,6 +408,17 @@
       "published_at": "2026-06-14T11:39:53.915581+00:00",
       "scheduled_at": "2026-06-14T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-06-14-week-thread-p1.md"
+    },
+    "2026-06-15-night-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "27557156928",
+      "github_sha": "518a959374de1d5ae4539d2d0e598f9b68ecd337",
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "message_id": 54,
+      "photo_message_id": 54,
+      "published_at": "2026-06-15T15:28:19.435635+00:00",
+      "scheduled_at": "2026-06-15T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-06-15-night-p1.md"
     }
   }
 }
