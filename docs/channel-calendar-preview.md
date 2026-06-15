@@ -5,16 +5,15 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-06-08 12:30 MSK · `published`
+## 2026-06-15 12:30 MSK · `scheduled`
 
-ID: `2026-06-08-night-p1`
-Файл: `docs/channel-posts/2026-06-08-night-p1.md`
+ID: `2026-06-15-night-p1`
+Файл: `docs/channel-posts/2026-06-15-night-p1.md`
 Картинка: `assets/message-cards/week-01/card-01.png`
 Превью в админке: `assets/message-cards/week-01/card-01.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p1`
 Закреп: `False`
-Telegram message_id: `47`
 
 Предпросмотр:
 
@@ -28,16 +27,15 @@ Telegram message_id: `47`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-09 12:30 MSK · `published`
+## 2026-06-16 12:30 MSK · `scheduled`
 
-ID: `2026-06-09-memory-p1`
-Файл: `docs/channel-posts/2026-06-09-memory-p1.md`
+ID: `2026-06-16-memory-p1`
+Файл: `docs/channel-posts/2026-06-16-memory-p1.md`
 Картинка: `assets/message-cards/week-01/card-08.png`
 Превью в админке: `assets/message-cards/week-01/card-08.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_memory_p1`
 Закреп: `False`
-Telegram message_id: `48`
 
 Предпросмотр:
 
@@ -51,16 +49,15 @@ Telegram message_id: `48`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-10 12:30 MSK · `published`
+## 2026-06-17 12:30 MSK · `scheduled`
 
-ID: `2026-06-10-long-task-p1`
-Файл: `docs/channel-posts/2026-06-10-long-task-p1.md`
+ID: `2026-06-17-long-task-p1`
+Файл: `docs/channel-posts/2026-06-17-long-task-p1.md`
 Картинка: `assets/message-cards/week-01/card-15.png`
 Превью в админке: `assets/message-cards/week-01/card-15.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_long-task_p1`
 Закреп: `False`
-Telegram message_id: `49`
 
 Предпросмотр:
 
@@ -74,16 +71,15 @@ Telegram message_id: `49`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-11 12:30 MSK · `published`
+## 2026-06-18 12:30 MSK · `scheduled`
 
-ID: `2026-06-11-not-send-p1`
-Файл: `docs/channel-posts/2026-06-11-not-send-p1.md`
+ID: `2026-06-18-not-send-p1`
+Файл: `docs/channel-posts/2026-06-18-not-send-p1.md`
 Картинка: `assets/message-cards/week-01/card-22.png`
 Превью в админке: `assets/message-cards/week-01/card-22.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_not-send_p1`
 Закреп: `False`
-Telegram message_id: `50`
 
 Предпросмотр:
 
@@ -97,16 +93,15 @@ Telegram message_id: `50`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-12 12:30 MSK · `published`
+## 2026-06-19 12:30 MSK · `scheduled`
 
-ID: `2026-06-12-one-day-p1`
-Файл: `docs/channel-posts/2026-06-12-one-day-p1.md`
+ID: `2026-06-19-one-day-p1`
+Файл: `docs/channel-posts/2026-06-19-one-day-p1.md`
 Картинка: `assets/message-cards/week-01/card-29.png`
 Превью в админке: `assets/message-cards/week-01/card-29.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_one-day_p1`
 Закреп: `False`
-Telegram message_id: `51`
 
 Предпросмотр:
 
@@ -120,16 +115,15 @@ Telegram message_id: `51`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-13 12:30 MSK · `published`
+## 2026-06-20 12:30 MSK · `scheduled`
 
-ID: `2026-06-13-raw-thought-p1`
-Файл: `docs/channel-posts/2026-06-13-raw-thought-p1.md`
+ID: `2026-06-20-raw-thought-p1`
+Файл: `docs/channel-posts/2026-06-20-raw-thought-p1.md`
 Картинка: `assets/message-cards/week-01/card-36.png`
 Превью в админке: `assets/message-cards/week-01/card-36.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_raw-thought_p1`
 Закреп: `False`
-Telegram message_id: `52`
 
 Предпросмотр:
 
@@ -143,16 +137,15 @@ Telegram message_id: `52`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-06-14 12:30 MSK · `published`
+## 2026-06-21 12:30 MSK · `scheduled`
 
-ID: `2026-06-14-week-thread-p1`
-Файл: `docs/channel-posts/2026-06-14-week-thread-p1.md`
+ID: `2026-06-21-week-thread-p1`
+Файл: `docs/channel-posts/2026-06-21-week-thread-p1.md`
 Картинка: `assets/message-cards/week-01/card-43.png`
 Превью в админке: `assets/message-cards/week-01/card-43.png`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_week-thread_p1`
 Закреп: `False`
-Telegram message_id: `53`
 
 Предпросмотр:
 
