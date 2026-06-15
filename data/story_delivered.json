@@ -713,6 +713,17 @@
       },
       "scheduled_at": "2026-06-14T18:10:00+00:00",
       "video_file": "assets/stories/daily/2026-06-14-week-thread-s3.mp4"
+    },
+    "2026-06-15-night-s1": {
+      "delivered_at": "2026-06-15T13:32:19.147305+00:00",
+      "github_run_id": "27549670491",
+      "github_sha": "77b2bff628f7b0048c9a40541f47004265c77eac",
+      "image_file": "assets/stories/daily/2026-06-15-night-s1.png",
+      "message_ids": {
+        "254279477": 386
+      },
+      "scheduled_at": "2026-06-15T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-06-15-night-s1.mp4"
     }
   }
 }
