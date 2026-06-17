@@ -801,6 +801,17 @@
       },
       "scheduled_at": "2026-06-17T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-06-17-long-task-s2.mp4"
+    },
+    "2026-06-17-long-task-s3": {
+      "delivered_at": "2026-06-17T20:35:25.900411+00:00",
+      "github_run_id": "27717907758",
+      "github_sha": "ed79875fd235e11b52ffd66c82602696acbcff17",
+      "image_file": "assets/stories/daily/2026-06-17-long-task-s3.png",
+      "message_ids": {
+        "254279477": 394
+      },
+      "scheduled_at": "2026-06-17T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-06-17-long-task-s3.mp4"
     }
   }
 }
