@@ -823,6 +823,17 @@
       },
       "scheduled_at": "2026-06-18T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-06-18-not-send-s1.mp4"
+    },
+    "2026-06-18-not-send-s2": {
+      "delivered_at": "2026-06-18T22:47:06.410241+00:00",
+      "github_run_id": "27787988679",
+      "github_sha": "8e3f29b932f8f5cbb69de06747cc368d87c4ae6f",
+      "image_file": "assets/stories/daily/2026-06-18-not-send-s2.png",
+      "message_ids": {
+        "254279477": 396
+      },
+      "scheduled_at": "2026-06-18T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-06-18-not-send-s2.mp4"
     }
   }
 }
