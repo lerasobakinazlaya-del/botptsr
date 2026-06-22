@@ -4,11 +4,11 @@
 Доставка админу: `STORY_DELIVERY_CHAT_ID`
 Рекламный ролик недели: `assets/stories/daily/nit-week-1-reel.mp4`
 
-## 2026-06-15T10:20:00+03:00 · `enabled`
+## 2026-06-22T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-15-night-s1`
-Картинка: `assets/stories/daily/2026-06-15-night-s1.png`
-Видео: `assets/stories/daily/2026-06-15-night-s1.mp4`
+ID: `2026-06-22-night-s1`
+Картинка: `assets/stories/daily/2026-06-22-night-s1.png`
+Видео: `assets/stories/daily/2026-06-22-night-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -37,11 +37,11 @@ Caption:
 Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night
 ```
 
-## 2026-06-15T15:40:00+03:00 · `enabled`
+## 2026-06-22T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-15-night-s2`
-Картинка: `assets/stories/daily/2026-06-15-night-s2.png`
-Видео: `assets/stories/daily/2026-06-15-night-s2.mp4`
+ID: `2026-06-22-night-s2`
+Картинка: `assets/stories/daily/2026-06-22-night-s2.png`
+Видео: `assets/stories/daily/2026-06-22-night-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -71,11 +71,11 @@ Caption:
 Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night
 ```
 
-## 2026-06-15T21:10:00+03:00 · `enabled`
+## 2026-06-22T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-15-night-s3`
-Картинка: `assets/stories/daily/2026-06-15-night-s3.png`
-Видео: `assets/stories/daily/2026-06-15-night-s3.mp4`
+ID: `2026-06-22-night-s3`
+Картинка: `assets/stories/daily/2026-06-22-night-s3.png`
+Видео: `assets/stories/daily/2026-06-22-night-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -104,11 +104,11 @@ Caption:
 Напиши Нити: «я не могу уснуть»: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_night
 ```
 
-## 2026-06-16T10:20:00+03:00 · `enabled`
+## 2026-06-23T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-16-memory-s1`
-Картинка: `assets/stories/daily/2026-06-16-memory-s1.png`
-Видео: `assets/stories/daily/2026-06-16-memory-s1.mp4`
+ID: `2026-06-23-memory-s1`
+Картинка: `assets/stories/daily/2026-06-23-memory-s1.png`
+Видео: `assets/stories/daily/2026-06-23-memory-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -137,11 +137,11 @@ Caption:
 Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory
 ```
 
-## 2026-06-16T15:40:00+03:00 · `enabled`
+## 2026-06-23T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-16-memory-s2`
-Картинка: `assets/stories/daily/2026-06-16-memory-s2.png`
-Видео: `assets/stories/daily/2026-06-16-memory-s2.mp4`
+ID: `2026-06-23-memory-s2`
+Картинка: `assets/stories/daily/2026-06-23-memory-s2.png`
+Видео: `assets/stories/daily/2026-06-23-memory-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -171,11 +171,11 @@ Caption:
 Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory
 ```
 
-## 2026-06-16T21:10:00+03:00 · `enabled`
+## 2026-06-23T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-16-memory-s3`
-Картинка: `assets/stories/daily/2026-06-16-memory-s3.png`
-Видео: `assets/stories/daily/2026-06-16-memory-s3.mp4`
+ID: `2026-06-23-memory-s3`
+Картинка: `assets/stories/daily/2026-06-23-memory-s3.png`
+Видео: `assets/stories/daily/2026-06-23-memory-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -204,11 +204,11 @@ Caption:
 Проверь память диалога: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_memory
 ```
 
-## 2026-06-17T10:20:00+03:00 · `enabled`
+## 2026-06-24T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-17-long-task-s1`
-Картинка: `assets/stories/daily/2026-06-17-long-task-s1.png`
-Видео: `assets/stories/daily/2026-06-17-long-task-s1.mp4`
+ID: `2026-06-24-long-task-s1`
+Картинка: `assets/stories/daily/2026-06-24-long-task-s1.png`
+Видео: `assets/stories/daily/2026-06-24-long-task-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -237,11 +237,11 @@ Caption:
 Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task
 ```
 
-## 2026-06-17T15:40:00+03:00 · `enabled`
+## 2026-06-24T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-17-long-task-s2`
-Картинка: `assets/stories/daily/2026-06-17-long-task-s2.png`
-Видео: `assets/stories/daily/2026-06-17-long-task-s2.mp4`
+ID: `2026-06-24-long-task-s2`
+Картинка: `assets/stories/daily/2026-06-24-long-task-s2.png`
+Видео: `assets/stories/daily/2026-06-24-long-task-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -271,11 +271,11 @@ Caption:
 Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task
 ```
 
-## 2026-06-17T21:10:00+03:00 · `enabled`
+## 2026-06-24T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-17-long-task-s3`
-Картинка: `assets/stories/daily/2026-06-17-long-task-s3.png`
-Видео: `assets/stories/daily/2026-06-17-long-task-s3.mp4`
+ID: `2026-06-24-long-task-s3`
+Картинка: `assets/stories/daily/2026-06-24-long-task-s3.png`
+Видео: `assets/stories/daily/2026-06-24-long-task-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -304,11 +304,11 @@ Caption:
 Дай Нити одну сложную задачу: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_long-task
 ```
 
-## 2026-06-18T10:20:00+03:00 · `enabled`
+## 2026-06-25T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-18-not-send-s1`
-Картинка: `assets/stories/daily/2026-06-18-not-send-s1.png`
-Видео: `assets/stories/daily/2026-06-18-not-send-s1.mp4`
+ID: `2026-06-25-not-send-s1`
+Картинка: `assets/stories/daily/2026-06-25-not-send-s1.png`
+Видео: `assets/stories/daily/2026-06-25-not-send-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -337,11 +337,11 @@ Caption:
 Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send
 ```
 
-## 2026-06-18T15:40:00+03:00 · `enabled`
+## 2026-06-25T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-18-not-send-s2`
-Картинка: `assets/stories/daily/2026-06-18-not-send-s2.png`
-Видео: `assets/stories/daily/2026-06-18-not-send-s2.mp4`
+ID: `2026-06-25-not-send-s2`
+Картинка: `assets/stories/daily/2026-06-25-not-send-s2.png`
+Видео: `assets/stories/daily/2026-06-25-not-send-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -371,11 +371,11 @@ Caption:
 Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send
 ```
 
-## 2026-06-18T21:10:00+03:00 · `enabled`
+## 2026-06-25T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-18-not-send-s3`
-Картинка: `assets/stories/daily/2026-06-18-not-send-s3.png`
-Видео: `assets/stories/daily/2026-06-18-not-send-s3.mp4`
+ID: `2026-06-25-not-send-s3`
+Картинка: `assets/stories/daily/2026-06-25-not-send-s3.png`
+Видео: `assets/stories/daily/2026-06-25-not-send-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -404,11 +404,11 @@ Caption:
 Попроси Нить переписать сообщение: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_not-send
 ```
 
-## 2026-06-19T10:20:00+03:00 · `enabled`
+## 2026-06-26T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-19-one-day-s1`
-Картинка: `assets/stories/daily/2026-06-19-one-day-s1.png`
-Видео: `assets/stories/daily/2026-06-19-one-day-s1.mp4`
+ID: `2026-06-26-one-day-s1`
+Картинка: `assets/stories/daily/2026-06-26-one-day-s1.png`
+Видео: `assets/stories/daily/2026-06-26-one-day-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -437,11 +437,11 @@ Caption:
 Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day
 ```
 
-## 2026-06-19T15:40:00+03:00 · `enabled`
+## 2026-06-26T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-19-one-day-s2`
-Картинка: `assets/stories/daily/2026-06-19-one-day-s2.png`
-Видео: `assets/stories/daily/2026-06-19-one-day-s2.mp4`
+ID: `2026-06-26-one-day-s2`
+Картинка: `assets/stories/daily/2026-06-26-one-day-s2.png`
+Видео: `assets/stories/daily/2026-06-26-one-day-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -471,11 +471,11 @@ Caption:
 Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day
 ```
 
-## 2026-06-19T21:10:00+03:00 · `enabled`
+## 2026-06-26T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-19-one-day-s3`
-Картинка: `assets/stories/daily/2026-06-19-one-day-s3.png`
-Видео: `assets/stories/daily/2026-06-19-one-day-s3.mp4`
+ID: `2026-06-26-one-day-s3`
+Картинка: `assets/stories/daily/2026-06-26-one-day-s3.png`
+Видео: `assets/stories/daily/2026-06-26-one-day-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -504,11 +504,11 @@ Caption:
 Открой дневной доступ: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_one-day
 ```
 
-## 2026-06-20T10:20:00+03:00 · `enabled`
+## 2026-06-27T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-20-raw-thought-s1`
-Картинка: `assets/stories/daily/2026-06-20-raw-thought-s1.png`
-Видео: `assets/stories/daily/2026-06-20-raw-thought-s1.mp4`
+ID: `2026-06-27-raw-thought-s1`
+Картинка: `assets/stories/daily/2026-06-27-raw-thought-s1.png`
+Видео: `assets/stories/daily/2026-06-27-raw-thought-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -537,11 +537,11 @@ Caption:
 Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought
 ```
 
-## 2026-06-20T15:40:00+03:00 · `enabled`
+## 2026-06-27T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-20-raw-thought-s2`
-Картинка: `assets/stories/daily/2026-06-20-raw-thought-s2.png`
-Видео: `assets/stories/daily/2026-06-20-raw-thought-s2.mp4`
+ID: `2026-06-27-raw-thought-s2`
+Картинка: `assets/stories/daily/2026-06-27-raw-thought-s2.png`
+Видео: `assets/stories/daily/2026-06-27-raw-thought-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -571,11 +571,11 @@ Caption:
 Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought
 ```
 
-## 2026-06-20T21:10:00+03:00 · `enabled`
+## 2026-06-27T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-20-raw-thought-s3`
-Картинка: `assets/stories/daily/2026-06-20-raw-thought-s3.png`
-Видео: `assets/stories/daily/2026-06-20-raw-thought-s3.mp4`
+ID: `2026-06-27-raw-thought-s3`
+Картинка: `assets/stories/daily/2026-06-27-raw-thought-s3.png`
+Видео: `assets/stories/daily/2026-06-27-raw-thought-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -604,11 +604,11 @@ Caption:
 Отправь одну недодуманную мысль: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_raw-thought
 ```
 
-## 2026-06-21T10:20:00+03:00 · `enabled`
+## 2026-06-28T10:20:00+03:00 · `enabled`
 
-ID: `2026-06-21-week-thread-s1`
-Картинка: `assets/stories/daily/2026-06-21-week-thread-s1.png`
-Видео: `assets/stories/daily/2026-06-21-week-thread-s1.mp4`
+ID: `2026-06-28-week-thread-s1`
+Картинка: `assets/stories/daily/2026-06-28-week-thread-s1.png`
+Видео: `assets/stories/daily/2026-06-28-week-thread-s1.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -637,11 +637,11 @@ Caption:
 Начни 7-дневный диалог: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_week-thread
 ```
 
-## 2026-06-21T15:40:00+03:00 · `enabled`
+## 2026-06-28T15:40:00+03:00 · `enabled`
 
-ID: `2026-06-21-week-thread-s2`
-Картинка: `assets/stories/daily/2026-06-21-week-thread-s2.png`
-Видео: `assets/stories/daily/2026-06-21-week-thread-s2.mp4`
+ID: `2026-06-28-week-thread-s2`
+Картинка: `assets/stories/daily/2026-06-28-week-thread-s2.png`
+Видео: `assets/stories/daily/2026-06-28-week-thread-s2.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
@@ -671,11 +671,11 @@ Caption:
 Начни 7-дневный диалог: https://t.me/asknitai_bot?start=src_tg__cmp_viral_week_01__med_story__cnt_week-thread
 ```
 
-## 2026-06-21T21:10:00+03:00 · `enabled`
+## 2026-06-28T21:10:00+03:00 · `enabled`
 
-ID: `2026-06-21-week-thread-s3`
-Картинка: `assets/stories/daily/2026-06-21-week-thread-s3.png`
-Видео: `assets/stories/daily/2026-06-21-week-thread-s3.mp4`
+ID: `2026-06-28-week-thread-s3`
+Картинка: `assets/stories/daily/2026-06-28-week-thread-s3.png`
+Видео: `assets/stories/daily/2026-06-28-week-thread-s3.mp4`
 Кадров в дневном видео: `5`
 
 Текст сторис:
