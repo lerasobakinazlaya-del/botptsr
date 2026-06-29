@@ -3,10 +3,10 @@
   "default_chat_id": "@trynit_ai",
   "items": [
     {
-      "id": "2026-06-22-night-p1",
+      "id": "2026-06-29-night-p1",
       "enabled": true,
-      "publish_at": "2026-06-22T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-22-night-p1.md",
+      "publish_at": "2026-06-29T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-06-29-night-p1.md",
       "image_file": "assets/message-cards/week-01/card-01.png",
       "preview_image_file": "assets/message-cards/week-01/card-01.png",
       "button_text": "Попробовать Нить",
@@ -14,10 +14,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-23-memory-p1",
+      "id": "2026-06-30-memory-p1",
       "enabled": true,
-      "publish_at": "2026-06-23T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-23-memory-p1.md",
+      "publish_at": "2026-06-30T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-06-30-memory-p1.md",
       "image_file": "assets/message-cards/week-01/card-08.png",
       "preview_image_file": "assets/message-cards/week-01/card-08.png",
       "button_text": "Попробовать Нить",
@@ -25,10 +25,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-24-long-task-p1",
+      "id": "2026-07-01-long-task-p1",
       "enabled": true,
-      "publish_at": "2026-06-24T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-24-long-task-p1.md",
+      "publish_at": "2026-07-01T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-07-01-long-task-p1.md",
       "image_file": "assets/message-cards/week-01/card-15.png",
       "preview_image_file": "assets/message-cards/week-01/card-15.png",
       "button_text": "Попробовать Нить",
@@ -36,10 +36,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-25-not-send-p1",
+      "id": "2026-07-02-not-send-p1",
       "enabled": true,
-      "publish_at": "2026-06-25T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-25-not-send-p1.md",
+      "publish_at": "2026-07-02T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-07-02-not-send-p1.md",
       "image_file": "assets/message-cards/week-01/card-22.png",
       "preview_image_file": "assets/message-cards/week-01/card-22.png",
       "button_text": "Попробовать Нить",
@@ -47,10 +47,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-26-one-day-p1",
+      "id": "2026-07-03-one-day-p1",
       "enabled": true,
-      "publish_at": "2026-06-26T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-26-one-day-p1.md",
+      "publish_at": "2026-07-03T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-07-03-one-day-p1.md",
       "image_file": "assets/message-cards/week-01/card-29.png",
       "preview_image_file": "assets/message-cards/week-01/card-29.png",
       "button_text": "Попробовать Нить",
@@ -58,10 +58,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-27-raw-thought-p1",
+      "id": "2026-07-04-raw-thought-p1",
       "enabled": true,
-      "publish_at": "2026-06-27T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-27-raw-thought-p1.md",
+      "publish_at": "2026-07-04T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-07-04-raw-thought-p1.md",
       "image_file": "assets/message-cards/week-01/card-36.png",
       "preview_image_file": "assets/message-cards/week-01/card-36.png",
       "button_text": "Попробовать Нить",
@@ -69,10 +69,10 @@
       "pin": false
     },
     {
-      "id": "2026-06-28-week-thread-p1",
+      "id": "2026-07-05-week-thread-p1",
       "enabled": true,
-      "publish_at": "2026-06-28T12:30:00+03:00",
-      "text_file": "docs/channel-posts/2026-06-28-week-thread-p1.md",
+      "publish_at": "2026-07-05T12:30:00+03:00",
+      "text_file": "docs/channel-posts/2026-07-05-week-thread-p1.md",
       "image_file": "assets/message-cards/week-01/card-43.png",
       "preview_image_file": "assets/message-cards/week-01/card-43.png",
       "button_text": "Попробовать Нить",
