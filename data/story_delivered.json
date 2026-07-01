@@ -1230,6 +1230,17 @@
       },
       "scheduled_at": "2026-06-30T18:10:00+00:00",
       "video_file": "assets/stories/daily/2026-06-30-memory-s3.mp4"
+    },
+    "2026-07-01-long-task-s1": {
+      "delivered_at": "2026-07-01T10:55:10.848772+00:00",
+      "github_run_id": "28512270175",
+      "github_sha": "66a4e2a5f413b4b0e47db0eea35d9f7717fd8c44",
+      "image_file": "assets/stories/daily/2026-07-01-long-task-s1.png",
+      "message_ids": {
+        "254279477": 438
+      },
+      "scheduled_at": "2026-07-01T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-07-01-long-task-s1.mp4"
     }
   }
 }
