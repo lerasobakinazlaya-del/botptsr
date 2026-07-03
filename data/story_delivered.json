@@ -1296,6 +1296,17 @@
       },
       "scheduled_at": "2026-07-02T18:10:00+00:00",
       "video_file": "assets/stories/daily/2026-07-02-not-send-s3.mp4"
+    },
+    "2026-07-03-one-day-s1": {
+      "delivered_at": "2026-07-03T10:16:11.063925+00:00",
+      "github_run_id": "28653903965",
+      "github_sha": "fdd5dfb96507faa856495901a49755568c89d8a3",
+      "image_file": "assets/stories/daily/2026-07-03-one-day-s1.png",
+      "message_ids": {
+        "254279477": 444
+      },
+      "scheduled_at": "2026-07-03T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-07-03-one-day-s1.mp4"
     }
   }
 }
