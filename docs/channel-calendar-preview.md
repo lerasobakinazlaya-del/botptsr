@@ -5,7 +5,7 @@
 
 Статусы: `published` уже опубликован, `scheduled` стоит в очереди, `disabled` выключен.
 
-## 2026-07-06 12:30 MSK · `scheduled`
+## 2026-07-06 12:30 MSK · `published`
 
 ID: `2026-07-06-night-p1`
 Файл: `docs/channel-posts/2026-07-06-night-p1.md`
@@ -14,6 +14,7 @@ ID: `2026-07-06-night-p1`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_night_p1`
 Закреп: `False`
+Telegram message_id: `75`
 
 Предпросмотр:
 
