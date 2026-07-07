@@ -650,6 +650,17 @@
       "published_at": "2026-07-06T13:05:52.261876+00:00",
       "scheduled_at": "2026-07-06T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-07-06-night-p1.md"
+    },
+    "2026-07-07-memory-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "28865357988",
+      "github_sha": "7b1d3c958585956ea2db5199d9f8d431116aa720",
+      "image_file": "assets/message-cards/week-01/card-08.png",
+      "message_id": 76,
+      "photo_message_id": 76,
+      "published_at": "2026-07-07T12:15:48.679985+00:00",
+      "scheduled_at": "2026-07-07T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-07-07-memory-p1.md"
     }
   }
 }
