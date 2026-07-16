@@ -74,7 +74,7 @@ Telegram message_id: `84`
 Попробуй коротко: напиши одну фразу, которую сейчас не хочется держать в голове.
 ```
 
-## 2026-07-16 12:30 MSK · `scheduled`
+## 2026-07-16 12:30 MSK · `published`
 
 ID: `2026-07-16-not-send-p1`
 Файл: `docs/channel-posts/2026-07-16-not-send-p1.md`
@@ -83,6 +83,7 @@ ID: `2026-07-16-not-send-p1`
 Кнопка: `Попробовать Нить`
 Ссылка: `https://t.me/asknitai_bot?start=src_telegram__cmp_viral_week_01__med_channel__cnt_not-send_p1`
 Закреп: `False`
+Telegram message_id: `85`
 
 Предпросмотр:
 
