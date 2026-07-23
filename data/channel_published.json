@@ -826,6 +826,17 @@
       "published_at": "2026-07-22T11:26:14.104810+00:00",
       "scheduled_at": "2026-07-22T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-07-22-long-task-p1.md"
+    },
+    "2026-07-23-not-send-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "30003067747",
+      "github_sha": "fd742c385aa57b842c0c83f99e7cd3f72bf5af59",
+      "image_file": "assets/message-cards/week-01/card-22.png",
+      "message_id": 92,
+      "photo_message_id": 92,
+      "published_at": "2026-07-23T11:25:45.346193+00:00",
+      "scheduled_at": "2026-07-23T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-07-23-not-send-p1.md"
     }
   }
 }
