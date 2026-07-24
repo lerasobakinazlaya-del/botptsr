@@ -2000,6 +2000,17 @@
       },
       "scheduled_at": "2026-07-24T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-07-24-one-day-s1.mp4"
+    },
+    "2026-07-24-one-day-s2": {
+      "delivered_at": "2026-07-24T14:30:13.503717+00:00",
+      "github_run_id": "30101080390",
+      "github_sha": "5638271ff1e91c51cbc13c9af65518ee9c9abf9c",
+      "image_file": "assets/stories/daily/2026-07-24-one-day-s2.png",
+      "message_ids": {
+        "254279477": 513
+      },
+      "scheduled_at": "2026-07-24T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-07-24-one-day-s2.mp4"
     }
   }
 }
