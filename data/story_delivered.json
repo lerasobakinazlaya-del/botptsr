@@ -2011,6 +2011,17 @@
       },
       "scheduled_at": "2026-07-24T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-07-24-one-day-s2.mp4"
+    },
+    "2026-07-24-one-day-s3": {
+      "delivered_at": "2026-07-24T19:54:02.459787+00:00",
+      "github_run_id": "30121787175",
+      "github_sha": "37dd1d7c6fecb6b8e5d3cafd49fb82a956b56a61",
+      "image_file": "assets/stories/daily/2026-07-24-one-day-s3.png",
+      "message_ids": {
+        "254279477": 514
+      },
+      "scheduled_at": "2026-07-24T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-07-24-one-day-s3.mp4"
     }
   }
 }
