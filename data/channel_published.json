@@ -892,6 +892,17 @@
       "published_at": "2026-07-28T11:36:15.775983+00:00",
       "scheduled_at": "2026-07-28T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-07-28-memory-p1.md"
+    },
+    "2026-07-29-long-task-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "30448487011",
+      "github_sha": "514087bd99794cc48ecefecbe3c3ec36219224c5",
+      "image_file": "assets/message-cards/week-01/card-15.png",
+      "message_id": 98,
+      "photo_message_id": 98,
+      "published_at": "2026-07-29T11:41:04.961862+00:00",
+      "scheduled_at": "2026-07-29T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-07-29-long-task-p1.md"
     }
   }
 }
