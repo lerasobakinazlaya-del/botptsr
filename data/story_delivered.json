@@ -2176,6 +2176,17 @@
       },
       "scheduled_at": "2026-07-29T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-07-29-long-task-s2.mp4"
+    },
+    "2026-07-29-long-task-s3": {
+      "delivered_at": "2026-07-29T19:51:35.005583+00:00",
+      "github_run_id": "30486041291",
+      "github_sha": "0476f8e64de40f85353b70035619bc05ab394301",
+      "image_file": "assets/stories/daily/2026-07-29-long-task-s3.png",
+      "message_ids": {
+        "254279477": 531
+      },
+      "scheduled_at": "2026-07-29T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-07-29-long-task-s3.mp4"
     }
   }
 }
