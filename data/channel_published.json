@@ -1035,6 +1035,17 @@
       "published_at": "2026-08-10T10:44:29.819013+00:00",
       "scheduled_at": "2026-08-10T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-08-10-night-p1.md"
+    },
+    "2026-08-11-memory-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "31482179000",
+      "github_sha": "8264ec5bf3147c30293b55ca7e46a17f72167a39",
+      "image_file": "assets/message-cards/week-01/card-08.png",
+      "message_id": 111,
+      "photo_message_id": 111,
+      "published_at": "2026-08-11T10:26:23.235284+00:00",
+      "scheduled_at": "2026-08-11T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-08-11-memory-p1.md"
     }
   }
 }
