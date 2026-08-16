@@ -1090,6 +1090,17 @@
       "published_at": "2026-08-15T09:51:07.597012+00:00",
       "scheduled_at": "2026-08-15T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-08-15-raw-thought-p1.md"
+    },
+    "2026-08-16-week-thread-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "31940174683",
+      "github_sha": "f5b7052c730a6a826b74d60a3f7663df190d575f",
+      "image_file": "assets/message-cards/week-01/card-43.png",
+      "message_id": 116,
+      "photo_message_id": 116,
+      "published_at": "2026-08-16T09:52:31.065216+00:00",
+      "scheduled_at": "2026-08-16T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-08-16-week-thread-p1.md"
     }
   }
 }
