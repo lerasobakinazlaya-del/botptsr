@@ -3705,6 +3705,17 @@
       },
       "scheduled_at": "2026-09-14T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-09-14-night-s1.mp4"
+    },
+    "2026-09-14-night-s2": {
+      "delivered_at": "2026-09-14T18:16:41.292950+00:00",
+      "github_run_id": "34879407744",
+      "github_sha": "716c7f682cc113e5ceddac352922963358d1b7fe",
+      "image_file": "assets/stories/daily/2026-09-14-night-s2.png",
+      "message_ids": {
+        "254279477": 670
+      },
+      "scheduled_at": "2026-09-14T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-09-14-night-s2.mp4"
     }
   }
 }
