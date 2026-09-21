@@ -1474,6 +1474,14 @@
       "published_at": "2026-09-20T13:39:40.104453+00:00",
       "scheduled_at": "2026-09-20T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-09-20-week-thread-p1.md"
+    },
+    "2026-09-21-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-09-21T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-09-21T15:59:37.344292+00:00",
+      "text_file": "docs/channel-posts/2026-09-21-night-p1.md"
     }
   }
 }
