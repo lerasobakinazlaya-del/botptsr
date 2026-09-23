@@ -4013,6 +4013,17 @@
       },
       "scheduled_at": "2026-09-23T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-09-23-long-task-s2.mp4"
+    },
+    "2026-09-23-long-task-s3": {
+      "delivered_at": "2026-09-23T21:38:43.921026+00:00",
+      "github_run_id": "35923386516",
+      "github_sha": "ff76956caa9c5d66abc05a7d27c277a99e967824",
+      "image_file": "assets/stories/daily/2026-09-23-long-task-s3.png",
+      "message_ids": {
+        "254279477": 698
+      },
+      "scheduled_at": "2026-09-23T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-09-23-long-task-s3.mp4"
     }
   }
 }
