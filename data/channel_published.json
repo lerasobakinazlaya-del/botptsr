@@ -1515,6 +1515,17 @@
       "published_at": "2026-09-24T14:21:37.513579+00:00",
       "scheduled_at": "2026-09-24T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-09-24-not-send-p1.md"
+    },
+    "2026-09-25-one-day-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "36149245951",
+      "github_sha": "7abaf3e85570ae9c39c4e3546ad013d22d71dbd0",
+      "image_file": "assets/message-cards/week-01/card-29.png",
+      "message_id": 151,
+      "photo_message_id": 151,
+      "published_at": "2026-09-25T14:42:26.057991+00:00",
+      "scheduled_at": "2026-09-25T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-09-25-one-day-p1.md"
     }
   }
 }
