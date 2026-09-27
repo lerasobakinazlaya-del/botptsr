@@ -4134,6 +4134,17 @@
       },
       "scheduled_at": "2026-09-27T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-09-27-week-thread-s1.mp4"
+    },
+    "2026-09-27-week-thread-s2": {
+      "delivered_at": "2026-09-27T17:21:44.700175+00:00",
+      "github_run_id": "36336471015",
+      "github_sha": "ee88278c48f37d0e44d62b37bbc8167158e47a84",
+      "image_file": "assets/stories/daily/2026-09-27-week-thread-s2.png",
+      "message_ids": {
+        "254279477": 709
+      },
+      "scheduled_at": "2026-09-27T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-09-27-week-thread-s2.mp4"
     }
   }
 }
