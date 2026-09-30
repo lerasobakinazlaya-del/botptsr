@@ -1564,6 +1564,14 @@
       "skipped": true,
       "skipped_at": "2026-09-29T16:04:50.449529+00:00",
       "text_file": "docs/channel-posts/2026-09-29-memory-p1.md"
+    },
+    "2026-09-30-long-task-p1": {
+      "image_file": "assets/message-cards/week-01/card-15.png",
+      "reason": "stale",
+      "scheduled_at": "2026-09-30T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-09-30T16:02:30.152613+00:00",
+      "text_file": "docs/channel-posts/2026-09-30-long-task-p1.md"
     }
   }
 }
