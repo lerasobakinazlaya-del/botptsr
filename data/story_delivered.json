@@ -4431,6 +4431,17 @@
       },
       "scheduled_at": "2026-10-06T07:20:00+00:00",
       "video_file": "assets/stories/daily/2026-10-06-memory-s1.mp4"
+    },
+    "2026-10-06-memory-s2": {
+      "delivered_at": "2026-10-06T22:44:39.605832+00:00",
+      "github_run_id": "37542193162",
+      "github_sha": "c2221a13085f22f10af028e082a211e526da9c8d",
+      "image_file": "assets/stories/daily/2026-10-06-memory-s2.png",
+      "message_ids": {
+        "254279477": 736
+      },
+      "scheduled_at": "2026-10-06T12:40:00+00:00",
+      "video_file": "assets/stories/daily/2026-10-06-memory-s2.mp4"
     }
   }
 }
