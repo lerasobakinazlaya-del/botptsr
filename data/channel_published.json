@@ -1634,6 +1634,14 @@
       "skipped": true,
       "skipped_at": "2026-10-07T16:49:57.730971+00:00",
       "text_file": "docs/channel-posts/2026-10-07-long-task-p1.md"
+    },
+    "2026-10-08-not-send-p1": {
+      "image_file": "assets/message-cards/week-01/card-22.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-08T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-08T16:49:19.773034+00:00",
+      "text_file": "docs/channel-posts/2026-10-08-not-send-p1.md"
     }
   }
 }
