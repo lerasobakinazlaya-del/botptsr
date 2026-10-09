@@ -1642,6 +1642,14 @@
       "skipped": true,
       "skipped_at": "2026-10-08T16:49:19.773034+00:00",
       "text_file": "docs/channel-posts/2026-10-08-not-send-p1.md"
+    },
+    "2026-10-09-one-day-p1": {
+      "image_file": "assets/message-cards/week-01/card-29.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-09T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-09T16:28:44.235081+00:00",
+      "text_file": "docs/channel-posts/2026-10-09-one-day-p1.md"
     }
   }
 }
