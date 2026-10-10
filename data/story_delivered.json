@@ -4541,6 +4541,17 @@
       },
       "scheduled_at": "2026-10-09T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-10-09-one-day-s2.mp4"
+    },
+    "2026-10-09-one-day-s3": {
+      "delivered_at": "2026-10-10T13:56:57.575358+00:00",
+      "github_run_id": "38057508305",
+      "github_sha": "211a01aaa6abd50e0bd3818ab7d3cfe27ea157b8",
+      "image_file": "assets/stories/daily/2026-10-09-one-day-s3.png",
+      "message_ids": {
+        "254279477": 749
+      },
+      "scheduled_at": "2026-10-09T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-10-09-one-day-s3.mp4"
     }
   }
 }
