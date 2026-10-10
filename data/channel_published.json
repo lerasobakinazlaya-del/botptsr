@@ -1650,6 +1650,14 @@
       "skipped": true,
       "skipped_at": "2026-10-09T16:28:44.235081+00:00",
       "text_file": "docs/channel-posts/2026-10-09-one-day-p1.md"
+    },
+    "2026-10-10-raw-thought-p1": {
+      "image_file": "assets/message-cards/week-01/card-36.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-10T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-10T15:31:55.371729+00:00",
+      "text_file": "docs/channel-posts/2026-10-10-raw-thought-p1.md"
     }
   }
 }
