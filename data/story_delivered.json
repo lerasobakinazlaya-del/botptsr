@@ -4574,6 +4574,17 @@
       },
       "scheduled_at": "2026-10-10T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-10-10-raw-thought-s2.mp4"
+    },
+    "2026-10-10-raw-thought-s3": {
+      "delivered_at": "2026-10-11T14:19:13.697710+00:00",
+      "github_run_id": "38146485055",
+      "github_sha": "1d562d4ce46f8389d1468f16fef10283e2b02094",
+      "image_file": "assets/stories/daily/2026-10-10-raw-thought-s3.png",
+      "message_ids": {
+        "254279477": 752
+      },
+      "scheduled_at": "2026-10-10T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-10-10-raw-thought-s3.mp4"
     }
   }
 }
