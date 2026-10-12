@@ -1666,6 +1666,14 @@
       "skipped": true,
       "skipped_at": "2026-10-11T15:54:23.211514+00:00",
       "text_file": "docs/channel-posts/2026-10-11-week-thread-p1.md"
+    },
+    "2026-10-12-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-12T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-12T19:15:21.381658+00:00",
+      "text_file": "docs/channel-posts/2026-10-12-night-p1.md"
     }
   }
 }
