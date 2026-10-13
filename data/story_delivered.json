@@ -4629,6 +4629,17 @@
       },
       "scheduled_at": "2026-10-12T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-10-12-night-s2.mp4"
+    },
+    "2026-10-12-night-s3": {
+      "delivered_at": "2026-10-13T00:53:27.554831+00:00",
+      "github_run_id": "38329222032",
+      "github_sha": "715dffc700091a15484beb75f88bce2c2a53b53e",
+      "image_file": "assets/stories/daily/2026-10-12-night-s3.png",
+      "message_ids": {
+        "254279477": 757
+      },
+      "scheduled_at": "2026-10-12T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-10-12-night-s3.mp4"
     }
   }
 }
