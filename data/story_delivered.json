@@ -4662,6 +4662,17 @@
       },
       "scheduled_at": "2026-10-13T12:40:00+00:00",
       "video_file": "assets/stories/daily/2026-10-13-memory-s2.mp4"
+    },
+    "2026-10-13-memory-s3": {
+      "delivered_at": "2026-10-13T22:58:26.537432+00:00",
+      "github_run_id": "38480975124",
+      "github_sha": "9bf94e44db8609bf57080e514a5a20464efd911e",
+      "image_file": "assets/stories/daily/2026-10-13-memory-s3.png",
+      "message_ids": {
+        "254279477": 760
+      },
+      "scheduled_at": "2026-10-13T18:10:00+00:00",
+      "video_file": "assets/stories/daily/2026-10-13-memory-s3.mp4"
     }
   }
 }
