@@ -1674,6 +1674,14 @@
       "skipped": true,
       "skipped_at": "2026-10-12T19:15:21.381658+00:00",
       "text_file": "docs/channel-posts/2026-10-12-night-p1.md"
+    },
+    "2026-10-13-memory-p1": {
+      "image_file": "assets/message-cards/week-01/card-08.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-13T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-13T17:04:51.761573+00:00",
+      "text_file": "docs/channel-posts/2026-10-13-memory-p1.md"
     }
   }
 }
