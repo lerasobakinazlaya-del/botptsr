@@ -1715,6 +1715,17 @@
       "published_at": "2026-10-16T14:08:34.900629+00:00",
       "scheduled_at": "2026-10-16T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-10-16-one-day-p1.md"
+    },
+    "2026-10-17-raw-thought-p1": {
+      "chat_id": "@trynit_ai",
+      "github_run_id": "39035231920",
+      "github_sha": "dcf292b6c987e1f6e1d3d58a6cb1ad635cd58e33",
+      "image_file": "assets/message-cards/week-01/card-36.png",
+      "message_id": 159,
+      "photo_message_id": 159,
+      "published_at": "2026-10-17T13:07:12.577280+00:00",
+      "scheduled_at": "2026-10-17T09:30:00+00:00",
+      "text_file": "docs/channel-posts/2026-10-17-raw-thought-p1.md"
     }
   }
 }
