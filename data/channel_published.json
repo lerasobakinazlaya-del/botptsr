@@ -1811,6 +1811,14 @@
       "published_at": "2026-10-25T13:51:25.886072+00:00",
       "scheduled_at": "2026-10-25T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-10-25-week-thread-p1.md"
+    },
+    "2026-10-26-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-26T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-26T16:16:14.661453+00:00",
+      "text_file": "docs/channel-posts/2026-10-26-night-p1.md"
     }
   }
 }
