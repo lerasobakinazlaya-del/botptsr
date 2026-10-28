@@ -1830,6 +1830,14 @@
       "published_at": "2026-10-27T15:30:00.204353+00:00",
       "scheduled_at": "2026-10-27T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-10-27-memory-p1.md"
+    },
+    "2026-10-28-long-task-p1": {
+      "image_file": "assets/message-cards/week-01/card-15.png",
+      "reason": "stale",
+      "scheduled_at": "2026-10-28T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-10-28T16:13:23.691109+00:00",
+      "text_file": "docs/channel-posts/2026-10-28-long-task-p1.md"
     }
   }
 }
