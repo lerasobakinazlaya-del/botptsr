@@ -1865,6 +1865,14 @@
       "published_at": "2026-10-31T15:28:25.030474+00:00",
       "scheduled_at": "2026-10-31T09:30:00+00:00",
       "text_file": "docs/channel-posts/2026-10-31-raw-thought-p1.md"
+    },
+    "2026-11-01-week-thread-p1": {
+      "image_file": "assets/message-cards/week-01/card-43.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-01T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-01T16:15:24.019946+00:00",
+      "text_file": "docs/channel-posts/2026-11-01-week-thread-p1.md"
     }
   }
 }
