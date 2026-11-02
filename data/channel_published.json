@@ -1873,6 +1873,14 @@
       "skipped": true,
       "skipped_at": "2026-11-01T16:15:24.019946+00:00",
       "text_file": "docs/channel-posts/2026-11-01-week-thread-p1.md"
+    },
+    "2026-11-02-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-02T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-02T19:42:00.991577+00:00",
+      "text_file": "docs/channel-posts/2026-11-02-night-p1.md"
     }
   }
 }
