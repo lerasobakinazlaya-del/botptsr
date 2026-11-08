@@ -1921,6 +1921,14 @@
       "skipped": true,
       "skipped_at": "2026-11-07T15:51:30.616932+00:00",
       "text_file": "docs/channel-posts/2026-11-07-raw-thought-p1.md"
+    },
+    "2026-11-08-week-thread-p1": {
+      "image_file": "assets/message-cards/week-01/card-43.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-08T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-08T16:13:26.120088+00:00",
+      "text_file": "docs/channel-posts/2026-11-08-week-thread-p1.md"
     }
   }
 }
