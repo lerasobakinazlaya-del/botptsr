@@ -1969,6 +1969,14 @@
       "skipped": true,
       "skipped_at": "2026-11-13T17:20:20.073340+00:00",
       "text_file": "docs/channel-posts/2026-11-13-one-day-p1.md"
+    },
+    "2026-11-14-raw-thought-p1": {
+      "image_file": "assets/message-cards/week-01/card-36.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-14T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-14T15:58:45.999335+00:00",
+      "text_file": "docs/channel-posts/2026-11-14-raw-thought-p1.md"
     }
   }
 }
