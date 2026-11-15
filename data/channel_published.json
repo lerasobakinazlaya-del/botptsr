@@ -1977,6 +1977,14 @@
       "skipped": true,
       "skipped_at": "2026-11-14T15:58:45.999335+00:00",
       "text_file": "docs/channel-posts/2026-11-14-raw-thought-p1.md"
+    },
+    "2026-11-15-week-thread-p1": {
+      "image_file": "assets/message-cards/week-01/card-43.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-15T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-15T16:30:58.912200+00:00",
+      "text_file": "docs/channel-posts/2026-11-15-week-thread-p1.md"
     }
   }
 }
