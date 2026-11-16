@@ -1985,6 +1985,14 @@
       "skipped": true,
       "skipped_at": "2026-11-15T16:30:58.912200+00:00",
       "text_file": "docs/channel-posts/2026-11-15-week-thread-p1.md"
+    },
+    "2026-11-16-night-p1": {
+      "image_file": "assets/message-cards/week-01/card-01.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-16T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-16T19:46:43.131773+00:00",
+      "text_file": "docs/channel-posts/2026-11-16-night-p1.md"
     }
   }
 }
