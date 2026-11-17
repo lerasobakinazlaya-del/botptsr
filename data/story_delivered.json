@@ -5773,6 +5773,17 @@
       },
       "scheduled_at": "2026-11-16T18:10:00+00:00",
       "video_file": "assets/stories/daily/2026-11-16-night-s3.mp4"
+    },
+    "2026-11-17-memory-s1": {
+      "delivered_at": "2026-11-17T17:01:27.180261+00:00",
+      "github_run_id": "44131800687",
+      "github_sha": "1f642d034bf4ec631feb355018acc157f577fc2e",
+      "image_file": "assets/stories/daily/2026-11-17-memory-s1.png",
+      "message_ids": {
+        "254279477": 862
+      },
+      "scheduled_at": "2026-11-17T07:20:00+00:00",
+      "video_file": "assets/stories/daily/2026-11-17-memory-s1.mp4"
     }
   }
 }
