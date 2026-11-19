@@ -2009,6 +2009,14 @@
       "skipped": true,
       "skipped_at": "2026-11-18T18:19:44.992012+00:00",
       "text_file": "docs/channel-posts/2026-11-18-long-task-p1.md"
+    },
+    "2026-11-19-not-send-p1": {
+      "image_file": "assets/message-cards/week-01/card-22.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-19T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-19T18:32:50.035015+00:00",
+      "text_file": "docs/channel-posts/2026-11-19-not-send-p1.md"
     }
   }
 }
