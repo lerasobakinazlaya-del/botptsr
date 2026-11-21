@@ -2025,6 +2025,14 @@
       "skipped": true,
       "skipped_at": "2026-11-20T17:57:12.857082+00:00",
       "text_file": "docs/channel-posts/2026-11-20-one-day-p1.md"
+    },
+    "2026-11-21-raw-thought-p1": {
+      "image_file": "assets/message-cards/week-01/card-36.png",
+      "reason": "stale",
+      "scheduled_at": "2026-11-21T09:30:00+00:00",
+      "skipped": true,
+      "skipped_at": "2026-11-21T16:54:58.772387+00:00",
+      "text_file": "docs/channel-posts/2026-11-21-raw-thought-p1.md"
     }
   }
 }
